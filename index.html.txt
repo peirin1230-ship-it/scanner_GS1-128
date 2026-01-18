@@ -269,7 +269,6 @@ timestamp, raw, gtin_01, lot_10, expiry_17, expiry_iso, serial_21, device_id, lo
   console.error(e);
   setStatus("カメラ起動に失敗: " + (e?.message || e), "bad");
   alert("カメラ起動に失敗: " + (e?.message || e));
-}
     }
 
     function stopScan() {
