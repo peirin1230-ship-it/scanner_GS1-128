@@ -12,8 +12,8 @@
       --muted:rgba(20,19,22,.62);
       --line:rgba(20,19,22,.10);
 
-      --accent:#e11d48;   /* red */
-      --accent2:#fb7185;  /* soft red */
+      --accent:#e11d48;
+      --accent2:#fb7185;
 
       --shadow: 0 10px 28px rgba(20,19,22,.10);
       --r:18px;
@@ -74,7 +74,6 @@
       appearance:none;border:1px solid var(--line);background:#fff;color:var(--ink);
       padding:14px 14px;border-radius: 14px;cursor:pointer;
       font-size:16px;font-weight:1000;letter-spacing:.2px;
-      transition: transform .05s ease, box-shadow .15s ease, border-color .15s ease;
       user-select:none;
     }
     .btn:active{transform:scale(.99)}
@@ -98,17 +97,13 @@
       border:1px solid var(--line);background:#000;
     }
     video{width:100%;height:auto;display:block}
-    /* 枠は入れない */
     .overlay{
       pointer-events:none;position:absolute; inset:0;
       background: linear-gradient(180deg, rgba(0,0,0,.10), transparent 25%, transparent 75%, rgba(0,0,0,.18));
     }
 
-    /* ===== Popout (big, colored, on scan screen) ===== */
     .popout{
-      position:absolute;
-      left:12px; right:12px;
-      bottom:12px;
+      position:absolute;left:12px; right:12px; bottom:12px;
       border-radius: 18px;
       border:1px solid rgba(225,29,72,.25);
       background: linear-gradient(135deg, rgba(225,29,72,.20), rgba(255,255,255,.85) 60%);
@@ -118,45 +113,13 @@
       display:none;
     }
     .popout.show{display:block; animation: pop .16s ease-out}
-    @keyframes pop{
-      from{opacity:0; transform: translateY(6px)}
-      to{opacity:1; transform: translateY(0)}
-    }
+    @keyframes pop{from{opacity:0; transform: translateY(6px)} to{opacity:1; transform: translateY(0)}}
     .popTop{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
-    .popStatus{
-      font-size:30px; /* BIG OK */
-      font-weight:1100;
-      letter-spacing:.2px;
-      line-height:1;
-      color: var(--accent);
-    }
-    .popMeta{
-      font-size:13px;color:rgba(20,19,22,.65);
-      line-height:1.2;
-      text-align:right;
-      white-space:nowrap;
-    }
-    .popName{
-      margin-top:8px;
-      font-size:20px;
-      font-weight:1100;
-      line-height:1.18;
-      color: var(--ink);
-    }
-    .popPrice{
-      margin-top:6px;
-      font-size:22px;
-      font-weight:1100;
-      color: var(--accent);
-      letter-spacing:.2px;
-    }
-    .popSmall{
-      margin-top:8px;
-      font-size:13px;
-      color:rgba(20,19,22,.65);
-      font-family: var(--mono);
-      word-break: break-all;
-    }
+    .popStatus{font-size:30px;font-weight:1100;letter-spacing:.2px;line-height:1;color: var(--accent)}
+    .popMeta{font-size:13px;color:rgba(20,19,22,.65);line-height:1.2;text-align:right;white-space:nowrap}
+    .popName{margin-top:8px;font-size:20px;font-weight:1100;line-height:1.18;color: var(--ink)}
+    .popPrice{margin-top:6px;font-size:22px;font-weight:1100;color: var(--accent);letter-spacing:.2px}
+    .popSmall{margin-top:8px;font-size:13px;color:rgba(20,19,22,.65);font-family: var(--mono);word-break: break-all}
 
     .hint{margin-top:10px;font-size:14px;color:var(--muted);line-height:1.35}
     .mono{font-family:var(--mono)}
@@ -168,7 +131,6 @@
       font-weight:1000;
     }
 
-    /* ===== Result (keep same layout) ===== */
     .okBanner{
       display:flex;align-items:center;justify-content:space-between;gap:10px;
       padding:14px 14px;
@@ -204,7 +166,6 @@
       padding:10px 12px;border-radius: 12px;font-size:14px;min-width: 220px;outline:none;
     }
 
-    /* keep small toast for errors only */
     .toast{
       position:fixed;left:50%; bottom:16px;transform: translateX(-50%);
       min-width: 260px;max-width: 92vw;padding:12px 14px;border-radius: 16px;
@@ -225,13 +186,12 @@
     <div class="top">
       <div class="title">
         <h1>LinQ VAL Scanner</h1>
-        <div class="sub">iPhone Safari対策：初回自動リトライ / 同一バーコードは5秒間無視</div>
+        <div class="sub">iPhone Safari対策：自動カメラ再起動はしない（手動再起動ボタン）/ 同一5秒無視</div>
       </div>
       <div class="build">BUILD <b id="buildLabel">v0</b></div>
     </div>
 
     <div class="grid">
-      <!-- SCAN -->
       <div class="card">
         <div class="hd">
           <div class="label">スキャン</div>
@@ -247,13 +207,13 @@
             <button class="btn primary" id="btnStart">Start</button>
             <button class="btn" id="btnStop">Stop</button>
             <button class="btn" id="btnTorch">Light</button>
+            <button class="btn" id="btnReinit" title="iPhone Safariで初回だけ不調な時に押す（設定変更と同等）">再起動</button>
           </div>
 
           <div style="margin-top:12px" class="videoWrap">
             <video id="video" playsinline muted></video>
             <div class="overlay"></div>
 
-            <!-- BIG POPOUT on scan screen -->
             <div class="popout" id="popout">
               <div class="popTop">
                 <div class="popStatus" id="popStatus">OK</div>
@@ -284,7 +244,6 @@
         </div>
       </div>
 
-      <!-- RESULT -->
       <div class="card">
         <div class="hd">
           <div class="label">読み取り結果</div>
@@ -335,7 +294,7 @@
   </div>
 
 <script>
-  const BUILD = "v2026-01-19-06";
+  const BUILD = "v2026-01-19-07";
   document.getElementById("buildLabel").textContent = BUILD;
 
   const $ = (id) => document.getElementById(id);
@@ -384,10 +343,9 @@
     el.toastT1.textContent = t1;
     el.toastT2.textContent = t2;
     el.toast.classList.add("show");
-    setTimeout(()=>el.toast.classList.remove("show"), 1400);
+    setTimeout(()=>el.toast.classList.remove("show"), 1600);
   }
   function haptic(){ try{ if (navigator.vibrate) navigator.vibrate(40); }catch(e){} }
-
   function showPopout({status, name, price, meta, small}){
     el.popStatus.textContent = status;
     el.popMeta.textContent = meta || "";
@@ -401,7 +359,6 @@
 
   function digits(s){ return (s ?? "").toString().replace(/\D/g,""); }
   function nowISO(){ return new Date().toISOString(); }
-
   function ymdFromAI17(yyMMdd){
     if (!yyMMdd || yyMMdd.length !== 6) return "";
     return `20${yyMMdd.slice(0,2)}-${yyMMdd.slice(2,4)}-${yyMMdd.slice(4,6)}`;
@@ -444,7 +401,7 @@
   }
 
   // ===== local log =====
-  const LS_KEY = "linq_val_scans_v6";
+  const LS_KEY = "linq_val_scans_v7";
   function loadScans(){ try{ return JSON.parse(localStorage.getItem(LS_KEY) || "[]"); }catch(e){ return []; } }
   function saveScans(arr){ localStorage.setItem(LS_KEY, JSON.stringify(arr)); }
   function updateCount(){ el.logCount.textContent = String(loadScans().length); }
@@ -503,47 +460,25 @@
     if (s.startsWith("]C1")) s = s.slice(3);
     const GS = String.fromCharCode(29);
     const out = { gtin14:"", lot:"", exp_yyMMdd:"", serial:"" };
-
     function readVar(start, maxLen){
       const endGS = s.indexOf(GS, start);
       const end = (endGS !== -1) ? Math.min(endGS, start+maxLen) : Math.min(s.length, start+maxLen);
       return s.slice(start, end);
     }
-
     let i = 0;
     while (i < s.length){
       if (s[i] === GS) { i++; continue; }
       const ai2 = s.slice(i, i+2);
-      if (ai2 === "01"){
-        const val = s.slice(i+2, i+16);
-        if (/^\d{14}$/.test(val)) out.gtin14 = val;
-        i += 16; continue;
-      }
-      if (ai2 === "17"){
-        const val = s.slice(i+2, i+8);
-        if (/^\d{6}$/.test(val)) out.exp_yyMMdd = val;
-        i += 8; continue;
-      }
-      if (ai2 === "10"){
-        const val = readVar(i+2, 20);
-        out.lot = val;
-        i += 2 + val.length;
-        if (s[i] === GS) i++;
-        continue;
-      }
-      if (ai2 === "21"){
-        const val = readVar(i+2, 20);
-        out.serial = val;
-        i += 2 + val.length;
-        if (s[i] === GS) i++;
-        continue;
-      }
+      if (ai2 === "01"){ const val = s.slice(i+2, i+16); if (/^\d{14}$/.test(val)) out.gtin14 = val; i += 16; continue; }
+      if (ai2 === "17"){ const val = s.slice(i+2, i+8); if (/^\d{6}$/.test(val)) out.exp_yyMMdd = val; i += 8; continue; }
+      if (ai2 === "10"){ const val = readVar(i+2, 20); out.lot = val; i += 2 + val.length; if (s[i] === GS) i++; continue; }
+      if (ai2 === "21"){ const val = readVar(i+2, 20); out.serial = val; i += 2 + val.length; if (s[i] === GS) i++; continue; }
       i++;
     }
     return out;
   }
 
-  // ===== Dict lookup (4-digit split / jan13keta) =====
+  // ===== Dict lookup =====
   const cache = new Map();
   async function fetchText(url){
     const res = await fetch(url, {cache:"no-store"});
@@ -602,33 +537,26 @@
   async function dictLookup({gtin14, jan13keta}){
     let jan = digits(jan13keta || "");
     const gt = digits(gtin14 || "");
-
     if (!jan && gt){
       const {gt3, gt4} = gt3gt4(gt);
       if (gt3){
         const idxUrl = `gtin_index/${gt3}/${gt4}.csv`;
         const idxRows = await loadObjects(idxUrl);
         const hit = idxRows.find(r => digits(r.gtin14) === gt);
-        if (hit){
-          jan = digits(hit.jan13keta ?? hit.jan13 ?? "");
-        }
+        if (hit) jan = digits(hit.jan13keta ?? hit.jan13 ?? "");
       }
     }
-
     if (!jan) return null;
     const {jan3, jan4} = jan3jan4(jan);
     if (!jan4) return null;
-
     const dictUrl = `dict_jan/${jan3}/${jan4}.csv`;
     const dictRows = await loadObjects(dictUrl);
-
-    const hit = dictRows.find(r => digits(r.jan13keta ?? r.jan13 ?? "") === jan)
-             || (gt ? dictRows.find(r => digits(r.gtin14) === gt) : null);
-
-    return hit || null;
+    return dictRows.find(r => digits(r.jan13keta ?? r.jan13 ?? "") === jan)
+        || (gt ? dictRows.find(r => digits(r.gtin14) === gt) : null)
+        || null;
   }
 
-  // ===== Camera/scanning (iPhone Safari fix) =====
+  // ===== Camera/scanning =====
   let stream = null;
   let reader = null;
   let torchOn = false;
@@ -637,12 +565,8 @@
   let lastRaw = "";
   let lastAt = 0;
 
-  // iPhone Safari: kickstart strategy
-  const KICK_1_MS = 1200;  // restart decoder if no decode
-  const KICK_2_MS = 2800;  // restart camera if still none
-
-  let startedAt = 0;
-  let decodeCount = 0;
+  // safari-ready: count callback ticks even when NotFound
+  let ticks = 0;
 
   async function listCameras(){
     try{
@@ -660,15 +584,6 @@
     }catch(e){}
   }
 
-  async function waitVideoHasDimensions(video, timeoutMs=2500){
-    const t0 = Date.now();
-    while (Date.now() - t0 < timeoutMs){
-      if (video.readyState >= 2 && video.videoWidth > 0 && video.videoHeight > 0) return true;
-      await new Promise(r => setTimeout(r, 50));
-    }
-    return false;
-  }
-
   async function startCamera(){
     const deviceId = el.selCamera.value;
     const constraints = {
@@ -680,25 +595,27 @@
       }
     };
 
-    stream = await navigator.mediaDevices.getUserMedia(constraints);
+    try{
+      stream = await navigator.mediaDevices.getUserMedia(constraints);
+    }catch(e){
+      setPill(el.pillCam, false);
+      setStatus("warn","権限エラー","Safariのカメラ許可をONに");
+      toast("カメラ権限", "Safariでカメラを許可してください");
+      throw e;
+    }
+
     el.video.srcObject = stream;
 
-    // critical: ensure play after user gesture
-    await el.video.play().catch(()=>{});
-    await waitVideoHasDimensions(el.video, 2500);
+    try{
+      await el.video.play(); // must succeed under user gesture
+    }catch(e){
+      setStatus("warn","再生できません","Startをもう一度 / 許可確認");
+      toast("再生不可", "Safariのカメラ許可を確認");
+      throw e;
+    }
 
-    await listCameras();
     setPill(el.pillCam, true);
     torchOn = false;
-  }
-
-  async function restartCamera(){
-    try{
-      if (stream){ for (const t of stream.getTracks()) t.stop(); }
-    }catch(e){}
-    stream = null;
-    el.video.srcObject = null;
-    await startCamera();
   }
 
   async function stopAll(){
@@ -742,16 +659,21 @@
   function startDecodeLoop(){
     const ZX = window.ZXing;
     reader = buildReader();
+    ticks = 0;
 
-    // Use video element continuous (stable across iOS)
     reader.decodeFromVideoElementContinuously(el.video, (result, err)=>{
       if (result){
-        decodeCount++;
+        ticks++; // tick
         const text = result.getText ? result.getText() : String(result.text || result);
         const fmt = result.getBarcodeFormat ? result.getBarcodeFormat() : (result.format || "");
         onDecoded(text, fmt);
-      } else if (err && !(err instanceof ZX.NotFoundException)) {
-        // ignore
+      } else if (err){
+        // NotFoundException is normal -> still counts as "loop running"
+        if (err instanceof ZX.NotFoundException){
+          ticks++;
+          return;
+        }
+        // other errors ignore
       }
     });
   }
@@ -760,33 +682,6 @@
     try{ if (reader) { try{ reader.reset(); }catch(e){} } }catch(e){}
     reader = null;
     startDecodeLoop();
-  }
-
-  function scheduleKickstart(){
-    clearTimeout(scheduleKickstart._t1);
-    clearTimeout(scheduleKickstart._t2);
-
-    scheduleKickstart._t1 = setTimeout(async ()=>{
-      // if no decode callbacks seen yet, restart decoder once
-      if (decodeCount === 0 && (Date.now()-startedAt) > KICK_1_MS){
-        setStatus("warn","準備中…","（自動調整中）");
-        await restartDecoderOnly();
-      }
-    }, KICK_1_MS);
-
-    scheduleKickstart._t2 = setTimeout(async ()=>{
-      // if still nothing, restart camera stream (equivalent to user toggling)
-      if (decodeCount === 0 && (Date.now()-startedAt) > KICK_2_MS){
-        setStatus("warn","準備中…","（カメラ再起動）");
-        await stopReaderOnly();
-        await restartCamera();
-        startDecodeLoop();
-      }
-    }, KICK_2_MS);
-  }
-
-  async function stopReaderOnly(){
-    try{ if (reader) { try{ reader.reset(); }catch(e){} reader=null; } }catch(e){}
   }
 
   async function onDecoded(raw, fmt){
@@ -832,7 +727,6 @@
       return;
     }
 
-    // show ids early
     el.vJan.textContent = jan13keta || "—";
     el.vGtin.textContent = gtin14 || "—";
     el.vLot.textContent = lot || "—";
@@ -870,27 +764,14 @@
       el.vPack.textContent = dict.pack_qty || "—";
 
       setStatus("ok","OK","辞書一致");
-      showPopout({
-        status: "OK",
-        name,
-        price: price || "—",
-        meta: "辞書一致",
-        small: (gtin14 || jan13keta) ? `${gtin14 || ""} ${jan13keta || ""}`.trim() : ""
-      });
+      showPopout({status:"OK", name, price: price || "—", meta:"辞書一致", small:`JAN:${jan13keta}  GTIN:${gtin14}`});
       haptic();
     } else {
       setStatus("warn","WARN","辞書なし");
-      showPopout({
-        status: "WARN",
-        name: gtin14 || jan13keta || "—",
-        price: "—",
-        meta: "辞書なし",
-        small: (gtin14 || jan13keta) ? `${gtin14 || ""} ${jan13keta || ""}`.trim() : ""
-      });
+      showPopout({status:"WARN", name: gtin14 || jan13keta || "—", price:"—", meta:"辞書なし", small:`${gtin14 || ""} ${jan13keta || ""}`.trim()});
       haptic();
     }
 
-    // save log
     const scans = loadScans();
     scans.push({
       timestamp: nowISO(),
@@ -914,36 +795,56 @@
     updateCount();
   }
 
+  // ===== UI helpers =====
+  function setStatus(kind, label, sub){
+    el.dotStatus.style.background =
+      kind === "ok" ? "var(--accent)" :
+      kind === "warn" ? "rgba(225,29,72,.45)" :
+      "rgba(20,19,22,.20)";
+    el.txtStatus.textContent = label;
+    el.txtSub.textContent = sub || "";
+  }
+
+  // ===== Start =====
   async function startScan(){
     setStatus("idle","起動中…","ZXing/カメラ準備");
     const ok = await ensureZXing();
     setPill(el.pillZxing, ok);
     if (!ok){
-      setStatus("warn","ZXing読込失敗","CDN/通信を確認");
+      setStatus("warn","ZXing失敗","CDN/通信を確認");
       toast("ZXing","CDN/通信を確認");
       return;
     }
 
-    decodeCount = 0;
-    startedAt = Date.now();
-
     await startCamera();
+    setPill(el.pillCam, true);
     setStatus("idle","待機","スキャンしてください");
 
-    // Start decoder loop after video is truly ready
-    await waitVideoHasDimensions(el.video, 2000);
+    // start decoder
     startDecodeLoop();
 
-    // ✅ iPhone Safari: auto-kickstart (decoder restart -> camera restart)
-    scheduleKickstart();
+    // ✅ 初回だけ読めない対策：カメラは触らず、デコーダだけリスタート
+    setTimeout(async ()=>{
+      if (ticks === 0){
+        setStatus("warn","準備中…","（デコーダ再起動）");
+        await restartDecoderOnly();
+      }
+    }, 1200);
   }
 
   // ===== Buttons =====
   $("btnStart").addEventListener("click", async ()=>{
-    try{ await startScan(); }catch(e){ setStatus("warn","Start失敗", String(e.message||e)); toast("Start失敗", String(e.message||e)); }
+    try{ await startScan(); }catch(e){ setStatus("warn","Start失敗", "Safariの許可を確認"); }
   });
   $("btnStop").addEventListener("click", async ()=>{ await stopAll(); });
   $("btnTorch").addEventListener("click", async ()=>{ await setTorch(!torchOn); });
+
+  // ✅ 手動再起動：ユーザー操作でカメラ再初期化（設定変更と同等）
+  $("btnReinit").addEventListener("click", async ()=>{
+    await stopAll();
+    await startScan();
+    toast("再起動", "カメラ/デコーダを再初期化しました");
+  });
 
   $("btnExport").addEventListener("click", ()=>{
     const scans = loadScans();
@@ -987,11 +888,18 @@
     setPill(el.pillZxing, ok);
   })();
 
-  // ===== local log =====
-  const LS_KEY = "linq_val_scans_v6";
-  function loadScans(){ try{ return JSON.parse(localStorage.getItem(LS_KEY) || "[]"); }catch(e){ return []; } }
-  function saveScans(arr){ localStorage.setItem(LS_KEY, JSON.stringify(arr)); }
-  function updateCount(){ el.logCount.textContent = String(loadScans().length); }
+  // ===== Missing functions from previous versions =====
+  function loadScript(src){
+    return new Promise((resolve,reject)=>{
+      const s = document.createElement("script");
+      s.src = src; s.async = true;
+      s.onload = resolve;
+      s.onerror = () => reject(new Error("Failed: " + src));
+      document.head.appendChild(s);
+    });
+  }
+
+  // ===== Permissions sanity note (no code) =====
 
 </script>
 </body>
