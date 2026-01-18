@@ -3,27 +3,27 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-  <meta name="theme-color" content="#0b1220" />
-  <title>LinQ VAL PoC Scanner</title>
+  <meta name="theme-color" content="#ffffff" />
+  <title>LinQ VAL Scanner</title>
   <style>
-    /* ===== 3-color palette (same family) =====
-       bg:   #0b1220
-       card: #0f1a2d
-       accent:#63b3ff
-       text: #e9eef7 (derived)
-       muted:#b9c4d8 (derived)
+    /* ===== 3-color-ish palette =====
+       base: white
+       ink:  near-black
+       accent: red (used via gradient + borders)
     */
     :root{
-      --bg:#0b1220;
-      --card:#0f1a2d;
-      --line:rgba(99,179,255,.20);
-      --line2:rgba(233,238,247,.10);
-      --text:#e9eef7;
-      --muted:rgba(233,238,247,.70);
-      --accent:#63b3ff;
+      --bg:#ffffff;
+      --ink:#141316;
+      --muted:rgba(20,19,22,.62);
+      --line:rgba(20,19,22,.10);
+
+      --accent:#e11d48;   /* rose/red */
+      --accent2:#fb7185;  /* soft rose for gradient only */
+
+      --card:#ffffff;
+      --shadow: 0 10px 28px rgba(20,19,22,.10);
 
       --r:18px;
-      --shadow: 0 10px 26px rgba(0,0,0,.35);
       --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono","Courier New", monospace;
       --sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans JP", "Hiragino Kaku Gothic ProN", "Yu Gothic", Arial;
     }
@@ -31,29 +31,31 @@
     body{
       margin:0;
       font-family:var(--sans);
-      color:var(--text);
-      background: linear-gradient(180deg, #081022 0%, var(--bg) 70%, #070e1a 100%);
+      color:var(--ink);
+      background:
+        radial-gradient(900px 480px at 15% -10%, rgba(225,29,72,.10), transparent 60%),
+        radial-gradient(700px 420px at 100% 0%, rgba(251,113,133,.10), transparent 55%),
+        linear-gradient(180deg, #ffffff 0%, #fff6f8 100%);
     }
     .wrap{max-width:980px;margin:0 auto;padding:14px 12px 26px}
     .top{
       display:flex;align-items:center;justify-content:space-between;gap:10px;
-      padding:10px 12px;
-      border:1px solid var(--line2);
+      padding:12px 14px;
+      border:1px solid var(--line);
       border-radius: var(--r);
-      background: rgba(255,255,255,.03);
+      background: rgba(255,255,255,.85);
       box-shadow: var(--shadow);
-    }
-    .title{
-      display:flex;flex-direction:column;gap:2px;
+      backdrop-filter: blur(6px);
     }
     .title h1{
       margin:0;
       font-size:18px;
-      font-weight:900;
+      font-weight:950;
       letter-spacing:.2px;
       line-height:1.1;
     }
     .title .sub{
+      margin-top:3px;
       font-size:13px;
       color:var(--muted);
       line-height:1.2;
@@ -62,14 +64,15 @@
       font-size:12px;
       color:var(--muted);
       padding:8px 10px;
-      border:1px solid var(--line2);
+      border:1px solid var(--line);
       border-radius:999px;
+      background:#fff;
       white-space:nowrap;
     }
-    .build b{color:var(--text)}
+    .build b{color:var(--ink)}
     .grid{
       display:grid;
-      grid-template-columns: 1.2fr .8fr;
+      grid-template-columns: 1.1fr .9fr;
       gap:12px;
       margin-top:12px;
     }
@@ -77,87 +80,81 @@
       .grid{grid-template-columns:1fr}
     }
     .card{
-      border:1px solid var(--line2);
+      border:1px solid var(--line);
       border-radius: var(--r);
-      background: rgba(15,26,45,.80);
+      background: rgba(255,255,255,.92);
       box-shadow: var(--shadow);
       overflow:hidden;
     }
-    .card .hd{
-      padding:12px 12px 10px;
-      border-bottom:1px solid var(--line2);
+    .hd{
+      padding:12px 14px;
+      border-bottom:1px solid var(--line);
       display:flex;align-items:center;justify-content:space-between;gap:10px;
+      background:
+        linear-gradient(90deg, rgba(225,29,72,.08), rgba(255,255,255,0));
     }
-    .card .hd .label{
+    .hd .label{
       font-size:14px;
-      font-weight:900;
+      font-weight:950;
       letter-spacing:.2px;
     }
-    .card .bd{padding:12px}
+    .bd{padding:14px}
     .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
     .btn{
       appearance:none;
-      border:1px solid var(--line2);
-      background: rgba(255,255,255,.04);
-      color:var(--text);
-      padding:14px 14px; /* bigger */
+      border:1px solid var(--line);
+      background:#fff;
+      color:var(--ink);
+      padding:14px 14px;
       border-radius: 14px;
       cursor:pointer;
       font-size:16px;
-      font-weight:900;
+      font-weight:950;
       letter-spacing:.2px;
-      transition: transform .05s ease, background .15s ease, border-color .15s ease;
+      transition: transform .05s ease, box-shadow .15s ease, border-color .15s ease;
       user-select:none;
     }
     .btn:active{transform:scale(.99)}
     .btn.primary{
-      border-color: rgba(99,179,255,.45);
-      background: rgba(99,179,255,.10);
+      border-color: rgba(225,29,72,.28);
+      box-shadow: 0 10px 18px rgba(225,29,72,.10);
+      background: linear-gradient(135deg, rgba(225,29,72,.10), rgba(251,113,133,.06));
     }
     .btn.small{
       padding:10px 12px;
       font-size:14px;
       border-radius:12px;
-      font-weight:800;
+      font-weight:900;
     }
     .pill{
       display:inline-flex;align-items:center;gap:8px;
       padding:8px 10px;
-      border:1px solid var(--line2);
+      border:1px solid var(--line);
       border-radius:999px;
       font-size:13px;
       color:var(--muted);
+      background:#fff;
       white-space:nowrap;
     }
     .dot{
       width:10px;height:10px;border-radius:999px;
-      background: rgba(233,238,247,.35);
+      background: rgba(20,19,22,.20);
     }
-    .pill.on .dot{ background: rgba(99,179,255,.90); }
+    .pill.on .dot{ background: var(--accent); }
     .videoWrap{
       position:relative;
       border-radius: var(--r);
       overflow:hidden;
-      border:1px solid var(--line2);
+      border:1px solid var(--line);
       background:#000;
     }
     video{width:100%;height:auto;display:block}
-    .frame{
-      pointer-events:none;
-      position:absolute;
-      left:50%; top:50%;
-      width: 78%;
-      height: 42%;
-      transform: translate(-50%,-50%);
-      border-radius: 18px;
-      border: 2px solid rgba(99,179,255,.55);
-    }
+    /* ✅ 枠は入れない（要件） */
     .overlay{
       pointer-events:none;
       position:absolute; inset:0;
       background:
-        radial-gradient(closest-side at 50% 50%, transparent 0 62%, rgba(0,0,0,.55) 70% 100%),
-        linear-gradient(180deg, rgba(0,0,0,.15), transparent 22%, transparent 78%, rgba(0,0,0,.22));
+        linear-gradient(180deg, rgba(0,0,0,.12), transparent 25%, transparent 75%, rgba(0,0,0,.18));
     }
     .hint{
       margin-top:10px;
@@ -165,34 +162,59 @@
       color:var(--muted);
       line-height:1.35;
     }
-    .big{
-      font-size:20px;
-      font-weight:950;
-      line-height:1.25;
+    .bigTitle{
+      font-size:22px;
+      font-weight:1000;
+      line-height:1.2;
       letter-spacing:.1px;
     }
-    .mono{font-family:var(--mono)}
+    .subTitle{
+      margin-top:6px;
+      font-size:15px;
+      color:var(--muted);
+      line-height:1.25;
+    }
+    .statusCard{
+      margin-top:12px;
+      padding:12px 12px;
+      border:1px solid var(--line);
+      border-radius: 16px;
+      background:
+        linear-gradient(135deg, rgba(225,29,72,.08), rgba(255,255,255,0) 60%);
+      display:flex;align-items:center;justify-content:space-between;gap:10px;
+    }
+    .statusLeft{display:flex;align-items:center;gap:10px}
+    .badgeDot{
+      width:12px;height:12px;border-radius:999px;
+      background: rgba(20,19,22,.20);
+    }
+    .statusText{
+      font-size:16px;
+      font-weight:950;
+    }
+    .rightInfo{
+      font-size:14px;
+      color:var(--muted);
+    }
     .kv{
-      margin-top:10px;
+      margin-top:12px;
       display:grid;
       grid-template-columns: 120px 1fr;
       gap:10px 12px;
-      padding-top:10px;
-      border-top:1px solid var(--line2);
+      padding-top:12px;
+      border-top:1px solid var(--line);
     }
     .k{font-size:13px;color:var(--muted)}
-    .v{font-size:16px;color:var(--text)}
-    .v.small{font-size:14px;color:var(--muted)}
-    .status{
-      display:flex;align-items:center;justify-content:space-between;gap:10px;
-      margin-top:10px;
-      padding:10px 12px;
-      border:1px solid var(--line2);
-      border-radius:14px;
-      background: rgba(255,255,255,.03);
+    .v{font-size:16px}
+    .mono{font-family:var(--mono)}
+    .em{
+      display:inline-flex;align-items:center;
+      padding:2px 8px;
+      border-radius:999px;
+      border:1px solid rgba(225,29,72,.22);
+      background: rgba(225,29,72,.08);
+      font-weight:950;
     }
-    .status .left{display:flex;align-items:center;gap:10px}
-    .status .right{font-size:14px;color:var(--muted)}
     .toast{
       position:fixed;
       left:50%; bottom:16px;
@@ -201,22 +223,22 @@
       max-width: 92vw;
       padding:12px 14px;
       border-radius: 16px;
-      border:1px solid rgba(99,179,255,.35);
-      background: rgba(15,26,45,.92);
+      border:1px solid rgba(225,29,72,.25);
+      background: rgba(255,255,255,.96);
       box-shadow: var(--shadow);
       display:none;
       z-index:9999;
-      backdrop-filter: blur(10px);
+      backdrop-filter: blur(6px);
     }
     .toast.show{display:block; animation: pop .16s ease-out}
     @keyframes pop{
       from{opacity:0; transform: translateX(-50%) translateY(6px)}
       to{opacity:1; transform: translateX(-50%) translateY(0)}
     }
-    .toast .t1{font-weight:950;font-size:15px}
+    .toast .t1{font-weight:1000;font-size:15px}
     .toast .t2{font-size:13px;color:var(--muted);margin-top:2px;line-height:1.35}
     details{
-      border-top:1px solid var(--line2);
+      border-top:1px solid var(--line);
       margin-top:10px;
       padding-top:10px;
     }
@@ -224,13 +246,13 @@
       cursor:pointer;
       font-size:14px;
       color:var(--muted);
-      font-weight:800;
+      font-weight:900;
       outline:none;
     }
     .select{
-      border:1px solid var(--line2);
-      background: rgba(0,0,0,.18);
-      color:var(--text);
+      border:1px solid var(--line);
+      background: #fff;
+      color:var(--ink);
       padding:10px 12px;
       border-radius: 12px;
       font-size:14px;
@@ -245,7 +267,7 @@
     <div class="top">
       <div class="title">
         <h1>LinQ VAL Scanner</h1>
-        <div class="sub">GS1-128優先 / JAN-13代替・辞書照合（4桁分割）</div>
+        <div class="sub">GS1-128優先 / JAN-13代替・連続読み防止 5秒</div>
       </div>
       <div class="build">BUILD <b id="buildLabel">v0</b></div>
     </div>
@@ -256,9 +278,9 @@
         <div class="hd">
           <div class="label">スキャン</div>
           <div class="row">
-            <div class="pill" id="pillZxing"><span class="dot"></span><span id="txtZxing">ZXing</span></div>
-            <div class="pill" id="pillCam"><span class="dot"></span><span id="txtCam">Camera</span></div>
-            <div class="pill" id="pillDict"><span class="dot"></span><span id="txtDict">Dict</span></div>
+            <div class="pill" id="pillZxing"><span class="dot"></span><span>ZXing</span></div>
+            <div class="pill" id="pillCam"><span class="dot"></span><span>Camera</span></div>
+            <div class="pill" id="pillDict"><span class="dot"></span><span>Dict</span></div>
           </div>
         </div>
 
@@ -272,21 +294,20 @@
           <div style="margin-top:12px" class="videoWrap">
             <video id="video" playsinline muted></video>
             <div class="overlay"></div>
-            <div class="frame"></div>
           </div>
 
           <div class="hint">
-            コツ：枠いっぱいに寄せる／明るく／2秒静止。連続読み防止は <b>3秒</b>。
+            コツ：バーコードを大きく写す／明るく／手ブレを止める。<span class="em">同一バーコードは5秒間無視</span>
           </div>
 
           <details>
             <summary>設定</summary>
             <div style="margin-top:10px" class="row">
-              <select class="select" id="selMode" title="推奨は絞り込み（成功率↑）">
+              <select class="select" id="selMode">
                 <option value="strict">推奨：CODE128 + EAN13</option>
                 <option value="all">互換：MultiFormat（全部）</option>
               </select>
-              <select class="select" id="selCamera" title="カメラが複数ある場合に選べます">
+              <select class="select" id="selCamera">
                 <option value="">カメラ自動選択（背面優先）</option>
               </select>
             </div>
@@ -297,7 +318,7 @@
       <!-- RESULT -->
       <div class="card">
         <div class="hd">
-          <div class="label">最後の結果</div>
+          <div class="label">読み取り結果</div>
           <div class="row">
             <button class="btn small" id="btnExport">CSV</button>
             <button class="btn small" id="btnClear">Clear</button>
@@ -305,15 +326,15 @@
         </div>
 
         <div class="bd">
-          <div class="big" id="vName">—</div>
-          <div class="v small" id="vMaker" style="margin-top:6px">—</div>
+          <div class="bigTitle" id="vName">—</div>
+          <div class="subTitle" id="vMaker">—</div>
 
-          <div class="status">
-            <div class="left">
-              <div class="dot" id="dotStatus" style="background:rgba(233,238,247,.35)"></div>
-              <div style="font-weight:900;font-size:16px" id="txtStatus">待機</div>
+          <div class="statusCard">
+            <div class="statusLeft">
+              <div class="badgeDot" id="dotStatus"></div>
+              <div class="statusText" id="txtStatus">待機</div>
             </div>
-            <div class="right">ログ <span class="mono" id="logCount">0</span> 件</div>
+            <div class="rightInfo">ログ <span class="mono" id="logCount">0</span> 件</div>
           </div>
 
           <div class="kv">
@@ -329,7 +350,7 @@
           </div>
 
           <div class="hint" style="margin-top:12px">
-            表示が古いときは URL 末尾に <span class="mono">?v=数字</span> を付けて更新してください。
+            反映が遅いときは URL末尾に <span class="mono">?v=数字</span> を付けて更新。
           </div>
         </div>
       </div>
@@ -342,48 +363,51 @@
   </div>
 
 <script>
-  // ===== BUILD =====
-  const BUILD = "v2026-01-19-03";
+  const BUILD = "v2026-01-19-04";
   document.getElementById("buildLabel").textContent = BUILD;
 
-  // ===== DOM =====
   const $ = (id) => document.getElementById(id);
   const el = {
-    pillZxing: $("pillZxing"), txtZxing: $("txtZxing"),
-    pillCam: $("pillCam"), txtCam: $("txtCam"),
-    pillDict: $("pillDict"), txtDict: $("txtDict"),
+    pillZxing: $("pillZxing"),
+    pillCam: $("pillCam"),
+    pillDict: $("pillDict"),
 
     video: $("video"),
     selMode: $("selMode"),
     selCamera: $("selCamera"),
 
-    vName: $("vName"), vMaker: $("vMaker"),
-    dotStatus: $("dotStatus"), txtStatus: $("txtStatus"),
-    vJan: $("vJan"), vGtin: $("vGtin"),
-    vExp: $("vExp"), vLot: $("vLot"), vSer: $("vSer"),
-    vIji: $("vIji"), vKinou: $("vKinou"),
-    vPrice: $("vPrice"), vPack: $("vPack"),
+    vName: $("vName"),
+    vMaker: $("vMaker"),
+    dotStatus: $("dotStatus"),
+    txtStatus: $("txtStatus"),
+    vJan: $("vJan"),
+    vGtin: $("vGtin"),
+    vExp: $("vExp"),
+    vLot: $("vLot"),
+    vSer: $("vSer"),
+    vIji: $("vIji"),
+    vKinou: $("vKinou"),
+    vPrice: $("vPrice"),
+    vPack: $("vPack"),
     logCount: $("logCount"),
 
-    toast: $("toast"), toastT1: $("toastT1"), toastT2: $("toastT2"),
+    toast: $("toast"),
+    toastT1: $("toastT1"),
+    toastT2: $("toastT2"),
   };
 
-  function setPill(pill, on, text){
+  function setPill(pill, on){
     pill.classList.toggle("on", !!on);
-    if (text) pill.querySelector("span:last-child").textContent = text;
   }
-
   function toast(t1, t2){
     el.toastT1.textContent = t1;
     el.toastT2.textContent = t2;
     el.toast.classList.add("show");
     setTimeout(()=>el.toast.classList.remove("show"), 1400);
   }
-
   function haptic(){
     try{ if (navigator.vibrate) navigator.vibrate(40); }catch(e){}
   }
-
   function digits(s){ return (s ?? "").toString().replace(/\D/g,""); }
   function nowISO(){ return new Date().toISOString(); }
 
@@ -401,11 +425,11 @@
   function setStatus(kind, label){
     // kind: "idle" | "ok" | "warn"
     if (kind === "ok"){
-      el.dotStatus.style.background = "rgba(99,179,255,.90)";
+      el.dotStatus.style.background = "var(--accent)";
     } else if (kind === "warn"){
-      el.dotStatus.style.background = "rgba(99,179,255,.45)";
+      el.dotStatus.style.background = "rgba(225,29,72,.45)";
     } else {
-      el.dotStatus.style.background = "rgba(233,238,247,.35)";
+      el.dotStatus.style.background = "rgba(20,19,22,.20)";
     }
     el.txtStatus.textContent = label;
   }
@@ -424,8 +448,8 @@
     el.vPack.textContent = "—";
   }
 
-  // ===== Local log =====
-  const LS_KEY = "linq_val_scans_v3";
+  // ===== local log =====
+  const LS_KEY = "linq_val_scans_v4";
   function loadScans(){ try{ return JSON.parse(localStorage.getItem(LS_KEY) || "[]"); }catch(e){ return []; } }
   function saveScans(arr){ localStorage.setItem(LS_KEY, JSON.stringify(arr)); }
   function updateCount(){ el.logCount.textContent = String(loadScans().length); }
@@ -478,7 +502,7 @@
     return false;
   }
 
-  // ===== GS1 parser (AI 01/10/17/21) =====
+  // ===== GS1 parser =====
   function parseGS1(raw){
     let s = (raw ?? "").trim();
     if (s.startsWith("]C1")) s = s.slice(3);
@@ -524,9 +548,8 @@
     return out;
   }
 
-  // ===== Dict lookup (4-digit split / jan13keta) =====
-  const cache = new Map(); // url -> array of objects
-
+  // ===== Dict lookup =====
+  const cache = new Map();
   async function fetchText(url){
     const res = await fetch(url, {cache:"no-store"});
     if (!res.ok) throw new Error("HTTP " + res.status);
@@ -585,7 +608,6 @@
     let jan = digits(jan13keta || "");
     const gt = digits(gtin14 || "");
 
-    // GTIN -> jan13keta via index
     if (!jan && gt){
       const {gt3, gt4} = gt3gt4(gt);
       if (gt3){
@@ -611,13 +633,13 @@
     return hit || null;
   }
 
-  // ===== Camera + scanning =====
+  // ===== Camera/scanning =====
   let stream = null;
   let reader = null;
   let torchOn = false;
 
-  // 连続読み防止：3秒
-  const DEDUP_MS = 3000;
+  // ✅ 連続スキャン防止 5秒
+  const DEDUP_MS = 5000;
   let lastRaw = "";
   let lastAt = 0;
 
@@ -651,8 +673,7 @@
     el.video.srcObject = stream;
     await el.video.play();
     await listCameras();
-    setPill(el.pillCam, true, "Camera");
-    el.txtCam.textContent = "Camera";
+    setPill(el.pillCam, true);
     torchOn = false;
   }
 
@@ -662,13 +683,13 @@
       if (el.video){ el.video.pause(); el.video.srcObject=null; }
       if (stream){ for (const t of stream.getTracks()) t.stop(); stream=null; }
     }catch(e){}
-    setPill(el.pillCam, false, "Camera");
+    setPill(el.pillCam, false);
     torchOn = false;
     setStatus("idle","停止中");
   }
 
   async function setTorch(on){
-    if (!stream){ toast("Light","カメラ開始後に利用できます"); return; }
+    if (!stream){ toast("Light","カメラ開始後に利用"); return; }
     const track = stream.getVideoTracks()[0];
     const caps = track.getCapabilities?.();
     if (!caps?.torch){ toast("Light","ライト非対応"); return; }
@@ -721,7 +742,6 @@
       exp_ymd = ymdFromAI17(p.exp_yyMMdd || "");
     } else {
       if (d.length === 13) jan13keta = d;
-      // heuristic: GS1 payload but format unknown
       if (!jan13keta && (raw || "").includes("01")){
         const p = parseGS1(raw);
         if (p.gtin14) gtin14 = digits(p.gtin14);
@@ -733,29 +753,23 @@
 
     if (!gtin14 && !jan13keta){
       setStatus("warn","未検出（距離/ブレ/照明）");
-      toast("読み取り失敗","枠に寄せて静止");
+      toast("読み取り失敗","大きく写して静止");
       return;
     }
 
-    // show identifiers quickly
+    // show ids early
     el.vJan.textContent = jan13keta || "—";
     el.vGtin.textContent = gtin14 || "—";
     el.vLot.textContent = lot || "—";
     el.vSer.textContent = serial || "—";
-    if (exp_ymd){
-      el.vExp.textContent = isExpired(exp_ymd) ? `${exp_ymd}（期限切れ）` : exp_ymd;
-    } else {
-      el.vExp.textContent = "—";
-    }
+    el.vExp.textContent = exp_ymd ? (isExpired(exp_ymd) ? `${exp_ymd}（期限切れ）` : exp_ymd) : "—";
 
     let dict = null;
     try{
       dict = await dictLookup({gtin14, jan13keta});
-      setPill(el.pillDict, true, "Dict");
-      el.txtDict.textContent = "Dict";
+      setPill(el.pillDict, true);
     }catch(e){
-      setPill(el.pillDict, false, "Dict");
-      el.txtDict.textContent = "Dict";
+      setPill(el.pillDict, false);
       dict = null;
     }
 
@@ -775,13 +789,13 @@
       el.vPrice.textContent = dict.reimbursement_price_yen || "—";
       el.vPack.textContent = dict.pack_qty || "—";
 
-      setStatus("ok","スキャン成功");
+      setStatus("ok","OK（辞書一致）");
       toast("OK", dict.product_name || (gtin14 || jan13keta));
       haptic();
     } else {
       el.vName.textContent = "（辞書未ヒット）";
       el.vMaker.textContent = "—";
-      setStatus("warn","成功（辞書なし）");
+      setStatus("warn","WARN（辞書なし）");
       toast("WARN", gtin14 || jan13keta);
       haptic();
     }
@@ -813,7 +827,7 @@
   async function startScan(){
     setStatus("idle","起動中…");
     const ok = await ensureZXing();
-    setPill(el.pillZxing, ok, "ZXing");
+    setPill(el.pillZxing, ok);
     if (!ok){
       setStatus("warn","ZXing読込失敗");
       toast("ZXing","CDN/通信を確認");
@@ -836,14 +850,9 @@
     });
   }
 
-  // ===== Button hooks =====
+  // ===== Buttons =====
   $("btnStart").addEventListener("click", async ()=>{
-    try{
-      await startScan();
-    }catch(e){
-      setStatus("warn","Start失敗");
-      toast("Start失敗", String(e.message || e));
-    }
+    try{ await startScan(); }catch(e){ setStatus("warn","Start失敗"); toast("Start失敗", String(e.message||e)); }
   });
   $("btnStop").addEventListener("click", async ()=>{ await stopAll(); });
   $("btnTorch").addEventListener("click", async ()=>{ await setTorch(!torchOn); });
@@ -855,9 +864,7 @@
       "product_name","manufacturer_name","iji_code","kinou_kubun_code","tokutei_name",
       "reimbursement_price_yen","pack_qty"
     ];
-    const csv = toCSV(scans, header);
-    const fname = `linq_val_poc_scans_${new Date().toISOString().slice(0,10)}.csv`;
-    downloadText(fname, csv);
+    downloadText(`linq_val_poc_scans_${new Date().toISOString().slice(0,10)}.csv`, toCSV(scans, header));
     toast("CSV", `${scans.length}件`);
   });
 
@@ -884,13 +891,29 @@
     clearResult();
     updateCount();
     setStatus("idle","待機");
-    setPill(el.pillZxing, false, "ZXing");
-    setPill(el.pillCam, false, "Camera");
-    setPill(el.pillDict, false, "Dict");
+    setPill(el.pillZxing, false);
+    setPill(el.pillCam, false);
+    setPill(el.pillDict, false);
     await listCameras();
     const ok = await ensureZXing();
-    setPill(el.pillZxing, ok, "ZXing");
+    setPill(el.pillZxing, ok);
   })();
+
+  async function listCameras(){
+    try{
+      const devices = await navigator.mediaDevices.enumerateDevices();
+      const cams = devices.filter(d => d.kind === "videoinput");
+      const cur = el.selCamera.value;
+      el.selCamera.innerHTML = `<option value="">カメラ自動選択（背面優先）</option>`;
+      for (const c of cams){
+        const opt = document.createElement("option");
+        opt.value = c.deviceId;
+        opt.textContent = c.label || `Camera ${c.deviceId.slice(0,6)}`;
+        el.selCamera.appendChild(opt);
+      }
+      if (cur) el.selCamera.value = cur;
+    }catch(e){}
+  }
 </script>
 </body>
 </html>
