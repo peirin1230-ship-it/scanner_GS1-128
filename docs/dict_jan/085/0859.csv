@@ -1,2 +1,4 @@
-jan13,gtin14,product_name,manufacturer_name,iji_code,kinou_kubun_code,tokutei_name,reimbursement_price_yen,pack_qty
-0859000000000,00859000000000,HEARTLIGHT X3 CATHETER,日本ライフライン,710010950,B0021230103,経皮的カテーテル心筋焼灼術用カテーテル　熱アブレーション用　バルーン型,"505,000",1
+jan13keta,gtin14,product_name,manufacturer_name,iji_code,kinou_kubun_code,tokutei_name,reimbursement_price_yen,pack_qty
+0859373007600,00859373007600,HEARTLIGHT X3 CATHETER,日本ライフライン,710010950,B0021230103,経皮的カテーテル心筋焼灼術用カテーテル　熱アブレーション用　バルーン型,505000,1
+0859910007056,00859910007056,Vis-Rx イメージングカテーテル,グッドマン,710010269,B002149,血管内光断層撮影用カテーテル,132000,1
+0859910007056,90859910007059,Vis-Rx イメージングカテーテル,グッドマン,710010269,B002149,血管内光断層撮影用カテーテル,132000,

@@ -1,2 +1,7 @@
-jan13,gtin14,product_name,manufacturer_name,iji_code,kinou_kubun_code,tokutei_name,reimbursement_price_yen,pack_qty
-0855000000000,00855000000000,エピフィックス（ＥｐｉＦｉｘ）,ＥＰＪメディカルサービス,710011168,B002218,ヒト羊膜使用創傷被覆材,"35,100",1
+jan13keta,gtin14,product_name,manufacturer_name,iji_code,kinou_kubun_code,tokutei_name,reimbursement_price_yen,pack_qty
+0855310003889,00855310003889,エピフィックス（ＥｐｉＦｉｘ）,ＥＰＪメディカルサービス,710011168,B002218,ヒト羊膜使用創傷被覆材,35100,1
+0855728005796,00855728005796,STIMULATION LEAD,日本ライフライン,ー,B002210,（構成品）植込型舌下神経電気刺激装置,-,1
+0855728005802,00855728005802,STIMULATION LEAD,日本ライフライン,ー,B002210,（構成品）植込型舌下神経電気刺激装置,-,1
+0855728005895,00855728005895,PRESSURE SENSING LEAD,日本ライフライン,ー,B002210,（構成品）植込型舌下神経電気刺激装置,-,1
+0855728005918,00855728005918,IMPLANTABLE PULSE GENERATOR (IPG),日本ライフライン,710011127,B002210,（本体）植込型舌下神経電気刺激装置,-,1
+0855728005949,00855728005949,PRESSURE SENSING LEAD,日本ライフライン,ー,B002210,（構成品）植込型舌下神経電気刺激装置,-,1
