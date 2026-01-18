@@ -7,14 +7,15 @@
   <style>
     body { font-family: system-ui, -apple-system, sans-serif; margin: 12px; }
     .row { display:flex; gap:10px; flex-wrap: wrap; align-items: center; }
-    input { padding:8px; font-size:14px; }
+    input { padding:8px; font-size:14px; width: 140px; }
     button { padding:10px 12px; font-size:14px; }
-    video { width: 100%; max-width: 520px; border: 1px solid #ccc; border-radius: 8px; }
+    video { width: 100%; max-width: 520px; border: 1px solid #ccc; border-radius: 8px; background:#000; }
     .card { border:1px solid #ddd; border-radius:10px; padding:12px; margin-top:12px; }
     .mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; white-space: pre-wrap; }
     .ok { color: #0a7; }
     .warn { color: #c60; }
     .bad { color: #c00; }
+    .small { font-size: 12px; color:#666; }
   </style>
 </head>
 <body>
@@ -32,9 +33,10 @@
       <button id="exportBtn">CSV出力</button>
       <button id="clearBtn">全消去</button>
     </div>
-    <p style="margin:8px 0 0 0;" class="warn">
-      ※iPhoneはSafariで動作します（HTTPS必須）。初回はカメラ許可が必要です。
-    </p>
+    <div class="small" style="margin-top:8px;">
+      ・iPhoneはSafariでHTTPS必須（GitHub PagesはOK）<br>
+      ・読み取りが不安定なら、明るい場所＆ラベルを平面にして試してください
+    </div>
   </div>
 
   <div class="card">
@@ -51,15 +53,17 @@
     <div class="mono" id="hint"></div>
   </div>
 
-  <!-- ZXing (Code128 / GS1-128) -->
-  <script src="https://cdn.jsdelivr.net/npm/@zxing/browser@0.1.5/umd/index.min.js"></script>
+  <!-- ✅ Correct ZXing UMD bundles (fixes ZXingBrowser ReferenceError) -->
+  <script src="https://cdn.jsdelivr.net/npm/@zxing/library@0.21.3/umd/index.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@zxing/browser@0.1.5/umd/zxing-browser.min.js"></script>
+
   <script>
-    // ====== GS1 AI parser (subset) ======
-    const GS = String.fromCharCode(29);
+    // ====== GS1 AI parser (PoC subset) ======
+    const GS = String.fromCharCode(29); // ASCII 29
 
     function normalizeScan(raw) {
       let s = (raw || "").trim().replaceAll(" ", "");
-      // remove AIM prefix like ]C1
+      // Remove AIM prefix like ]C1
       if (s.startsWith("]C1") || s.startsWith("]d2") || s.startsWith("]Q3")) s = s.slice(3);
       return s;
     }
@@ -84,8 +88,8 @@
     }
 
     const AI_RULES = {
-      "01": { fixed: 14 },      // GTIN
-      "17": { fixed: 6  },      // Expiry YYMMDD
+      "01": { fixed: 14 },        // GTIN
+      "17": { fixed: 6  },        // Expiry YYMMDD
       "10": { max: 20, var: true }, // Lot
       "21": { max: 20, var: true }, // Serial
       "30": { max: 8,  var: true },
@@ -94,7 +98,6 @@
     };
 
     function readAI(s, pos) {
-      // try 4,3,2. For PoC we mostly need 2-digit AIs.
       for (const len of [4,3,2]) {
         if (pos + len <= s.length) {
           const ai = s.slice(pos, pos+len);
@@ -181,7 +184,9 @@
     let rows = loadRows();
     saveRows(rows);
 
-    let reader = null;
+    let codeReader = null;
+    let controls = null;
+
     let lastRaw = "";
     let lastAt = 0;
 
@@ -196,30 +201,34 @@
 timestamp, raw, gtin_01, lot_10, expiry_17, expiry_iso, serial_21, device_id, location, user_id
 
 ・iPhoneはSafariでHTTPS必須
-・暗い/反射/曲面で読めない場合があります`;
+・LINE等のアプリ内ブラウザは避け、Safariで開いてください`;
     }
     setHint();
 
     async function startScan() {
+      // ✅ Ensure ZXing is loaded
+      const zxing = window.ZXingBrowser;
+      if (!zxing) {
+        setStatus("ZXingの読み込みに失敗（script URL/キャッシュ確認）", "bad");
+        alert("ZXingが読み込めていません。index.htmlのscript URLを確認してください。");
+        return;
+      }
+
       try {
         setStatus("カメラ起動中…");
-        const zxing = ZXingBrowser;
         const hints = new Map();
         // Code128 (GS1-128) を優先
-        hints.set(zxing.DecodeHintType.POSSIBLE_FORMATS, [zxing.BarcodeFormat.CODE_128]);
+        hints.set(ZXing.DecodeHintType.POSSIBLE_FORMATS, [ZXing.BarcodeFormat.CODE_128]);
+        codeReader = new zxing.BrowserMultiFormatReader(hints);
 
-        reader = new zxing.BrowserMultiFormatReader(hints);
-
-        // back camera preferred
-        const controls = await reader.decodeFromVideoDevice(
-          undefined,
+        controls = await codeReader.decodeFromVideoDevice(
+          undefined, // auto pick camera (usually back)
           video,
-          (result, err, controls) => {
+          (result, err) => {
             if (result) {
               const raw = result.getText();
-              // debounce: same code repeated quickly
               const now = Date.now();
-              if (raw === lastRaw && (now - lastAt) < 1200) return;
+              if (raw === lastRaw && (now - lastAt) < 1200) return; // debounce
               lastRaw = raw; lastAt = now;
 
               const ai = parseGs1(raw);
@@ -256,8 +265,13 @@ timestamp, raw, gtin_01, lot_10, expiry_17, expiry_iso, serial_21, device_id, lo
                 setStatus("読み取りOK（期限AIが無い/解析不可）", "ok");
               }
             }
-            if (err && !(err instanceof zxing.NotFoundException)) {
-              setStatus("読み取りエラー: " + err, "bad");
+
+            if (err) {
+              // NotFoundException is common when nothing is detected; ignore it
+              const name = err.name || "";
+              if (name !== "NotFoundException") {
+                setStatus("読み取りエラー: " + (err.message || err), "bad");
+              }
             }
           }
         );
@@ -266,16 +280,21 @@ timestamp, raw, gtin_01, lot_10, expiry_17, expiry_iso, serial_21, device_id, lo
         stopBtn.disabled = false;
         setStatus("スキャン中（Code128/GS1-128）", "ok");
       } catch (e) {
-  console.error(e);
-  setStatus("カメラ起動に失敗: " + (e?.message || e), "bad");
-  alert("カメラ起動に失敗: " + (e?.message || e));
+        console.error(e);
+        setStatus("カメラ起動に失敗: " + (e?.message || e), "bad");
+        alert("カメラ起動に失敗: " + (e?.message || e));
+      }
     }
 
     function stopScan() {
       try {
-        if (reader) reader.reset();
+        if (controls) controls.stop();
       } catch {}
-      reader = null;
+      try {
+        if (codeReader) codeReader.reset();
+      } catch {}
+      controls = null;
+      codeReader = null;
       startBtn.disabled = false;
       stopBtn.disabled = true;
       setStatus("停止しました");
