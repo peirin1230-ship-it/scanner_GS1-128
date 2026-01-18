@@ -6,19 +6,14 @@
   <meta name="theme-color" content="#ffffff" />
   <title>LinQ VAL Scanner</title>
   <style>
-    /* ===== 3-color-ish palette =====
-       base: white
-       ink:  near-black
-       accent: red (used via gradient + borders)
-    */
     :root{
       --bg:#ffffff;
       --ink:#141316;
       --muted:rgba(20,19,22,.62);
       --line:rgba(20,19,22,.10);
 
-      --accent:#e11d48;   /* rose/red */
-      --accent2:#fb7185;  /* soft rose for gradient only */
+      --accent:#e11d48;   /* red */
+      --accent2:#fb7185;  /* soft red */
 
       --card:#ffffff;
       --shadow: 0 10px 28px rgba(20,19,22,.10);
@@ -43,14 +38,14 @@
       padding:12px 14px;
       border:1px solid var(--line);
       border-radius: var(--r);
-      background: rgba(255,255,255,.85);
+      background: rgba(255,255,255,.88);
       box-shadow: var(--shadow);
       backdrop-filter: blur(6px);
     }
     .title h1{
       margin:0;
       font-size:18px;
-      font-weight:950;
+      font-weight:1000;
       letter-spacing:.2px;
       line-height:1.1;
     }
@@ -61,24 +56,20 @@
       line-height:1.2;
     }
     .build{
-      font-size:12px;
-      color:var(--muted);
-      padding:8px 10px;
-      border:1px solid var(--line);
-      border-radius:999px;
-      background:#fff;
-      white-space:nowrap;
+      font-size:12px;color:var(--muted);
+      padding:8px 10px;border:1px solid var(--line);
+      border-radius:999px;background:#fff;white-space:nowrap;
     }
     .build b{color:var(--ink)}
+
     .grid{
       display:grid;
-      grid-template-columns: 1.1fr .9fr;
+      grid-template-columns: 1.05fr .95fr;
       gap:12px;
       margin-top:12px;
     }
-    @media (max-width: 920px){
-      .grid{grid-template-columns:1fr}
-    }
+    @media (max-width: 920px){ .grid{grid-template-columns:1fr} }
+
     .card{
       border:1px solid var(--line);
       border-radius: var(--r);
@@ -90,27 +81,16 @@
       padding:12px 14px;
       border-bottom:1px solid var(--line);
       display:flex;align-items:center;justify-content:space-between;gap:10px;
-      background:
-        linear-gradient(90deg, rgba(225,29,72,.08), rgba(255,255,255,0));
+      background: linear-gradient(90deg, rgba(225,29,72,.08), rgba(255,255,255,0));
     }
-    .hd .label{
-      font-size:14px;
-      font-weight:950;
-      letter-spacing:.2px;
-    }
+    .hd .label{font-size:14px;font-weight:1000;letter-spacing:.2px}
     .bd{padding:14px}
     .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+
     .btn{
-      appearance:none;
-      border:1px solid var(--line);
-      background:#fff;
-      color:var(--ink);
-      padding:14px 14px;
-      border-radius: 14px;
-      cursor:pointer;
-      font-size:16px;
-      font-weight:950;
-      letter-spacing:.2px;
+      appearance:none;border:1px solid var(--line);background:#fff;color:var(--ink);
+      padding:14px 14px;border-radius: 14px;cursor:pointer;
+      font-size:16px;font-weight:1000;letter-spacing:.2px;
       transition: transform .05s ease, box-shadow .15s ease, border-color .15s ease;
       user-select:none;
     }
@@ -120,145 +100,111 @@
       box-shadow: 0 10px 18px rgba(225,29,72,.10);
       background: linear-gradient(135deg, rgba(225,29,72,.10), rgba(251,113,133,.06));
     }
-    .btn.small{
-      padding:10px 12px;
-      font-size:14px;
-      border-radius:12px;
-      font-weight:900;
-    }
+    .btn.small{padding:10px 12px;font-size:14px;border-radius:12px;font-weight:950}
+
     .pill{
       display:inline-flex;align-items:center;gap:8px;
-      padding:8px 10px;
-      border:1px solid var(--line);
-      border-radius:999px;
-      font-size:13px;
-      color:var(--muted);
-      background:#fff;
-      white-space:nowrap;
+      padding:8px 10px;border:1px solid var(--line);border-radius:999px;
+      font-size:13px;color:var(--muted);background:#fff;white-space:nowrap;
     }
-    .dot{
-      width:10px;height:10px;border-radius:999px;
-      background: rgba(20,19,22,.20);
-    }
+    .dot{width:10px;height:10px;border-radius:999px;background: rgba(20,19,22,.20)}
     .pill.on .dot{ background: var(--accent); }
+
     .videoWrap{
-      position:relative;
-      border-radius: var(--r);
-      overflow:hidden;
-      border:1px solid var(--line);
-      background:#000;
+      position:relative;border-radius: var(--r);overflow:hidden;
+      border:1px solid var(--line);background:#000;
     }
     video{width:100%;height:auto;display:block}
-    /* ✅ 枠は入れない（要件） */
+    /* 枠は入れない（要件） */
     .overlay{
-      pointer-events:none;
-      position:absolute; inset:0;
+      pointer-events:none;position:absolute; inset:0;
       background:
         linear-gradient(180deg, rgba(0,0,0,.12), transparent 25%, transparent 75%, rgba(0,0,0,.18));
     }
+
     .hint{
-      margin-top:10px;
-      font-size:14px;
-      color:var(--muted);
-      line-height:1.35;
+      margin-top:10px;font-size:14px;color:var(--muted);line-height:1.35;
     }
-    .bigTitle{
-      font-size:22px;
+    .mono{font-family:var(--mono)}
+    .em{
+      display:inline-flex;align-items:center;
+      padding:2px 8px;border-radius:999px;
+      border:1px solid rgba(225,29,72,.22);
+      background: rgba(225,29,72,.08);
       font-weight:1000;
-      line-height:1.2;
+    }
+
+    /* ===== Result emphasis ===== */
+    .okBanner{
+      display:flex;align-items:center;justify-content:space-between;gap:10px;
+      padding:14px 14px;
+      border:1px solid var(--line);
+      border-radius: 16px;
+      background: linear-gradient(135deg, rgba(225,29,72,.10), rgba(255,255,255,0) 60%);
+    }
+    .okLeft{display:flex;align-items:center;gap:12px}
+    .badgeDot{width:14px;height:14px;border-radius:999px;background: rgba(20,19,22,.20)}
+    .okText{
+      font-size:28px; /* BIG OK */
+      font-weight:1100;
+      letter-spacing:.2px;
+      line-height:1;
+    }
+    .okSub{font-size:14px;color:var(--muted);margin-top:2px}
+    .rightInfo{font-size:14px;color:var(--muted)}
+
+    .prodName{
+      margin-top:14px;
+      font-size:26px; /* bigger */
+      font-weight:1100;
+      line-height:1.18;
       letter-spacing:.1px;
     }
-    .subTitle{
-      margin-top:6px;
-      font-size:15px;
+    .maker{
+      margin-top:8px;
+      font-size:16px;
       color:var(--muted);
       line-height:1.25;
     }
-    .statusCard{
-      margin-top:12px;
-      padding:12px 12px;
-      border:1px solid var(--line);
-      border-radius: 16px;
-      background:
-        linear-gradient(135deg, rgba(225,29,72,.08), rgba(255,255,255,0) 60%);
-      display:flex;align-items:center;justify-content:space-between;gap:10px;
+    .price{
+      margin-top:10px;
+      font-size:26px; /* BIG price */
+      font-weight:1100;
+      color: var(--accent);
+      letter-spacing:.2px;
+      line-height:1.1;
     }
-    .statusLeft{display:flex;align-items:center;gap:10px}
-    .badgeDot{
-      width:12px;height:12px;border-radius:999px;
-      background: rgba(20,19,22,.20);
-    }
-    .statusText{
-      font-size:16px;
-      font-weight:950;
-    }
-    .rightInfo{
-      font-size:14px;
-      color:var(--muted);
-    }
+
     .kv{
-      margin-top:12px;
+      margin-top:14px;
       display:grid;
       grid-template-columns: 120px 1fr;
       gap:10px 12px;
-      padding-top:12px;
+      padding-top:14px;
       border-top:1px solid var(--line);
     }
     .k{font-size:13px;color:var(--muted)}
     .v{font-size:16px}
-    .mono{font-family:var(--mono)}
-    .em{
-      display:inline-flex;align-items:center;
-      padding:2px 8px;
-      border-radius:999px;
-      border:1px solid rgba(225,29,72,.22);
-      background: rgba(225,29,72,.08);
-      font-weight:950;
+
+    details{border-top:1px solid var(--line);margin-top:10px;padding-top:10px}
+    summary{cursor:pointer;font-size:14px;color:var(--muted);font-weight:950;outline:none}
+    .select{
+      border:1px solid var(--line);background:#fff;color:var(--ink);
+      padding:10px 12px;border-radius: 12px;font-size:14px;min-width: 220px;outline:none;
     }
+
     .toast{
-      position:fixed;
-      left:50%; bottom:16px;
-      transform: translateX(-50%);
-      min-width: 260px;
-      max-width: 92vw;
-      padding:12px 14px;
-      border-radius: 16px;
+      position:fixed;left:50%; bottom:16px;transform: translateX(-50%);
+      min-width: 260px;max-width: 92vw;padding:12px 14px;border-radius: 16px;
       border:1px solid rgba(225,29,72,.25);
       background: rgba(255,255,255,.96);
       box-shadow: var(--shadow);
-      display:none;
-      z-index:9999;
-      backdrop-filter: blur(6px);
+      display:none;z-index:9999;backdrop-filter: blur(6px);
     }
     .toast.show{display:block; animation: pop .16s ease-out}
-    @keyframes pop{
-      from{opacity:0; transform: translateX(-50%) translateY(6px)}
-      to{opacity:1; transform: translateX(-50%) translateY(0)}
-    }
-    .toast .t1{font-weight:1000;font-size:15px}
+    @keyframes pop{from{opacity:0; transform: translateX(-50%) translateY(6px)} to{opacity:1; transform: translateX(-50%) translateY(0)}}
+    .toast .t1{font-weight:1100;font-size:15px}
     .toast .t2{font-size:13px;color:var(--muted);margin-top:2px;line-height:1.35}
-    details{
-      border-top:1px solid var(--line);
-      margin-top:10px;
-      padding-top:10px;
-    }
-    summary{
-      cursor:pointer;
-      font-size:14px;
-      color:var(--muted);
-      font-weight:900;
-      outline:none;
-    }
-    .select{
-      border:1px solid var(--line);
-      background: #fff;
-      color:var(--ink);
-      padding:10px 12px;
-      border-radius: 12px;
-      font-size:14px;
-      min-width: 220px;
-      outline:none;
-    }
   </style>
 </head>
 
@@ -267,7 +213,7 @@
     <div class="top">
       <div class="title">
         <h1>LinQ VAL Scanner</h1>
-        <div class="sub">GS1-128優先 / JAN-13代替・連続読み防止 5秒</div>
+        <div class="sub">GS1-128優先 / JAN-13代替・同一バーコードは5秒間無視</div>
       </div>
       <div class="build">BUILD <b id="buildLabel">v0</b></div>
     </div>
@@ -326,16 +272,20 @@
         </div>
 
         <div class="bd">
-          <div class="bigTitle" id="vName">—</div>
-          <div class="subTitle" id="vMaker">—</div>
-
-          <div class="statusCard">
-            <div class="statusLeft">
+          <div class="okBanner">
+            <div class="okLeft">
               <div class="badgeDot" id="dotStatus"></div>
-              <div class="statusText" id="txtStatus">待機</div>
+              <div>
+                <div class="okText" id="txtStatus">待機</div>
+                <div class="okSub" id="txtSub">カメラを起動してください</div>
+              </div>
             </div>
             <div class="rightInfo">ログ <span class="mono" id="logCount">0</span> 件</div>
           </div>
+
+          <div class="prodName" id="vName">—</div>
+          <div class="price" id="vPriceBig">—</div>
+          <div class="maker" id="vMaker">—</div>
 
           <div class="kv">
             <div class="k">JAN-13</div><div class="v mono" id="vJan">—</div>
@@ -345,7 +295,6 @@
             <div class="k">シリアル</div><div class="v mono" id="vSer">—</div>
             <div class="k">医事コード</div><div class="v mono" id="vIji">—</div>
             <div class="k">機能区分</div><div class="v mono" id="vKinou">—</div>
-            <div class="k">償還価格</div><div class="v mono" id="vPrice">—</div>
             <div class="k">入数</div><div class="v mono" id="vPack">—</div>
           </div>
 
@@ -363,7 +312,7 @@
   </div>
 
 <script>
-  const BUILD = "v2026-01-19-04";
+  const BUILD = "v2026-01-19-05";
   document.getElementById("buildLabel").textContent = BUILD;
 
   const $ = (id) => document.getElementById(id);
@@ -376,10 +325,14 @@
     selMode: $("selMode"),
     selCamera: $("selCamera"),
 
-    vName: $("vName"),
-    vMaker: $("vMaker"),
     dotStatus: $("dotStatus"),
     txtStatus: $("txtStatus"),
+    txtSub: $("txtSub"),
+
+    vName: $("vName"),
+    vPriceBig: $("vPriceBig"),
+    vMaker: $("vMaker"),
+
     vJan: $("vJan"),
     vGtin: $("vGtin"),
     vExp: $("vExp"),
@@ -387,8 +340,8 @@
     vSer: $("vSer"),
     vIji: $("vIji"),
     vKinou: $("vKinou"),
-    vPrice: $("vPrice"),
     vPack: $("vPack"),
+
     logCount: $("logCount"),
 
     toast: $("toast"),
@@ -396,18 +349,15 @@
     toastT2: $("toastT2"),
   };
 
-  function setPill(pill, on){
-    pill.classList.toggle("on", !!on);
-  }
+  function setPill(pill, on){ pill.classList.toggle("on", !!on); }
   function toast(t1, t2){
     el.toastT1.textContent = t1;
     el.toastT2.textContent = t2;
     el.toast.classList.add("show");
     setTimeout(()=>el.toast.classList.remove("show"), 1400);
   }
-  function haptic(){
-    try{ if (navigator.vibrate) navigator.vibrate(40); }catch(e){}
-  }
+  function haptic(){ try{ if (navigator.vibrate) navigator.vibrate(40); }catch(e){} }
+
   function digits(s){ return (s ?? "").toString().replace(/\D/g,""); }
   function nowISO(){ return new Date().toISOString(); }
 
@@ -422,20 +372,27 @@
     return d < t;
   }
 
-  function setStatus(kind, label){
-    // kind: "idle" | "ok" | "warn"
-    if (kind === "ok"){
-      el.dotStatus.style.background = "var(--accent)";
-    } else if (kind === "warn"){
-      el.dotStatus.style.background = "rgba(225,29,72,.45)";
-    } else {
-      el.dotStatus.style.background = "rgba(20,19,22,.20)";
-    }
+  function formatYen(v){
+    const d = digits(v);
+    if (!d) return "";
+    const n = Number(d);
+    if (!Number.isFinite(n)) return `¥${d}`;
+    return "¥" + n.toLocaleString("ja-JP");
+  }
+
+  function setStatus(kind, label, sub){
+    // kind: idle | ok | warn
+    el.dotStatus.style.background =
+      kind === "ok" ? "var(--accent)" :
+      kind === "warn" ? "rgba(225,29,72,.45)" :
+      "rgba(20,19,22,.20)";
     el.txtStatus.textContent = label;
+    el.txtSub.textContent = sub || "";
   }
 
   function clearResult(){
     el.vName.textContent = "—";
+    el.vPriceBig.textContent = "—";
     el.vMaker.textContent = "—";
     el.vJan.textContent = "—";
     el.vGtin.textContent = "—";
@@ -444,12 +401,11 @@
     el.vSer.textContent = "—";
     el.vIji.textContent = "—";
     el.vKinou.textContent = "—";
-    el.vPrice.textContent = "—";
     el.vPack.textContent = "—";
   }
 
   // ===== local log =====
-  const LS_KEY = "linq_val_scans_v4";
+  const LS_KEY = "linq_val_scans_v5";
   function loadScans(){ try{ return JSON.parse(localStorage.getItem(LS_KEY) || "[]"); }catch(e){ return []; } }
   function saveScans(arr){ localStorage.setItem(LS_KEY, JSON.stringify(arr)); }
   function updateCount(){ el.logCount.textContent = String(loadScans().length); }
@@ -548,7 +504,7 @@
     return out;
   }
 
-  // ===== Dict lookup =====
+  // ===== Dict lookup (4-digit split / jan13keta) =====
   const cache = new Map();
   async function fetchText(url){
     const res = await fetch(url, {cache:"no-store"});
@@ -659,6 +615,14 @@
     }catch(e){}
   }
 
+  async function waitVideoReady(video){
+    if (video.readyState >= 2) return;
+    await new Promise((resolve) => {
+      const on = () => { video.removeEventListener("loadedmetadata", on); resolve(); };
+      video.addEventListener("loadedmetadata", on);
+    });
+  }
+
   async function startCamera(){
     const deviceId = el.selCamera.value;
     const constraints = {
@@ -669,9 +633,15 @@
         width:{ideal:1920}, height:{ideal:1080}
       }
     };
+
     stream = await navigator.mediaDevices.getUserMedia(constraints);
     el.video.srcObject = stream;
+
+    // ✅ 初回安定化：メタデータ待ち → play → 少し待つ
+    await waitVideoReady(el.video);
     await el.video.play();
+    await new Promise(r => setTimeout(r, 200));
+
     await listCameras();
     setPill(el.pillCam, true);
     torchOn = false;
@@ -685,7 +655,7 @@
     }catch(e){}
     setPill(el.pillCam, false);
     torchOn = false;
-    setStatus("idle","停止中");
+    setStatus("idle","停止中","Startで起動");
   }
 
   async function setTorch(on){
@@ -720,7 +690,7 @@
     lastRaw = raw; lastAt = t;
 
     clearResult();
-    setStatus("warn","照合中…");
+    setStatus("warn","照合中…","辞書照合しています");
 
     const fmtName = (typeof fmt === "number" && window.ZXing)
       ? (Object.keys(window.ZXing.BarcodeFormat).find(k => window.ZXing.BarcodeFormat[k] === fmt) || String(fmt))
@@ -752,7 +722,7 @@
     }
 
     if (!gtin14 && !jan13keta){
-      setStatus("warn","未検出（距離/ブレ/照明）");
+      setStatus("warn","未検出","大きく写して静止");
       toast("読み取り失敗","大きく写して静止");
       return;
     }
@@ -782,20 +752,26 @@
       el.vJan.textContent = jan13keta || el.vJan.textContent;
       el.vGtin.textContent = gtin14 || el.vGtin.textContent;
 
-      el.vName.textContent = dict.product_name || "—";
-      el.vMaker.textContent = dict.manufacturer_name || "—";
+      const name = dict.product_name || "—";
+      const maker = dict.manufacturer_name || "—";
+      const price = formatYen(dict.reimbursement_price_yen || "");
+
+      el.vName.textContent = name;
+      el.vMaker.textContent = maker;
+      el.vPriceBig.textContent = price ? price : "—";
+
       el.vIji.textContent = dict.iji_code || "—";
       el.vKinou.textContent = dict.kinou_kubun_code || "—";
-      el.vPrice.textContent = dict.reimbursement_price_yen || "—";
       el.vPack.textContent = dict.pack_qty || "—";
 
-      setStatus("ok","OK（辞書一致）");
-      toast("OK", dict.product_name || (gtin14 || jan13keta));
+      setStatus("ok","OK","辞書一致");
+      toast("OK", name);
       haptic();
     } else {
       el.vName.textContent = "（辞書未ヒット）";
       el.vMaker.textContent = "—";
-      setStatus("warn","WARN（辞書なし）");
+      el.vPriceBig.textContent = "—";
+      setStatus("warn","WARN","辞書なし");
       toast("WARN", gtin14 || jan13keta);
       haptic();
     }
@@ -825,34 +801,51 @@
   }
 
   async function startScan(){
-    setStatus("idle","起動中…");
+    setStatus("idle","起動中…","ZXing/カメラ準備");
     const ok = await ensureZXing();
     setPill(el.pillZxing, ok);
     if (!ok){
-      setStatus("warn","ZXing読込失敗");
+      setStatus("warn","ZXing読込失敗","CDN/通信を確認");
       toast("ZXing","CDN/通信を確認");
       return;
     }
 
     await startCamera();
-    setStatus("idle","待機");
-    reader = buildReader();
+    setStatus("idle","待機","スキャンしてください");
 
+    reader = buildReader();
     const ZX = window.ZXing;
-    reader.decodeFromVideoElementContinuously(el.video, (result, err)=>{
-      if (result){
-        const text = result.getText ? result.getText() : String(result.text || result);
-        const fmt = result.getBarcodeFormat ? result.getBarcodeFormat() : (result.format || "");
-        onDecoded(text, fmt);
-      } else if (err && !(err instanceof ZX.NotFoundException)) {
-        // ignore
-      }
-    });
+
+    // ✅ 初回安定：VideoDeviceContinuously があれば優先
+    const devId = el.selCamera.value || null;
+
+    if (typeof reader.decodeFromVideoDeviceContinuously === "function") {
+      reader.decodeFromVideoDeviceContinuously(devId, el.video, (result, err) => {
+        if (result){
+          const text = result.getText ? result.getText() : String(result.text || result);
+          const fmt = result.getBarcodeFormat ? result.getBarcodeFormat() : (result.format || "");
+          onDecoded(text, fmt);
+        } else if (err && !(err instanceof ZX.NotFoundException)) {
+          // ignore
+        }
+      });
+    } else {
+      // fallback
+      reader.decodeFromVideoElementContinuously(el.video, (result, err) => {
+        if (result){
+          const text = result.getText ? result.getText() : String(result.text || result);
+          const fmt = result.getBarcodeFormat ? result.getBarcodeFormat() : (result.format || "");
+          onDecoded(text, fmt);
+        } else if (err && !(err instanceof ZX.NotFoundException)) {
+          // ignore
+        }
+      });
+    }
   }
 
   // ===== Buttons =====
   $("btnStart").addEventListener("click", async ()=>{
-    try{ await startScan(); }catch(e){ setStatus("warn","Start失敗"); toast("Start失敗", String(e.message||e)); }
+    try{ await startScan(); }catch(e){ setStatus("warn","Start失敗", String(e.message||e)); toast("Start失敗", String(e.message||e)); }
   });
   $("btnStop").addEventListener("click", async ()=>{ await stopAll(); });
   $("btnTorch").addEventListener("click", async ()=>{ await setTorch(!torchOn); });
@@ -890,7 +883,7 @@
   (async function init(){
     clearResult();
     updateCount();
-    setStatus("idle","待機");
+    setStatus("idle","待機","Startで起動");
     setPill(el.pillZxing, false);
     setPill(el.pillCam, false);
     setPill(el.pillDict, false);
@@ -899,21 +892,6 @@
     setPill(el.pillZxing, ok);
   })();
 
-  async function listCameras(){
-    try{
-      const devices = await navigator.mediaDevices.enumerateDevices();
-      const cams = devices.filter(d => d.kind === "videoinput");
-      const cur = el.selCamera.value;
-      el.selCamera.innerHTML = `<option value="">カメラ自動選択（背面優先）</option>`;
-      for (const c of cams){
-        const opt = document.createElement("option");
-        opt.value = c.deviceId;
-        opt.textContent = c.label || `Camera ${c.deviceId.slice(0,6)}`;
-        el.selCamera.appendChild(opt);
-      }
-      if (cur) el.selCamera.value = cur;
-    }catch(e){}
-  }
 </script>
 </body>
 </html>
