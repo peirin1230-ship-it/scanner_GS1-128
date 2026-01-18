@@ -35,7 +35,7 @@
     </div>
     <div class="small" style="margin-top:8px;">
       ・iPhoneはSafariでHTTPS必須（GitHub PagesはOK）<br>
-      ・読み取りが不安定なら、明るい場所＆ラベルを平面にして試してください
+      ・LINE等のアプリ内ブラウザは避け、Safariで開いてください
     </div>
   </div>
 
@@ -53,17 +53,72 @@
     <div class="mono" id="hint"></div>
   </div>
 
-  <!-- ✅ Correct ZXing UMD bundles (fixes ZXingBrowser ReferenceError) -->
-  <script src="https://cdn.jsdelivr.net/npm/@zxing/library@0.21.3/umd/index.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@zxing/browser@0.1.5/umd/zxing-browser.min.js"></script>
-
   <script>
-    // ====== GS1 AI parser (PoC subset) ======
+    // ===============================
+    // 0) helper: dynamic script loader (with fallback)
+    // ===============================
+    function loadScript(url) {
+      return new Promise((resolve, reject) => {
+        const s = document.createElement("script");
+        s.src = url;
+        s.async = true;
+        s.onload = () => resolve(url);
+        s.onerror = () => reject(new Error("script load failed: " + url));
+        document.head.appendChild(s);
+      });
+    }
+
+    async function loadZxingWithFallback(setStatus) {
+      // ✅ まず jsDelivr → ダメなら unpkg にフォールバック
+      const LIB_URLS = [
+        "https://cdn.jsdelivr.net/npm/@zxing/library@0.21.3/umd/index.min.js",
+        "https://unpkg.com/@zxing/library@0.21.3/umd/index.min.js",
+      ];
+      const BROWSER_URLS = [
+        "https://cdn.jsdelivr.net/npm/@zxing/browser@0.1.5/umd/zxing-browser.min.js",
+        "https://unpkg.com/@zxing/browser@0.1.5/umd/zxing-browser.min.js",
+      ];
+
+      // load @zxing/library
+      let ok = false;
+      for (const u of LIB_URLS) {
+        try {
+          setStatus("ZXing library 読み込み中…\n" + u);
+          await loadScript(u);
+          ok = true;
+          break;
+        } catch (e) { /* try next */ }
+      }
+      if (!ok) throw new Error("ZXing library を読み込めません（ネットワーク/ブロック）");
+
+      // load @zxing/browser
+      ok = false;
+      for (const u of BROWSER_URLS) {
+        try {
+          setStatus("ZXing browser 読み込み中…\n" + u);
+          await loadScript(u);
+          ok = true;
+          break;
+        } catch (e) { /* try next */ }
+      }
+      if (!ok) throw new Error("ZXing browser を読み込めません（ネットワーク/ブロック）");
+
+      // validate globals
+      const ZX = window.ZXing;
+      const ZXB = window.ZXingBrowser;
+      if (!ZX) throw new Error("window.ZXing が見つかりません（libraryロード不完全）");
+      if (!ZXB) throw new Error("window.ZXingBrowser が見つかりません（browserロード不完全）");
+
+      return { ZX, ZXB };
+    }
+
+    // ===============================
+    // 1) GS1 parser (PoC subset)
+    // ===============================
     const GS = String.fromCharCode(29); // ASCII 29
 
     function normalizeScan(raw) {
       let s = (raw || "").trim().replaceAll(" ", "");
-      // Remove AIM prefix like ]C1
       if (s.startsWith("]C1") || s.startsWith("]d2") || s.startsWith("]Q3")) s = s.slice(3);
       return s;
     }
@@ -88,8 +143,8 @@
     }
 
     const AI_RULES = {
-      "01": { fixed: 14 },        // GTIN
-      "17": { fixed: 6  },        // Expiry YYMMDD
+      "01": { fixed: 14 },          // GTIN
+      "17": { fixed: 6  },          // Expiry YYMMDD
       "10": { max: 20, var: true }, // Lot
       "21": { max: 20, var: true }, // Serial
       "30": { max: 8,  var: true },
@@ -131,9 +186,7 @@
           else { val = s0.slice(pos, end); pos = end + 1; }
           if (rule.max && val.length > rule.max) val = val.slice(0, rule.max);
           out[ai] = val;
-        } else {
-          break;
-        }
+        } else break;
       }
       return out;
     }
@@ -155,7 +208,9 @@
       return s;
     }
 
-    // ====== storage ======
+    // ===============================
+    // 2) storage
+    // ===============================
     const KEY = "linq_gs1_scans_v1";
     function loadRows() {
       try { return JSON.parse(localStorage.getItem(KEY) || "[]"); }
@@ -166,7 +221,9 @@
       document.getElementById("count").textContent = rows.length.toString();
     }
 
-    // ====== scanner ======
+    // ===============================
+    // 3) UI wiring
+    // ===============================
     const video = document.getElementById("preview");
     const lastEl = document.getElementById("last");
     const statusEl = document.getElementById("status");
@@ -186,7 +243,6 @@
 
     let codeReader = null;
     let controls = null;
-
     let lastRaw = "";
     let lastAt = 0;
 
@@ -195,40 +251,32 @@
       statusEl.className = "mono " + cls;
     }
 
-    function setHint() {
-      hintEl.textContent =
+    hintEl.textContent =
 `CSV列:
 timestamp, raw, gtin_01, lot_10, expiry_17, expiry_iso, serial_21, device_id, location, user_id
 
-・iPhoneはSafariでHTTPS必須
-・LINE等のアプリ内ブラウザは避け、Safariで開いてください`;
-    }
-    setHint();
+・まずURL末尾に ?v=3 を付けてキャッシュ回避
+・LINE等のアプリ内ブラウザは避け、Safariで開く`;
 
     async function startScan() {
-      // ✅ Ensure ZXing is loaded
-      const zxing = window.ZXingBrowser;
-      if (!zxing) {
-        setStatus("ZXingの読み込みに失敗（script URL/キャッシュ確認）", "bad");
-        alert("ZXingが読み込めていません。index.htmlのscript URLを確認してください。");
-        return;
-      }
-
       try {
+        setStatus("初期化中…（ZXingロード確認）");
+        const { ZX, ZXB } = await loadZxingWithFallback((m)=>setStatus(m, "warn"));
+
         setStatus("カメラ起動中…");
         const hints = new Map();
-        // Code128 (GS1-128) を優先
-        hints.set(ZXing.DecodeHintType.POSSIBLE_FORMATS, [ZXing.BarcodeFormat.CODE_128]);
-        codeReader = new zxing.BrowserMultiFormatReader(hints);
+        hints.set(ZX.DecodeHintType.POSSIBLE_FORMATS, [ZX.BarcodeFormat.CODE_128]);
+
+        codeReader = new ZXB.BrowserMultiFormatReader(hints);
 
         controls = await codeReader.decodeFromVideoDevice(
-          undefined, // auto pick camera (usually back)
+          undefined,
           video,
           (result, err) => {
             if (result) {
               const raw = result.getText();
               const now = Date.now();
-              if (raw === lastRaw && (now - lastAt) < 1200) return; // debounce
+              if (raw === lastRaw && (now - lastAt) < 1200) return;
               lastRaw = raw; lastAt = now;
 
               const ai = parseGs1(raw);
@@ -256,7 +304,6 @@ timestamp, raw, gtin_01, lot_10, expiry_17, expiry_iso, serial_21, device_id, lo
 
               lastEl.textContent = JSON.stringify(row, null, 2);
 
-              // expiry warning (only if expired)
               if (expIso) {
                 const today = new Date().toISOString().slice(0,10);
                 if (expIso < today) setStatus("期限切れ検知（EXPが過去）", "bad");
@@ -265,9 +312,7 @@ timestamp, raw, gtin_01, lot_10, expiry_17, expiry_iso, serial_21, device_id, lo
                 setStatus("読み取りOK（期限AIが無い/解析不可）", "ok");
               }
             }
-
             if (err) {
-              // NotFoundException is common when nothing is detected; ignore it
               const name = err.name || "";
               if (name !== "NotFoundException") {
                 setStatus("読み取りエラー: " + (err.message || err), "bad");
@@ -282,17 +327,13 @@ timestamp, raw, gtin_01, lot_10, expiry_17, expiry_iso, serial_21, device_id, lo
       } catch (e) {
         console.error(e);
         setStatus("カメラ起動に失敗: " + (e?.message || e), "bad");
-        alert("カメラ起動に失敗: " + (e?.message || e));
+        alert("カメラ起動に失敗:\n" + (e?.message || e));
       }
     }
 
     function stopScan() {
-      try {
-        if (controls) controls.stop();
-      } catch {}
-      try {
-        if (codeReader) codeReader.reset();
-      } catch {}
+      try { if (controls) controls.stop(); } catch {}
+      try { if (codeReader) codeReader.reset(); } catch {}
       controls = null;
       codeReader = null;
       startBtn.disabled = false;
@@ -330,7 +371,6 @@ timestamp, raw, gtin_01, lot_10, expiry_17, expiry_iso, serial_21, device_id, lo
     stopBtn.addEventListener("click", stopScan);
     exportBtn.addEventListener("click", exportCsv);
     clearBtn.addEventListener("click", clearAll);
-
     window.addEventListener("beforeunload", () => { try { stopScan(); } catch {} });
   </script>
 </body>
