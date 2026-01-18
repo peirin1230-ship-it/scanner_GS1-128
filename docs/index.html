@@ -352,7 +352,9 @@ function showToast(message, type = "ok") {
               };
               rows.push(row);
               saveRows(rows);
-
+// ✅ 成功フィードバック（保存完了後）
+vibrateSuccess();
+showToast("保存しました ✅", "ok");
               lastEl.textContent = JSON.stringify(row, null, 2);
 
               if (expIso) {
