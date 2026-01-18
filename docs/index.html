@@ -1,0 +1,317 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>LinQ VAL Web Scanner (GS1-128 → CSV)</title>
+  <style>
+    body { font-family: system-ui, -apple-system, sans-serif; margin: 12px; }
+    .row { display:flex; gap:10px; flex-wrap: wrap; align-items: center; }
+    input { padding:8px; font-size:14px; }
+    button { padding:10px 12px; font-size:14px; }
+    video { width: 100%; max-width: 520px; border: 1px solid #ccc; border-radius: 8px; }
+    .card { border:1px solid #ddd; border-radius:10px; padding:12px; margin-top:12px; }
+    .mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 12px; white-space: pre-wrap; }
+    .ok { color: #0a7; }
+    .warn { color: #c60; }
+    .bad { color: #c00; }
+  </style>
+</head>
+<body>
+  <h2>LinQ VAL Web Scanner（GS1-128 → CSV）</h2>
+
+  <div class="card">
+    <div class="row">
+      <label>device_id <input id="deviceId" value="POC_PHONE_01" /></label>
+      <label>location <input id="location" value="CATH-A" /></label>
+      <label>user_id <input id="userId" value="nurse_demo" /></label>
+    </div>
+    <div class="row" style="margin-top:10px;">
+      <button id="startBtn">スキャン開始</button>
+      <button id="stopBtn" disabled>停止</button>
+      <button id="exportBtn">CSV出力</button>
+      <button id="clearBtn">全消去</button>
+    </div>
+    <p style="margin:8px 0 0 0;" class="warn">
+      ※iPhoneはSafariで動作します（HTTPS必須）。初回はカメラ許可が必要です。
+    </p>
+  </div>
+
+  <div class="card">
+    <video id="preview" muted playsinline></video>
+    <div style="margin-top:10px;">
+      <div>Last Scan:</div>
+      <div id="last" class="mono"></div>
+      <div id="status" class="mono"></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div>保存件数：<span id="count">0</span></div>
+    <div class="mono" id="hint"></div>
+  </div>
+
+  <!-- ZXing (Code128 / GS1-128) -->
+  <script src="https://cdn.jsdelivr.net/npm/@zxing/browser@0.1.5/umd/index.min.js"></script>
+  <script>
+    // ====== GS1 AI parser (subset) ======
+    const GS = String.fromCharCode(29);
+
+    function normalizeScan(raw) {
+      let s = (raw || "").trim().replaceAll(" ", "");
+      // remove AIM prefix like ]C1
+      if (s.startsWith("]C1") || s.startsWith("]d2") || s.startsWith("]Q3")) s = s.slice(3);
+      return s;
+    }
+
+    function parseParenthesesFormat(s) {
+      if (!s.includes("(") || !s.includes(")")) return null;
+      let out = {};
+      let i = 0;
+      while (i < s.length) {
+        if (s[i] !== "(") return null;
+        const j = s.indexOf(")", i);
+        if (j < 0) return null;
+        const ai = s.slice(i+1, j);
+        if (!/^\d+$/.test(ai)) return null;
+        i = j + 1;
+        const next = s.indexOf("(", i);
+        const val = (next < 0) ? s.slice(i) : s.slice(i, next);
+        out[ai] = val;
+        i = (next < 0) ? s.length : next;
+      }
+      return out;
+    }
+
+    const AI_RULES = {
+      "01": { fixed: 14 },      // GTIN
+      "17": { fixed: 6  },      // Expiry YYMMDD
+      "10": { max: 20, var: true }, // Lot
+      "21": { max: 20, var: true }, // Serial
+      "30": { max: 8,  var: true },
+      "37": { max: 8,  var: true },
+      "00": { fixed: 18 },
+    };
+
+    function readAI(s, pos) {
+      // try 4,3,2. For PoC we mostly need 2-digit AIs.
+      for (const len of [4,3,2]) {
+        if (pos + len <= s.length) {
+          const ai = s.slice(pos, pos+len);
+          if (AI_RULES[ai]) return [ai, pos+len];
+        }
+      }
+      return [null, pos];
+    }
+
+    function parseGs1(raw) {
+      const s0 = normalizeScan(raw);
+      const p = parseParenthesesFormat(s0);
+      if (p) return p;
+
+      const out = {};
+      let pos = 0;
+      while (pos < s0.length) {
+        const [ai, p2] = readAI(s0, pos);
+        if (!ai) break;
+        pos = p2;
+
+        const rule = AI_RULES[ai];
+        if (rule.fixed) {
+          out[ai] = s0.slice(pos, pos + rule.fixed);
+          pos += rule.fixed;
+          if (pos < s0.length && s0[pos] === GS) pos++;
+        } else if (rule.var) {
+          let end = s0.indexOf(GS, pos);
+          let val;
+          if (end < 0) { val = s0.slice(pos); pos = s0.length; }
+          else { val = s0.slice(pos, end); pos = end + 1; }
+          if (rule.max && val.length > rule.max) val = val.slice(0, rule.max);
+          out[ai] = val;
+        } else {
+          break;
+        }
+      }
+      return out;
+    }
+
+    function yymmddToIso(yymmdd) {
+      if (!/^\d{6}$/.test(yymmdd || "")) return "";
+      const yy = parseInt(yymmdd.slice(0,2), 10);
+      const mm = yymmdd.slice(2,4);
+      const dd = yymmdd.slice(4,6);
+      const yyyy = (yy <= 79) ? (2000 + yy) : (1900 + yy);
+      return `${yyyy}-${mm}-${dd}`;
+    }
+
+    function csvEscape(s) {
+      s = (s ?? "").toString();
+      if (s.includes(",") || s.includes("\"") || s.includes("\n")) {
+        return `"${s.replaceAll("\"", "\"\"")}"`;
+      }
+      return s;
+    }
+
+    // ====== storage ======
+    const KEY = "linq_gs1_scans_v1";
+    function loadRows() {
+      try { return JSON.parse(localStorage.getItem(KEY) || "[]"); }
+      catch { return []; }
+    }
+    function saveRows(rows) {
+      localStorage.setItem(KEY, JSON.stringify(rows));
+      document.getElementById("count").textContent = rows.length.toString();
+    }
+
+    // ====== scanner ======
+    const video = document.getElementById("preview");
+    const lastEl = document.getElementById("last");
+    const statusEl = document.getElementById("status");
+    const hintEl = document.getElementById("hint");
+
+    const startBtn = document.getElementById("startBtn");
+    const stopBtn = document.getElementById("stopBtn");
+    const exportBtn = document.getElementById("exportBtn");
+    const clearBtn = document.getElementById("clearBtn");
+
+    const deviceIdEl = document.getElementById("deviceId");
+    const locationEl = document.getElementById("location");
+    const userIdEl = document.getElementById("userId");
+
+    let rows = loadRows();
+    saveRows(rows);
+
+    let reader = null;
+    let lastRaw = "";
+    let lastAt = 0;
+
+    function setStatus(msg, cls="") {
+      statusEl.textContent = msg;
+      statusEl.className = "mono " + cls;
+    }
+
+    function setHint() {
+      hintEl.textContent =
+`CSV列:
+timestamp, raw, gtin_01, lot_10, expiry_17, expiry_iso, serial_21, device_id, location, user_id
+
+・iPhoneはSafariでHTTPS必須
+・暗い/反射/曲面で読めない場合があります`;
+    }
+    setHint();
+
+    async function startScan() {
+      try {
+        setStatus("カメラ起動中…");
+        const zxing = ZXingBrowser;
+        const hints = new Map();
+        // Code128 (GS1-128) を優先
+        hints.set(zxing.DecodeHintType.POSSIBLE_FORMATS, [zxing.BarcodeFormat.CODE_128]);
+
+        reader = new zxing.BrowserMultiFormatReader(hints);
+
+        // back camera preferred
+        const controls = await reader.decodeFromVideoDevice(
+          undefined,
+          video,
+          (result, err, controls) => {
+            if (result) {
+              const raw = result.getText();
+              // debounce: same code repeated quickly
+              const now = Date.now();
+              if (raw === lastRaw && (now - lastAt) < 1200) return;
+              lastRaw = raw; lastAt = now;
+
+              const ai = parseGs1(raw);
+              const gtin = ai["01"] || "";
+              const lot = ai["10"] || "";
+              const exp = ai["17"] || "";
+              const expIso = yymmddToIso(exp);
+              const ser = ai["21"] || "";
+
+              const ts = new Date().toISOString().slice(0,19);
+              const row = {
+                timestamp: ts,
+                raw,
+                gtin_01: gtin,
+                lot_10: lot,
+                expiry_17: exp,
+                expiry_iso: expIso,
+                serial_21: ser,
+                device_id: deviceIdEl.value.trim(),
+                location: locationEl.value.trim(),
+                user_id: userIdEl.value.trim(),
+              };
+              rows.push(row);
+              saveRows(rows);
+
+              lastEl.textContent = JSON.stringify(row, null, 2);
+
+              // expiry warning (only if expired)
+              if (expIso) {
+                const today = new Date().toISOString().slice(0,10);
+                if (expIso < today) setStatus("期限切れ検知（EXPが過去）", "bad");
+                else setStatus("読み取りOK", "ok");
+              } else {
+                setStatus("読み取りOK（期限AIが無い/解析不可）", "ok");
+              }
+            }
+            if (err && !(err instanceof zxing.NotFoundException)) {
+              setStatus("読み取りエラー: " + err, "bad");
+            }
+          }
+        );
+
+        startBtn.disabled = true;
+        stopBtn.disabled = false;
+        setStatus("スキャン中（Code128/GS1-128）", "ok");
+      } catch (e) {
+        setStatus("カメラ起動に失敗: " + e, "bad");
+      }
+    }
+
+    function stopScan() {
+      try {
+        if (reader) reader.reset();
+      } catch {}
+      reader = null;
+      startBtn.disabled = false;
+      stopBtn.disabled = true;
+      setStatus("停止しました");
+    }
+
+    function exportCsv() {
+      const header = ["timestamp","raw","gtin_01","lot_10","expiry_17","expiry_iso","serial_21","device_id","location","user_id"];
+      const lines = [header.join(",")];
+      for (const r of rows) {
+        lines.push(header.map(k => csvEscape(r[k] ?? "")).join(","));
+      }
+      const blob = new Blob([lines.join("\n")], { type: "text/csv;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "gs1_scans.csv";
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+      setStatus("CSVを書き出しました（ダウンロード）", "ok");
+    }
+
+    function clearAll() {
+      if (!confirm("保存データを全消去します。よろしいですか？")) return;
+      rows = [];
+      saveRows(rows);
+      lastEl.textContent = "";
+      setStatus("消去しました");
+    }
+
+    startBtn.addEventListener("click", startScan);
+    stopBtn.addEventListener("click", stopScan);
+    exportBtn.addEventListener("click", exportCsv);
+    clearBtn.addEventListener("click", clearAll);
+
+    window.addEventListener("beforeunload", () => { try { stopScan(); } catch {} });
+  </script>
+</body>
+</html>
