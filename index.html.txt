@@ -266,8 +266,10 @@ timestamp, raw, gtin_01, lot_10, expiry_17, expiry_iso, serial_21, device_id, lo
         stopBtn.disabled = false;
         setStatus("スキャン中（Code128/GS1-128）", "ok");
       } catch (e) {
-        setStatus("カメラ起動に失敗: " + e, "bad");
-      }
+  console.error(e);
+  setStatus("カメラ起動に失敗: " + (e?.message || e), "bad");
+  alert("カメラ起動に失敗: " + (e?.message || e));
+}
     }
 
     function stopScan() {
