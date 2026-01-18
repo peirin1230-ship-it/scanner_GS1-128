@@ -259,6 +259,55 @@ timestamp, raw, gtin_01, lot_10, expiry_17, expiry_iso, serial_21, device_id, lo
 
 ・まずURL末尾に ?v=3 を付けてキャッシュ回避
 ・LINE等のアプリ内ブラウザは避け、Safariで開く`;
+// ===== Success feedback (toast + vibrate) =====
+function vibrateSuccess() {
+  try {
+    if (navigator.vibrate) {
+      // 成功：短く2回
+      navigator.vibrate([60, 40, 60]);
+    }
+  } catch {}
+}
+
+function showToast(message, type = "ok") {
+  // 既存があれば消す
+  const old = document.getElementById("toast");
+  if (old) old.remove();
+
+  const toast = document.createElement("div");
+  toast.id = "toast";
+  toast.textContent = message;
+
+  // 見た目
+  toast.style.position = "fixed";
+  toast.style.left = "50%";
+  toast.style.bottom = "22px";
+  toast.style.transform = "translateX(-50%)";
+  toast.style.padding = "12px 14px";
+  toast.style.borderRadius = "12px";
+  toast.style.fontSize = "14px";
+  toast.style.boxShadow = "0 8px 22px rgba(0,0,0,0.18)";
+  toast.style.zIndex = "99999";
+  toast.style.maxWidth = "90vw";
+  toast.style.textAlign = "center";
+
+  if (type === "bad") {
+    toast.style.background = "#ffe5e5";
+    toast.style.color = "#a40000";
+    toast.style.border = "1px solid #ffb3b3";
+  } else {
+    toast.style.background = "#eafff3";
+    toast.style.color = "#006b3c";
+    toast.style.border = "1px solid #b7f0d1";
+  }
+
+  document.body.appendChild(toast);
+
+  // 1.0秒で消す
+  setTimeout(() => {
+    if (toast) toast.remove();
+  }, 1000);
+}
 
     async function startScan() {
       try {
