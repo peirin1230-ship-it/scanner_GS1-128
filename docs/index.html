@@ -15,9 +15,7 @@
       --accent:#e11d48;   /* red */
       --accent2:#fb7185;  /* soft red */
 
-      --card:#ffffff;
       --shadow: 0 10px 28px rgba(20,19,22,.10);
-
       --r:18px;
       --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono","Courier New", monospace;
       --sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans JP", "Hiragino Kaku Gothic ProN", "Yu Gothic", Arial;
@@ -42,24 +40,9 @@
       box-shadow: var(--shadow);
       backdrop-filter: blur(6px);
     }
-    .title h1{
-      margin:0;
-      font-size:18px;
-      font-weight:1000;
-      letter-spacing:.2px;
-      line-height:1.1;
-    }
-    .title .sub{
-      margin-top:3px;
-      font-size:13px;
-      color:var(--muted);
-      line-height:1.2;
-    }
-    .build{
-      font-size:12px;color:var(--muted);
-      padding:8px 10px;border:1px solid var(--line);
-      border-radius:999px;background:#fff;white-space:nowrap;
-    }
+    .title h1{margin:0;font-size:18px;font-weight:1000;letter-spacing:.2px;line-height:1.1}
+    .title .sub{margin-top:3px;font-size:13px;color:var(--muted);line-height:1.2}
+    .build{font-size:12px;color:var(--muted);padding:8px 10px;border:1px solid var(--line);border-radius:999px;background:#fff;white-space:nowrap}
     .build b{color:var(--ink)}
 
     .grid{
@@ -115,16 +98,67 @@
       border:1px solid var(--line);background:#000;
     }
     video{width:100%;height:auto;display:block}
-    /* 枠は入れない（要件） */
+    /* 枠は入れない */
     .overlay{
       pointer-events:none;position:absolute; inset:0;
-      background:
-        linear-gradient(180deg, rgba(0,0,0,.12), transparent 25%, transparent 75%, rgba(0,0,0,.18));
+      background: linear-gradient(180deg, rgba(0,0,0,.10), transparent 25%, transparent 75%, rgba(0,0,0,.18));
     }
 
-    .hint{
-      margin-top:10px;font-size:14px;color:var(--muted);line-height:1.35;
+    /* ===== Popout (big, colored, on scan screen) ===== */
+    .popout{
+      position:absolute;
+      left:12px; right:12px;
+      bottom:12px;
+      border-radius: 18px;
+      border:1px solid rgba(225,29,72,.25);
+      background: linear-gradient(135deg, rgba(225,29,72,.20), rgba(255,255,255,.85) 60%);
+      box-shadow: 0 18px 40px rgba(20,19,22,.22);
+      backdrop-filter: blur(6px);
+      padding:14px 14px;
+      display:none;
     }
+    .popout.show{display:block; animation: pop .16s ease-out}
+    @keyframes pop{
+      from{opacity:0; transform: translateY(6px)}
+      to{opacity:1; transform: translateY(0)}
+    }
+    .popTop{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+    .popStatus{
+      font-size:30px; /* BIG OK */
+      font-weight:1100;
+      letter-spacing:.2px;
+      line-height:1;
+      color: var(--accent);
+    }
+    .popMeta{
+      font-size:13px;color:rgba(20,19,22,.65);
+      line-height:1.2;
+      text-align:right;
+      white-space:nowrap;
+    }
+    .popName{
+      margin-top:8px;
+      font-size:20px;
+      font-weight:1100;
+      line-height:1.18;
+      color: var(--ink);
+    }
+    .popPrice{
+      margin-top:6px;
+      font-size:22px;
+      font-weight:1100;
+      color: var(--accent);
+      letter-spacing:.2px;
+    }
+    .popSmall{
+      margin-top:8px;
+      font-size:13px;
+      color:rgba(20,19,22,.65);
+      font-family: var(--mono);
+      word-break: break-all;
+    }
+
+    .hint{margin-top:10px;font-size:14px;color:var(--muted);line-height:1.35}
     .mono{font-family:var(--mono)}
     .em{
       display:inline-flex;align-items:center;
@@ -134,7 +168,7 @@
       font-weight:1000;
     }
 
-    /* ===== Result emphasis ===== */
+    /* ===== Result (keep same layout) ===== */
     .okBanner{
       display:flex;align-items:center;justify-content:space-between;gap:10px;
       padding:14px 14px;
@@ -144,36 +178,13 @@
     }
     .okLeft{display:flex;align-items:center;gap:12px}
     .badgeDot{width:14px;height:14px;border-radius:999px;background: rgba(20,19,22,.20)}
-    .okText{
-      font-size:28px; /* BIG OK */
-      font-weight:1100;
-      letter-spacing:.2px;
-      line-height:1;
-    }
+    .okText{font-size:30px;font-weight:1100;letter-spacing:.2px;line-height:1}
     .okSub{font-size:14px;color:var(--muted);margin-top:2px}
     .rightInfo{font-size:14px;color:var(--muted)}
 
-    .prodName{
-      margin-top:14px;
-      font-size:26px; /* bigger */
-      font-weight:1100;
-      line-height:1.18;
-      letter-spacing:.1px;
-    }
-    .maker{
-      margin-top:8px;
-      font-size:16px;
-      color:var(--muted);
-      line-height:1.25;
-    }
-    .price{
-      margin-top:10px;
-      font-size:26px; /* BIG price */
-      font-weight:1100;
-      color: var(--accent);
-      letter-spacing:.2px;
-      line-height:1.1;
-    }
+    .prodName{margin-top:14px;font-size:26px;font-weight:1100;line-height:1.18;letter-spacing:.1px}
+    .maker{margin-top:8px;font-size:16px;color:var(--muted);line-height:1.25}
+    .price{margin-top:10px;font-size:26px;font-weight:1100;color: var(--accent);letter-spacing:.2px;line-height:1.1}
 
     .kv{
       margin-top:14px;
@@ -193,6 +204,7 @@
       padding:10px 12px;border-radius: 12px;font-size:14px;min-width: 220px;outline:none;
     }
 
+    /* keep small toast for errors only */
     .toast{
       position:fixed;left:50%; bottom:16px;transform: translateX(-50%);
       min-width: 260px;max-width: 92vw;padding:12px 14px;border-radius: 16px;
@@ -201,8 +213,8 @@
       box-shadow: var(--shadow);
       display:none;z-index:9999;backdrop-filter: blur(6px);
     }
-    .toast.show{display:block; animation: pop .16s ease-out}
-    @keyframes pop{from{opacity:0; transform: translateX(-50%) translateY(6px)} to{opacity:1; transform: translateX(-50%) translateY(0)}}
+    .toast.show{display:block; animation: toastpop .16s ease-out}
+    @keyframes toastpop{from{opacity:0; transform: translateX(-50%) translateY(6px)} to{opacity:1; transform: translateX(-50%) translateY(0)}}
     .toast .t1{font-weight:1100;font-size:15px}
     .toast .t2{font-size:13px;color:var(--muted);margin-top:2px;line-height:1.35}
   </style>
@@ -213,7 +225,7 @@
     <div class="top">
       <div class="title">
         <h1>LinQ VAL Scanner</h1>
-        <div class="sub">GS1-128優先 / JAN-13代替・同一バーコードは5秒間無視</div>
+        <div class="sub">iPhone Safari対策：初回自動リトライ / 同一バーコードは5秒間無視</div>
       </div>
       <div class="build">BUILD <b id="buildLabel">v0</b></div>
     </div>
@@ -240,6 +252,17 @@
           <div style="margin-top:12px" class="videoWrap">
             <video id="video" playsinline muted></video>
             <div class="overlay"></div>
+
+            <!-- BIG POPOUT on scan screen -->
+            <div class="popout" id="popout">
+              <div class="popTop">
+                <div class="popStatus" id="popStatus">OK</div>
+                <div class="popMeta" id="popMeta">—</div>
+              </div>
+              <div class="popName" id="popName">—</div>
+              <div class="popPrice" id="popPrice">—</div>
+              <div class="popSmall" id="popSmall">—</div>
+            </div>
           </div>
 
           <div class="hint">
@@ -277,7 +300,7 @@
               <div class="badgeDot" id="dotStatus"></div>
               <div>
                 <div class="okText" id="txtStatus">待機</div>
-                <div class="okSub" id="txtSub">カメラを起動してください</div>
+                <div class="okSub" id="txtSub">Startで起動</div>
               </div>
             </div>
             <div class="rightInfo">ログ <span class="mono" id="logCount">0</span> 件</div>
@@ -312,7 +335,7 @@
   </div>
 
 <script>
-  const BUILD = "v2026-01-19-05";
+  const BUILD = "v2026-01-19-06";
   document.getElementById("buildLabel").textContent = BUILD;
 
   const $ = (id) => document.getElementById(id);
@@ -344,6 +367,13 @@
 
     logCount: $("logCount"),
 
+    popout: $("popout"),
+    popStatus: $("popStatus"),
+    popMeta: $("popMeta"),
+    popName: $("popName"),
+    popPrice: $("popPrice"),
+    popSmall: $("popSmall"),
+
     toast: $("toast"),
     toastT1: $("toastT1"),
     toastT2: $("toastT2"),
@@ -358,6 +388,17 @@
   }
   function haptic(){ try{ if (navigator.vibrate) navigator.vibrate(40); }catch(e){} }
 
+  function showPopout({status, name, price, meta, small}){
+    el.popStatus.textContent = status;
+    el.popMeta.textContent = meta || "";
+    el.popName.textContent = name || "—";
+    el.popPrice.textContent = price || "—";
+    el.popSmall.textContent = small || "";
+    el.popout.classList.add("show");
+    clearTimeout(showPopout._t);
+    showPopout._t = setTimeout(()=>el.popout.classList.remove("show"), 2200);
+  }
+
   function digits(s){ return (s ?? "").toString().replace(/\D/g,""); }
   function nowISO(){ return new Date().toISOString(); }
 
@@ -371,7 +412,6 @@
     const t = new Date(); t.setHours(0,0,0,0);
     return d < t;
   }
-
   function formatYen(v){
     const d = digits(v);
     if (!d) return "";
@@ -381,7 +421,6 @@
   }
 
   function setStatus(kind, label, sub){
-    // kind: idle | ok | warn
     el.dotStatus.style.background =
       kind === "ok" ? "var(--accent)" :
       kind === "warn" ? "rgba(225,29,72,.45)" :
@@ -405,7 +444,7 @@
   }
 
   // ===== local log =====
-  const LS_KEY = "linq_val_scans_v5";
+  const LS_KEY = "linq_val_scans_v6";
   function loadScans(){ try{ return JSON.parse(localStorage.getItem(LS_KEY) || "[]"); }catch(e){ return []; } }
   function saveScans(arr){ localStorage.setItem(LS_KEY, JSON.stringify(arr)); }
   function updateCount(){ el.logCount.textContent = String(loadScans().length); }
@@ -589,15 +628,21 @@
     return hit || null;
   }
 
-  // ===== Camera/scanning =====
+  // ===== Camera/scanning (iPhone Safari fix) =====
   let stream = null;
   let reader = null;
   let torchOn = false;
 
-  // ✅ 連続スキャン防止 5秒
   const DEDUP_MS = 5000;
   let lastRaw = "";
   let lastAt = 0;
+
+  // iPhone Safari: kickstart strategy
+  const KICK_1_MS = 1200;  // restart decoder if no decode
+  const KICK_2_MS = 2800;  // restart camera if still none
+
+  let startedAt = 0;
+  let decodeCount = 0;
 
   async function listCameras(){
     try{
@@ -615,12 +660,13 @@
     }catch(e){}
   }
 
-  async function waitVideoReady(video){
-    if (video.readyState >= 2) return;
-    await new Promise((resolve) => {
-      const on = () => { video.removeEventListener("loadedmetadata", on); resolve(); };
-      video.addEventListener("loadedmetadata", on);
-    });
+  async function waitVideoHasDimensions(video, timeoutMs=2500){
+    const t0 = Date.now();
+    while (Date.now() - t0 < timeoutMs){
+      if (video.readyState >= 2 && video.videoWidth > 0 && video.videoHeight > 0) return true;
+      await new Promise(r => setTimeout(r, 50));
+    }
+    return false;
   }
 
   async function startCamera(){
@@ -637,14 +683,22 @@
     stream = await navigator.mediaDevices.getUserMedia(constraints);
     el.video.srcObject = stream;
 
-    // ✅ 初回安定化：メタデータ待ち → play → 少し待つ
-    await waitVideoReady(el.video);
-    await el.video.play();
-    await new Promise(r => setTimeout(r, 200));
+    // critical: ensure play after user gesture
+    await el.video.play().catch(()=>{});
+    await waitVideoHasDimensions(el.video, 2500);
 
     await listCameras();
     setPill(el.pillCam, true);
     torchOn = false;
+  }
+
+  async function restartCamera(){
+    try{
+      if (stream){ for (const t of stream.getTracks()) t.stop(); }
+    }catch(e){}
+    stream = null;
+    el.video.srcObject = null;
+    await startCamera();
   }
 
   async function stopAll(){
@@ -656,6 +710,7 @@
     setPill(el.pillCam, false);
     torchOn = false;
     setStatus("idle","停止中","Startで起動");
+    el.popout.classList.remove("show");
   }
 
   async function setTorch(on){
@@ -682,6 +737,56 @@
       return new ZX.BrowserMultiFormatReader(hints, 250);
     }
     return new ZX.BrowserMultiFormatReader(undefined, 250);
+  }
+
+  function startDecodeLoop(){
+    const ZX = window.ZXing;
+    reader = buildReader();
+
+    // Use video element continuous (stable across iOS)
+    reader.decodeFromVideoElementContinuously(el.video, (result, err)=>{
+      if (result){
+        decodeCount++;
+        const text = result.getText ? result.getText() : String(result.text || result);
+        const fmt = result.getBarcodeFormat ? result.getBarcodeFormat() : (result.format || "");
+        onDecoded(text, fmt);
+      } else if (err && !(err instanceof ZX.NotFoundException)) {
+        // ignore
+      }
+    });
+  }
+
+  async function restartDecoderOnly(){
+    try{ if (reader) { try{ reader.reset(); }catch(e){} } }catch(e){}
+    reader = null;
+    startDecodeLoop();
+  }
+
+  function scheduleKickstart(){
+    clearTimeout(scheduleKickstart._t1);
+    clearTimeout(scheduleKickstart._t2);
+
+    scheduleKickstart._t1 = setTimeout(async ()=>{
+      // if no decode callbacks seen yet, restart decoder once
+      if (decodeCount === 0 && (Date.now()-startedAt) > KICK_1_MS){
+        setStatus("warn","準備中…","（自動調整中）");
+        await restartDecoderOnly();
+      }
+    }, KICK_1_MS);
+
+    scheduleKickstart._t2 = setTimeout(async ()=>{
+      // if still nothing, restart camera stream (equivalent to user toggling)
+      if (decodeCount === 0 && (Date.now()-startedAt) > KICK_2_MS){
+        setStatus("warn","準備中…","（カメラ再起動）");
+        await stopReaderOnly();
+        await restartCamera();
+        startDecodeLoop();
+      }
+    }, KICK_2_MS);
+  }
+
+  async function stopReaderOnly(){
+    try{ if (reader) { try{ reader.reset(); }catch(e){} reader=null; } }catch(e){}
   }
 
   async function onDecoded(raw, fmt){
@@ -765,14 +870,23 @@
       el.vPack.textContent = dict.pack_qty || "—";
 
       setStatus("ok","OK","辞書一致");
-      toast("OK", name);
+      showPopout({
+        status: "OK",
+        name,
+        price: price || "—",
+        meta: "辞書一致",
+        small: (gtin14 || jan13keta) ? `${gtin14 || ""} ${jan13keta || ""}`.trim() : ""
+      });
       haptic();
     } else {
-      el.vName.textContent = "（辞書未ヒット）";
-      el.vMaker.textContent = "—";
-      el.vPriceBig.textContent = "—";
       setStatus("warn","WARN","辞書なし");
-      toast("WARN", gtin14 || jan13keta);
+      showPopout({
+        status: "WARN",
+        name: gtin14 || jan13keta || "—",
+        price: "—",
+        meta: "辞書なし",
+        small: (gtin14 || jan13keta) ? `${gtin14 || ""} ${jan13keta || ""}`.trim() : ""
+      });
       haptic();
     }
 
@@ -810,37 +924,18 @@
       return;
     }
 
+    decodeCount = 0;
+    startedAt = Date.now();
+
     await startCamera();
     setStatus("idle","待機","スキャンしてください");
 
-    reader = buildReader();
-    const ZX = window.ZXing;
+    // Start decoder loop after video is truly ready
+    await waitVideoHasDimensions(el.video, 2000);
+    startDecodeLoop();
 
-    // ✅ 初回安定：VideoDeviceContinuously があれば優先
-    const devId = el.selCamera.value || null;
-
-    if (typeof reader.decodeFromVideoDeviceContinuously === "function") {
-      reader.decodeFromVideoDeviceContinuously(devId, el.video, (result, err) => {
-        if (result){
-          const text = result.getText ? result.getText() : String(result.text || result);
-          const fmt = result.getBarcodeFormat ? result.getBarcodeFormat() : (result.format || "");
-          onDecoded(text, fmt);
-        } else if (err && !(err instanceof ZX.NotFoundException)) {
-          // ignore
-        }
-      });
-    } else {
-      // fallback
-      reader.decodeFromVideoElementContinuously(el.video, (result, err) => {
-        if (result){
-          const text = result.getText ? result.getText() : String(result.text || result);
-          const fmt = result.getBarcodeFormat ? result.getBarcodeFormat() : (result.format || "");
-          onDecoded(text, fmt);
-        } else if (err && !(err instanceof ZX.NotFoundException)) {
-          // ignore
-        }
-      });
-    }
+    // ✅ iPhone Safari: auto-kickstart (decoder restart -> camera restart)
+    scheduleKickstart();
   }
 
   // ===== Buttons =====
@@ -891,6 +986,12 @@
     const ok = await ensureZXing();
     setPill(el.pillZxing, ok);
   })();
+
+  // ===== local log =====
+  const LS_KEY = "linq_val_scans_v6";
+  function loadScans(){ try{ return JSON.parse(localStorage.getItem(LS_KEY) || "[]"); }catch(e){ return []; } }
+  function saveScans(arr){ localStorage.setItem(LS_KEY, JSON.stringify(arr)); }
+  function updateCount(){ el.logCount.textContent = String(loadScans().length); }
 
 </script>
 </body>
