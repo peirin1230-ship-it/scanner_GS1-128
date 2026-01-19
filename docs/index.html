@@ -7,14 +7,11 @@
   <title>LinQ VAL Scanner</title>
   <style>
     :root{
-      --bg:#ffffff;
       --ink:#141316;
       --muted:rgba(20,19,22,.62);
       --line:rgba(20,19,22,.10);
-
       --accent:#e11d48;
       --accent2:#fb7185;
-
       --shadow: 0 10px 28px rgba(20,19,22,.10);
       --r:18px;
       --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono","Courier New", monospace;
@@ -33,48 +30,31 @@
     .wrap{max-width:980px;margin:0 auto;padding:14px 12px 26px}
     .top{
       display:flex;align-items:center;justify-content:space-between;gap:10px;
-      padding:12px 14px;
-      border:1px solid var(--line);
-      border-radius: var(--r);
-      background: rgba(255,255,255,.88);
-      box-shadow: var(--shadow);
-      backdrop-filter: blur(6px);
+      padding:12px 14px;border:1px solid var(--line);border-radius: var(--r);
+      background: rgba(255,255,255,.88);box-shadow: var(--shadow);backdrop-filter: blur(6px);
     }
-    .title h1{margin:0;font-size:18px;font-weight:1000;letter-spacing:.2px;line-height:1.1}
+    .title h1{margin:0;font-size:18px;font-weight:1200;letter-spacing:.2px;line-height:1.1}
     .title .sub{margin-top:3px;font-size:13px;color:var(--muted);line-height:1.2}
     .build{font-size:12px;color:var(--muted);padding:8px 10px;border:1px solid var(--line);border-radius:999px;background:#fff;white-space:nowrap}
     .build b{color:var(--ink)}
 
-    .grid{
-      display:grid;
-      grid-template-columns: 1.05fr .95fr;
-      gap:12px;
-      margin-top:12px;
-    }
+    .grid{display:grid;grid-template-columns: 1.05fr .95fr;gap:12px;margin-top:12px}
     @media (max-width: 920px){ .grid{grid-template-columns:1fr} }
 
-    .card{
-      border:1px solid var(--line);
-      border-radius: var(--r);
-      background: rgba(255,255,255,.92);
-      box-shadow: var(--shadow);
-      overflow:hidden;
-    }
+    .card{border:1px solid var(--line);border-radius: var(--r);background: rgba(255,255,255,.92);box-shadow: var(--shadow);overflow:hidden}
     .hd{
-      padding:12px 14px;
-      border-bottom:1px solid var(--line);
+      padding:12px 14px;border-bottom:1px solid var(--line);
       display:flex;align-items:center;justify-content:space-between;gap:10px;
       background: linear-gradient(90deg, rgba(225,29,72,.08), rgba(255,255,255,0));
     }
-    .hd .label{font-size:14px;font-weight:1000;letter-spacing:.2px}
+    .hd .label{font-size:14px;font-weight:1200;letter-spacing:.2px}
     .bd{padding:14px}
     .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
 
     .btn{
       appearance:none;border:1px solid var(--line);background:#fff;color:var(--ink);
       padding:14px 14px;border-radius: 14px;cursor:pointer;
-      font-size:16px;font-weight:1000;letter-spacing:.2px;
-      user-select:none;
+      font-size:16px;font-weight:1200;letter-spacing:.2px;user-select:none;
     }
     .btn:active{transform:scale(.99)}
     .btn.primary{
@@ -82,31 +62,22 @@
       box-shadow: 0 10px 18px rgba(225,29,72,.10);
       background: linear-gradient(135deg, rgba(225,29,72,.10), rgba(251,113,133,.06));
     }
-    .btn.small{padding:10px 12px;font-size:14px;border-radius:12px;font-weight:950}
+    .btn.small{padding:10px 12px;font-size:14px;border-radius:12px;font-weight:1100}
 
-    .pill{
-      display:inline-flex;align-items:center;gap:8px;
-      padding:8px 10px;border:1px solid var(--line);border-radius:999px;
-      font-size:13px;color:var(--muted);background:#fff;white-space:nowrap;
-    }
+    .pill{display:inline-flex;align-items:center;gap:8px;padding:8px 10px;border:1px solid var(--line);border-radius:999px;font-size:13px;color:var(--muted);background:#fff;white-space:nowrap}
     .dot{width:10px;height:10px;border-radius:999px;background: rgba(20,19,22,.20)}
     .pill.on .dot{ background: var(--accent); }
 
-    .videoWrap{
-      position:relative;border-radius: var(--r);overflow:hidden;
-      border:1px solid var(--line);background:#000;
-    }
+    .videoWrap{position:relative;border-radius: var(--r);overflow:hidden;border:1px solid var(--line);background:#000}
     video{width:100%;height:auto;display:block}
-    .overlay{
-      pointer-events:none;position:absolute; inset:0;
-      background: linear-gradient(180deg, rgba(0,0,0,.10), transparent 25%, transparent 75%, rgba(0,0,0,.18));
-    }
+    .overlay{pointer-events:none;position:absolute; inset:0;background: linear-gradient(180deg, rgba(0,0,0,.10), transparent 25%, transparent 75%, rgba(0,0,0,.18));}
 
+    /* BIG popout */
     .popout{
       position:absolute;left:12px; right:12px; bottom:12px;
       border-radius: 18px;
       border:1px solid rgba(225,29,72,.25);
-      background: linear-gradient(135deg, rgba(225,29,72,.20), rgba(255,255,255,.85) 60%);
+      background: linear-gradient(135deg, rgba(225,29,72,.22), rgba(255,255,255,.88) 60%);
       box-shadow: 0 18px 40px rgba(20,19,22,.22);
       backdrop-filter: blur(6px);
       padding:14px 14px;
@@ -115,68 +86,64 @@
     .popout.show{display:block; animation: pop .16s ease-out}
     @keyframes pop{from{opacity:0; transform: translateY(6px)} to{opacity:1; transform: translateY(0)}}
     .popTop{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
-    .popStatus{font-size:30px;font-weight:1100;letter-spacing:.2px;line-height:1;color: var(--accent)}
+    .popStatus{font-size:34px;font-weight:1300;letter-spacing:.2px;line-height:1;color: var(--accent)}
     .popMeta{font-size:13px;color:rgba(20,19,22,.65);line-height:1.2;text-align:right;white-space:nowrap}
-    .popName{margin-top:8px;font-size:20px;font-weight:1100;line-height:1.18;color: var(--ink)}
-    .popPrice{margin-top:6px;font-size:22px;font-weight:1100;color: var(--accent);letter-spacing:.2px}
+    .popName{margin-top:8px;font-size:20px;font-weight:1300;line-height:1.18}
+    .popPrice{margin-top:6px;font-size:22px;font-weight:1300;color: var(--accent);letter-spacing:.2px}
     .popSmall{margin-top:8px;font-size:13px;color:rgba(20,19,22,.65);font-family: var(--mono);word-break: break-all}
+
+    /* Recover overlay */
+    .recover{
+      position:absolute; inset:0;
+      display:none;
+      align-items:center; justify-content:center;
+      background: rgba(0,0,0,.35);
+      backdrop-filter: blur(4px);
+    }
+    .recover.show{display:flex}
+    .recoverCard{
+      width:min(440px, 88%);
+      background: rgba(255,255,255,.96);
+      border:1px solid rgba(225,29,72,.25);
+      border-radius: 18px;
+      box-shadow: 0 18px 40px rgba(20,19,22,.25);
+      padding:14px 14px;
+      text-align:center;
+    }
+    .recoverCard .t1{font-size:18px;font-weight:1200}
+    .recoverCard .t2{margin-top:6px;font-size:13px;color:var(--muted);line-height:1.3}
 
     .hint{margin-top:10px;font-size:14px;color:var(--muted);line-height:1.35}
     .mono{font-family:var(--mono)}
-    .em{
-      display:inline-flex;align-items:center;
-      padding:2px 8px;border-radius:999px;
-      border:1px solid rgba(225,29,72,.22);
-      background: rgba(225,29,72,.08);
-      font-weight:1000;
-    }
+    .em{display:inline-flex;align-items:center;padding:2px 8px;border-radius:999px;border:1px solid rgba(225,29,72,.22);background: rgba(225,29,72,.08);font-weight:1200}
 
+    /* Result (as you liked) */
     .okBanner{
       display:flex;align-items:center;justify-content:space-between;gap:10px;
-      padding:14px 14px;
-      border:1px solid var(--line);
-      border-radius: 16px;
+      padding:14px 14px;border:1px solid var(--line);border-radius: 16px;
       background: linear-gradient(135deg, rgba(225,29,72,.10), rgba(255,255,255,0) 60%);
     }
     .okLeft{display:flex;align-items:center;gap:12px}
     .badgeDot{width:14px;height:14px;border-radius:999px;background: rgba(20,19,22,.20)}
-    .okText{font-size:30px;font-weight:1100;letter-spacing:.2px;line-height:1}
+    .okText{font-size:32px;font-weight:1300;letter-spacing:.2px;line-height:1}
     .okSub{font-size:14px;color:var(--muted);margin-top:2px}
     .rightInfo{font-size:14px;color:var(--muted)}
 
-    .prodName{margin-top:14px;font-size:26px;font-weight:1100;line-height:1.18;letter-spacing:.1px}
+    .prodName{margin-top:14px;font-size:26px;font-weight:1300;line-height:1.18;letter-spacing:.1px}
     .maker{margin-top:8px;font-size:16px;color:var(--muted);line-height:1.25}
-    .price{margin-top:10px;font-size:26px;font-weight:1100;color: var(--accent);letter-spacing:.2px;line-height:1.1}
+    .price{margin-top:10px;font-size:26px;font-weight:1300;color: var(--accent);letter-spacing:.2px;line-height:1.1}
 
-    .kv{
-      margin-top:14px;
-      display:grid;
-      grid-template-columns: 120px 1fr;
-      gap:10px 12px;
-      padding-top:14px;
-      border-top:1px solid var(--line);
-    }
+    .kv{margin-top:14px;display:grid;grid-template-columns: 120px 1fr;gap:10px 12px;padding-top:14px;border-top:1px solid var(--line)}
     .k{font-size:13px;color:var(--muted)}
     .v{font-size:16px}
 
     details{border-top:1px solid var(--line);margin-top:10px;padding-top:10px}
-    summary{cursor:pointer;font-size:14px;color:var(--muted);font-weight:950;outline:none}
-    .select{
-      border:1px solid var(--line);background:#fff;color:var(--ink);
-      padding:10px 12px;border-radius: 12px;font-size:14px;min-width: 220px;outline:none;
-    }
+    summary{cursor:pointer;font-size:14px;color:var(--muted);font-weight:1100;outline:none}
+    .select{border:1px solid var(--line);background:#fff;color:var(--ink);padding:10px 12px;border-radius: 12px;font-size:14px;min-width: 220px;outline:none}
 
-    .toast{
-      position:fixed;left:50%; bottom:16px;transform: translateX(-50%);
-      min-width: 260px;max-width: 92vw;padding:12px 14px;border-radius: 16px;
-      border:1px solid rgba(225,29,72,.25);
-      background: rgba(255,255,255,.96);
-      box-shadow: var(--shadow);
-      display:none;z-index:9999;backdrop-filter: blur(6px);
-    }
-    .toast.show{display:block; animation: toastpop .16s ease-out}
-    @keyframes toastpop{from{opacity:0; transform: translateX(-50%) translateY(6px)} to{opacity:1; transform: translateX(-50%) translateY(0)}}
-    .toast .t1{font-weight:1100;font-size:15px}
+    .toast{position:fixed;left:50%; bottom:16px;transform: translateX(-50%);min-width: 260px;max-width: 92vw;padding:12px 14px;border-radius: 16px;border:1px solid rgba(225,29,72,.25);background: rgba(255,255,255,.96);box-shadow: var(--shadow);display:none;z-index:9999;backdrop-filter: blur(6px)}
+    .toast.show{display:block}
+    .toast .t1{font-weight:1200;font-size:15px}
     .toast .t2{font-size:13px;color:var(--muted);margin-top:2px;line-height:1.35}
   </style>
 </head>
@@ -186,12 +153,13 @@
     <div class="top">
       <div class="title">
         <h1>LinQ VAL Scanner</h1>
-        <div class="sub">iPhone Safari対策：自動カメラ再起動はしない（手動再起動ボタン）/ 同一5秒無視</div>
+        <div class="sub">iPhone Safari：背面 deviceId を自動選択（切替不要）/ 落ちたら復帰</div>
       </div>
       <div class="build">BUILD <b id="buildLabel">v0</b></div>
     </div>
 
     <div class="grid">
+      <!-- Scan -->
       <div class="card">
         <div class="hd">
           <div class="label">スキャン</div>
@@ -207,7 +175,7 @@
             <button class="btn primary" id="btnStart">Start</button>
             <button class="btn" id="btnStop">Stop</button>
             <button class="btn" id="btnTorch">Light</button>
-            <button class="btn" id="btnReinit" title="iPhone Safariで初回だけ不調な時に押す（設定変更と同等）">再起動</button>
+            <button class="btn" id="btnRecover">復帰</button>
           </div>
 
           <div style="margin-top:12px" class="videoWrap">
@@ -223,6 +191,16 @@
               <div class="popPrice" id="popPrice">—</div>
               <div class="popSmall" id="popSmall">—</div>
             </div>
+
+            <div class="recover" id="recoverOverlay">
+              <div class="recoverCard">
+                <div class="t1">カメラが停止しました</div>
+                <div class="t2">iPhone Safari で初回に止まることがあります。<br>「復帰」をタップしてください。</div>
+                <div style="margin-top:10px">
+                  <button class="btn primary" id="btnRecoverInner">復帰</button>
+                </div>
+              </div>
+            </div>
           </div>
 
           <div class="hint">
@@ -237,13 +215,14 @@
                 <option value="all">互換：MultiFormat（全部）</option>
               </select>
               <select class="select" id="selCamera">
-                <option value="">カメラ自動選択（背面優先）</option>
+                <option value="">自動（背面優先）</option>
               </select>
             </div>
           </details>
         </div>
       </div>
 
+      <!-- Result -->
       <div class="card">
         <div class="hd">
           <div class="label">読み取り結果</div>
@@ -279,10 +258,6 @@
             <div class="k">機能区分</div><div class="v mono" id="vKinou">—</div>
             <div class="k">入数</div><div class="v mono" id="vPack">—</div>
           </div>
-
-          <div class="hint" style="margin-top:12px">
-            反映が遅いときは URL末尾に <span class="mono">?v=数字</span> を付けて更新。
-          </div>
         </div>
       </div>
     </div>
@@ -294,7 +269,7 @@
   </div>
 
 <script>
-  const BUILD = "v2026-01-19-07";
+  const BUILD = "v2026-01-19-09";
   document.getElementById("buildLabel").textContent = BUILD;
 
   const $ = (id) => document.getElementById(id);
@@ -302,6 +277,7 @@
     pillZxing: $("pillZxing"),
     pillCam: $("pillCam"),
     pillDict: $("pillDict"),
+    recoverOverlay: $("recoverOverlay"),
 
     video: $("video"),
     selMode: $("selMode"),
@@ -314,7 +290,6 @@
     vName: $("vName"),
     vPriceBig: $("vPriceBig"),
     vMaker: $("vMaker"),
-
     vJan: $("vJan"),
     vGtin: $("vGtin"),
     vExp: $("vExp"),
@@ -323,7 +298,6 @@
     vIji: $("vIji"),
     vKinou: $("vKinou"),
     vPack: $("vPack"),
-
     logCount: $("logCount"),
 
     popout: $("popout"),
@@ -356,6 +330,7 @@
     clearTimeout(showPopout._t);
     showPopout._t = setTimeout(()=>el.popout.classList.remove("show"), 2200);
   }
+  function showRecover(on){ el.recoverOverlay.classList.toggle("show", !!on); }
 
   function digits(s){ return (s ?? "").toString().replace(/\D/g,""); }
   function nowISO(){ return new Date().toISOString(); }
@@ -385,7 +360,6 @@
     el.txtStatus.textContent = label;
     el.txtSub.textContent = sub || "";
   }
-
   function clearResult(){
     el.vName.textContent = "—";
     el.vPriceBig.textContent = "—";
@@ -400,8 +374,8 @@
     el.vPack.textContent = "—";
   }
 
-  // ===== local log =====
-  const LS_KEY = "linq_val_scans_v7";
+  // ===== log =====
+  const LS_KEY = "linq_val_scans_v9";
   function loadScans(){ try{ return JSON.parse(localStorage.getItem(LS_KEY) || "[]"); }catch(e){ return []; } }
   function saveScans(arr){ localStorage.setItem(LS_KEY, JSON.stringify(arr)); }
   function updateCount(){ el.logCount.textContent = String(loadScans().length); }
@@ -533,15 +507,13 @@
   }
   function jan3jan4(j){ j = digits(j); return j.length>=4 ? {jan3:j.slice(0,3), jan4:j.slice(0,4)} : {jan3:"",jan4:""}; }
   function gt3gt4(g){ g = digits(g); return g.length>=4 ? {gt3:g.slice(0,3), gt4:g.slice(0,4)} : {gt3:"",gt4:""}; }
-
   async function dictLookup({gtin14, jan13keta}){
     let jan = digits(jan13keta || "");
     const gt = digits(gtin14 || "");
     if (!jan && gt){
       const {gt3, gt4} = gt3gt4(gt);
       if (gt3){
-        const idxUrl = `gtin_index/${gt3}/${gt4}.csv`;
-        const idxRows = await loadObjects(idxUrl);
+        const idxRows = await loadObjects(`gtin_index/${gt3}/${gt4}.csv`);
         const hit = idxRows.find(r => digits(r.gtin14) === gt);
         if (hit) jan = digits(hit.jan13keta ?? hit.jan13 ?? "");
       }
@@ -549,14 +521,13 @@
     if (!jan) return null;
     const {jan3, jan4} = jan3jan4(jan);
     if (!jan4) return null;
-    const dictUrl = `dict_jan/${jan3}/${jan4}.csv`;
-    const dictRows = await loadObjects(dictUrl);
+    const dictRows = await loadObjects(`dict_jan/${jan3}/${jan4}.csv`);
     return dictRows.find(r => digits(r.jan13keta ?? r.jan13 ?? "") === jan)
         || (gt ? dictRows.find(r => digits(r.gtin14) === gt) : null)
         || null;
   }
 
-  // ===== Camera/scanning =====
+  // ===== Camera & decode =====
   let stream = null;
   let reader = null;
   let torchOn = false;
@@ -564,59 +535,6 @@
   const DEDUP_MS = 5000;
   let lastRaw = "";
   let lastAt = 0;
-
-  // safari-ready: count callback ticks even when NotFound
-  let ticks = 0;
-
-  async function listCameras(){
-    try{
-      const devices = await navigator.mediaDevices.enumerateDevices();
-      const cams = devices.filter(d => d.kind === "videoinput");
-      const cur = el.selCamera.value;
-      el.selCamera.innerHTML = `<option value="">カメラ自動選択（背面優先）</option>`;
-      for (const c of cams){
-        const opt = document.createElement("option");
-        opt.value = c.deviceId;
-        opt.textContent = c.label || `Camera ${c.deviceId.slice(0,6)}`;
-        el.selCamera.appendChild(opt);
-      }
-      if (cur) el.selCamera.value = cur;
-    }catch(e){}
-  }
-
-  async function startCamera(){
-    const deviceId = el.selCamera.value;
-    const constraints = {
-      audio:false,
-      video:{
-        facingMode: deviceId ? undefined : {ideal:"environment"},
-        deviceId: deviceId ? {exact: deviceId} : undefined,
-        width:{ideal:1920}, height:{ideal:1080}
-      }
-    };
-
-    try{
-      stream = await navigator.mediaDevices.getUserMedia(constraints);
-    }catch(e){
-      setPill(el.pillCam, false);
-      setStatus("warn","権限エラー","Safariのカメラ許可をONに");
-      toast("カメラ権限", "Safariでカメラを許可してください");
-      throw e;
-    }
-
-    el.video.srcObject = stream;
-
-    try{
-      await el.video.play(); // must succeed under user gesture
-    }catch(e){
-      setStatus("warn","再生できません","Startをもう一度 / 許可確認");
-      toast("再生不可", "Safariのカメラ許可を確認");
-      throw e;
-    }
-
-    setPill(el.pillCam, true);
-    torchOn = false;
-  }
 
   async function stopAll(){
     try{ if (reader) { try{ reader.reset(); }catch(e){} reader=null; } }catch(e){}
@@ -626,8 +544,103 @@
     }catch(e){}
     setPill(el.pillCam, false);
     torchOn = false;
-    setStatus("idle","停止中","Startで起動");
-    el.popout.classList.remove("show");
+    showRecover(false);
+  }
+
+  function bestBackDeviceId(devices){
+    const lower = (s)=>String(s||"").toLowerCase();
+    const cams = devices.filter(d => d.kind === "videoinput");
+    const backs = cams.filter(d => lower(d.label).includes("back") || lower(d.label).includes("rear"));
+    if (backs.length) return backs[0].deviceId;
+    if (!cams.length) return "";
+    return cams[cams.length - 1].deviceId;
+  }
+
+  async function startCameraForceBack(){
+    showRecover(false);
+
+    // Warm-up: get permission/labels
+    let warm = await navigator.mediaDevices.getUserMedia({audio:false, video:{facingMode:{ideal:"environment"}}});
+    el.video.srcObject = warm;
+    await el.video.play().catch(()=>{});
+
+    const devices = await navigator.mediaDevices.enumerateDevices();
+    const backId = bestBackDeviceId(devices);
+
+    // Fill selector
+    const cur = el.selCamera.value;
+    el.selCamera.innerHTML = `<option value="">自動（背面優先）</option>`;
+    for (const d of devices.filter(x=>x.kind==="videoinput")){
+      const opt = document.createElement("option");
+      opt.value = d.deviceId;
+      opt.textContent = d.label || `Camera ${d.deviceId.slice(0,6)}`;
+      el.selCamera.appendChild(opt);
+    }
+    if (cur) el.selCamera.value = cur;
+
+    // Stop warm
+    try{ for (const t of warm.getTracks()) t.stop(); }catch(e){}
+
+    const chosen = (el.selCamera.value && el.selCamera.value !== "") ? el.selCamera.value : backId;
+    const mainConstraints = {
+      audio:false,
+      video:{
+        deviceId: chosen ? { exact: chosen } : undefined,
+        facingMode: chosen ? undefined : { ideal:"environment" },
+        width:{ideal:1920}, height:{ideal:1080}
+      }
+    };
+
+    stream = await navigator.mediaDevices.getUserMedia(mainConstraints);
+    el.video.srcObject = stream;
+
+    const track = stream.getVideoTracks()[0];
+    if (track){
+      track.onended = () => {
+        setStatus("warn","停止","復帰をタップ");
+        showRecover(true);
+      };
+    }
+
+    // If Safari pauses video, show recover
+    el.video.onpause = () => {
+      if (stream) { setStatus("warn","停止","復帰をタップ"); showRecover(true); }
+    };
+
+    await el.video.play().catch(()=>{
+      setStatus("warn","再生不可","復帰をタップ");
+      showRecover(true);
+      throw new Error("video.play failed");
+    });
+
+    setPill(el.pillCam, true);
+    torchOn = false;
+  }
+
+  function buildReader(){
+    const ZX = window.ZXing;
+    const mode = el.selMode.value;
+    if (mode === "strict"){
+      const hints = new Map();
+      hints.set(ZX.DecodeHintType.POSSIBLE_FORMATS, [ZX.BarcodeFormat.CODE_128, ZX.BarcodeFormat.EAN_13]);
+      hints.set(ZX.DecodeHintType.TRY_HARDER, true);
+      return new ZX.BrowserMultiFormatReader(hints, 250);
+    }
+    return new ZX.BrowserMultiFormatReader(undefined, 250);
+  }
+
+  function startDecode(){
+    const ZX = window.ZXing;
+    reader = buildReader();
+    reader.decodeFromVideoElementContinuously(el.video, (result, err)=>{
+      if (result){
+        const text = result.getText ? result.getText() : String(result.text || result);
+        const fmt = result.getBarcodeFormat ? result.getBarcodeFormat() : (result.format || "");
+        onDecoded(text, fmt);
+      } else if (err && !(err instanceof ZX.NotFoundException)){
+        // ignore
+      }
+    });
   }
 
   async function setTorch(on){
@@ -644,52 +657,11 @@
     }
   }
 
-  function buildReader(){
-    const ZX = window.ZXing;
-    const mode = el.selMode.value;
-    if (mode === "strict"){
-      const hints = new Map();
-      hints.set(ZX.DecodeHintType.POSSIBLE_FORMATS, [ZX.BarcodeFormat.CODE_128, ZX.BarcodeFormat.EAN_13]);
-      hints.set(ZX.DecodeHintType.TRY_HARDER, true);
-      return new ZX.BrowserMultiFormatReader(hints, 250);
-    }
-    return new ZX.BrowserMultiFormatReader(undefined, 250);
-  }
-
-  function startDecodeLoop(){
-    const ZX = window.ZXing;
-    reader = buildReader();
-    ticks = 0;
-
-    reader.decodeFromVideoElementContinuously(el.video, (result, err)=>{
-      if (result){
-        ticks++; // tick
-        const text = result.getText ? result.getText() : String(result.text || result);
-        const fmt = result.getBarcodeFormat ? result.getBarcodeFormat() : (result.format || "");
-        onDecoded(text, fmt);
-      } else if (err){
-        // NotFoundException is normal -> still counts as "loop running"
-        if (err instanceof ZX.NotFoundException){
-          ticks++;
-          return;
-        }
-        // other errors ignore
-      }
-    });
-  }
-
-  async function restartDecoderOnly(){
-    try{ if (reader) { try{ reader.reset(); }catch(e){} } }catch(e){}
-    reader = null;
-    startDecodeLoop();
-  }
-
   async function onDecoded(raw, fmt){
     const t = Date.now();
     if (raw === lastRaw && (t - lastAt) < DEDUP_MS) return;
     lastRaw = raw; lastAt = t;
 
-    clearResult();
     setStatus("warn","照合中…","辞書照合しています");
 
     const fmtName = (typeof fmt === "number" && window.ZXing)
@@ -719,12 +691,6 @@
         serial = p.serial || serial;
         exp_ymd = ymdFromAI17(p.exp_yyMMdd || "");
       }
-    }
-
-    if (!gtin14 && !jan13keta){
-      setStatus("warn","未検出","大きく写して静止");
-      toast("読み取り失敗","大きく写して静止");
-      return;
     }
 
     el.vJan.textContent = jan13keta || "—";
@@ -795,18 +761,8 @@
     updateCount();
   }
 
-  // ===== UI helpers =====
-  function setStatus(kind, label, sub){
-    el.dotStatus.style.background =
-      kind === "ok" ? "var(--accent)" :
-      kind === "warn" ? "rgba(225,29,72,.45)" :
-      "rgba(20,19,22,.20)";
-    el.txtStatus.textContent = label;
-    el.txtSub.textContent = sub || "";
-  }
-
-  // ===== Start =====
   async function startScan(){
+    showRecover(false);
     setStatus("idle","起動中…","ZXing/カメラ準備");
     const ok = await ensureZXing();
     setPill(el.pillZxing, ok);
@@ -816,35 +772,26 @@
       return;
     }
 
-    await startCamera();
-    setPill(el.pillCam, true);
+    await stopAll();
+
+    try{
+      await startCameraForceBack();
+    }catch(e){
+      setStatus("warn","カメラ起動失敗","復帰をタップ");
+      showRecover(true);
+      return;
+    }
+
     setStatus("idle","待機","スキャンしてください");
-
-    // start decoder
-    startDecodeLoop();
-
-    // ✅ 初回だけ読めない対策：カメラは触らず、デコーダだけリスタート
-    setTimeout(async ()=>{
-      if (ticks === 0){
-        setStatus("warn","準備中…","（デコーダ再起動）");
-        await restartDecoderOnly();
-      }
-    }, 1200);
+    startDecode();
   }
 
-  // ===== Buttons =====
-  $("btnStart").addEventListener("click", async ()=>{
-    try{ await startScan(); }catch(e){ setStatus("warn","Start失敗", "Safariの許可を確認"); }
-  });
-  $("btnStop").addEventListener("click", async ()=>{ await stopAll(); });
+  // Buttons
+  $("btnStart").addEventListener("click", async ()=>{ await startScan(); });
+  $("btnStop").addEventListener("click", async ()=>{ await stopAll(); setStatus("idle","停止中","Startで起動"); });
   $("btnTorch").addEventListener("click", async ()=>{ await setTorch(!torchOn); });
-
-  // ✅ 手動再起動：ユーザー操作でカメラ再初期化（設定変更と同等）
-  $("btnReinit").addEventListener("click", async ()=>{
-    await stopAll();
-    await startScan();
-    toast("再起動", "カメラ/デコーダを再初期化しました");
-  });
+  $("btnRecover").addEventListener("click", async ()=>{ await startScan(); });
+  $("btnRecoverInner").addEventListener("click", async ()=>{ await startScan(); });
 
   $("btnExport").addEventListener("click", ()=>{
     const scans = loadScans();
@@ -856,7 +803,6 @@
     downloadText(`linq_val_poc_scans_${new Date().toISOString().slice(0,10)}.csv`, toCSV(scans, header));
     toast("CSV", `${scans.length}件`);
   });
-
   $("btnClear").addEventListener("click", ()=>{
     if (!confirm("端末内ログを削除しますか？")) return;
     localStorage.removeItem(LS_KEY);
@@ -864,42 +810,16 @@
     toast("Clear","完了");
   });
 
-  el.selCamera.addEventListener("change", async ()=>{
-    if (!stream) return;
-    await stopAll();
-    await startScan();
-  });
-  el.selMode.addEventListener("change", async ()=>{
-    if (!stream) return;
-    await stopAll();
-    await startScan();
-  });
-
-  // ===== Init =====
+  // Init
   (async function init(){
-    clearResult();
-    updateCount();
+    clearResult(); updateCount();
     setStatus("idle","待機","Startで起動");
     setPill(el.pillZxing, false);
     setPill(el.pillCam, false);
     setPill(el.pillDict, false);
-    await listCameras();
     const ok = await ensureZXing();
     setPill(el.pillZxing, ok);
   })();
-
-  // ===== Missing functions from previous versions =====
-  function loadScript(src){
-    return new Promise((resolve,reject)=>{
-      const s = document.createElement("script");
-      s.src = src; s.async = true;
-      s.onload = resolve;
-      s.onerror = () => reject(new Error("Failed: " + src));
-      document.head.appendChild(s);
-    });
-  }
-
-  // ===== Permissions sanity note (no code) =====
 
 </script>
 </body>
