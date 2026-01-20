@@ -11,7 +11,6 @@
       --muted:rgba(20,19,22,.62);
       --line:rgba(20,19,22,.10);
       --accent:#e11d48;
-      --accent2:#fb7185;
       --shadow: 0 10px 28px rgba(20,19,22,.10);
       --r:18px;
       --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono","Courier New", monospace;
@@ -24,16 +23,16 @@
       color:var(--ink);
       background:
         radial-gradient(900px 480px at 15% -10%, rgba(225,29,72,.10), transparent 60%),
-        radial-gradient(700px 420px at 100% 0%, rgba(251,113,133,.10), transparent 55%),
+        radial-gradient(700px 420px at 100% 0%, rgba(225,29,72,.08), transparent 55%),
         linear-gradient(180deg, #ffffff 0%, #fff6f8 100%);
     }
     .wrap{max-width:980px;margin:0 auto;padding:14px 12px 26px}
     .top{
       display:flex;align-items:center;justify-content:space-between;gap:10px;
       padding:12px 14px;border:1px solid var(--line);border-radius: var(--r);
-      background: rgba(255,255,255,.88);box-shadow: var(--shadow);backdrop-filter: blur(6px);
+      background: rgba(255,255,255,.90);box-shadow: var(--shadow);backdrop-filter: blur(6px);
     }
-    .title h1{margin:0;font-size:18px;font-weight:1300;letter-spacing:.2px;line-height:1.1}
+    .title h1{margin:0;font-size:18px;font-weight:1200;letter-spacing:.2px;line-height:1.1}
     .title .sub{margin-top:3px;font-size:13px;color:var(--muted);line-height:1.2}
     .build{font-size:12px;color:var(--muted);padding:8px 10px;border:1px solid var(--line);border-radius:999px;background:#fff;white-space:nowrap}
     .build b{color:var(--ink)}
@@ -47,22 +46,23 @@
       display:flex;align-items:center;justify-content:space-between;gap:10px;
       background: linear-gradient(90deg, rgba(225,29,72,.08), rgba(255,255,255,0));
     }
-    .hd .label{font-size:14px;font-weight:1300;letter-spacing:.2px}
+    .hd .label{font-size:14px;font-weight:1200;letter-spacing:.2px}
     .bd{padding:14px}
     .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
 
     .btn{
       appearance:none;border:1px solid var(--line);background:#fff;color:var(--ink);
       padding:14px 14px;border-radius: 14px;cursor:pointer;
-      font-size:16px;font-weight:1300;letter-spacing:.2px;user-select:none;
+      font-size:16px;font-weight:1200;letter-spacing:.2px;user-select:none;
     }
     .btn:active{transform:scale(.99)}
     .btn.primary{
       border-color: rgba(225,29,72,.28);
       box-shadow: 0 10px 18px rgba(225,29,72,.10);
-      background: linear-gradient(135deg, rgba(225,29,72,.10), rgba(251,113,133,.06));
+      background: linear-gradient(135deg, rgba(225,29,72,.12), rgba(255,255,255,.0));
     }
-    .btn.small{padding:10px 12px;font-size:14px;border-radius:12px;font-weight:1200}
+    .btn.small{padding:10px 12px;font-size:14px;border-radius:12px;font-weight:1100}
+    .btn.danger{border-color: rgba(225,29,72,.28);}
 
     .pill{display:inline-flex;align-items:center;gap:8px;padding:8px 10px;border:1px solid var(--line);border-radius:999px;font-size:13px;color:var(--muted);background:#fff;white-space:nowrap}
     .dot{width:10px;height:10px;border-radius:999px;background: rgba(20,19,22,.20)}
@@ -77,7 +77,7 @@
       position:absolute;left:12px; right:12px; bottom:12px;
       border-radius: 18px;
       border:1px solid rgba(225,29,72,.25);
-      background: linear-gradient(135deg, rgba(225,29,72,.22), rgba(255,255,255,.88) 60%);
+      background: linear-gradient(135deg, rgba(225,29,72,.22), rgba(255,255,255,.90) 60%);
       box-shadow: 0 18px 40px rgba(20,19,22,.22);
       backdrop-filter: blur(6px);
       padding:14px 14px;
@@ -88,34 +88,15 @@
     .popTop{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
     .popStatus{font-size:34px;font-weight:1400;letter-spacing:.2px;line-height:1;color: var(--accent)}
     .popMeta{font-size:13px;color:rgba(20,19,22,.65);line-height:1.2;text-align:right;white-space:nowrap}
-    .popName{margin-top:8px;font-size:20px;font-weight:1400;line-height:1.18}
-    .popPrice{margin-top:6px;font-size:22px;font-weight:1400;color: var(--accent);letter-spacing:.2px}
+    .bigA{margin-top:8px;font-size:22px;font-weight:1400;line-height:1.18}
+    .bigB{margin-top:6px;font-size:24px;font-weight:1400;color: var(--accent);letter-spacing:.2px;line-height:1.1}
+    .bigC{margin-top:6px;font-size:20px;font-weight:1300;line-height:1.18}
+    .bigD{margin-top:6px;font-size:20px;font-weight:1300;line-height:1.18}
     .popSmall{margin-top:8px;font-size:13px;color:rgba(20,19,22,.65);font-family: var(--mono);word-break: break-all}
-
-    /* Recover overlay */
-    .recover{
-      position:absolute; inset:0;
-      display:none;
-      align-items:center; justify-content:center;
-      background: rgba(0,0,0,.35);
-      backdrop-filter: blur(4px);
-    }
-    .recover.show{display:flex}
-    .recoverCard{
-      width:min(440px, 88%);
-      background: rgba(255,255,255,.96);
-      border:1px solid rgba(225,29,72,.25);
-      border-radius: 18px;
-      box-shadow: 0 18px 40px rgba(20,19,22,.25);
-      padding:14px 14px;
-      text-align:center;
-    }
-    .recoverCard .t1{font-size:18px;font-weight:1300}
-    .recoverCard .t2{margin-top:6px;font-size:13px;color:var(--muted);line-height:1.3}
 
     .hint{margin-top:10px;font-size:14px;color:var(--muted);line-height:1.35}
     .mono{font-family:var(--mono)}
-    .em{display:inline-flex;align-items:center;padding:2px 8px;border-radius:999px;border:1px solid rgba(225,29,72,.22);background: rgba(225,29,72,.08);font-weight:1300}
+    .em{display:inline-flex;align-items:center;padding:2px 8px;border-radius:999px;border:1px solid rgba(225,29,72,.22);background: rgba(225,29,72,.08);font-weight:1200}
 
     /* Result */
     .okBanner{
@@ -129,13 +110,11 @@
     .okSub{font-size:14px;color:var(--muted);margin-top:2px}
     .rightInfo{font-size:14px;color:var(--muted)}
 
-    .prodName{margin-top:14px;font-size:26px;font-weight:1400;line-height:1.18;letter-spacing:.1px}
-    .price{margin-top:10px;font-size:26px;font-weight:1400;color: var(--accent);letter-spacing:.2px;line-height:1.1}
-    .maker{margin-top:8px;font-size:16px;color:var(--muted);line-height:1.25}
-
-    .kv{margin-top:14px;display:grid;grid-template-columns: 120px 1fr;gap:10px 12px;padding-top:14px;border-top:1px solid var(--line)}
-    .k{font-size:13px;color:var(--muted)}
-    .v{font-size:16px}
+    .R_name{margin-top:14px;font-size:26px;font-weight:1400;line-height:1.18;letter-spacing:.1px}
+    .R_price{margin-top:10px;font-size:26px;font-weight:1400;color: var(--accent);letter-spacing:.2px;line-height:1.1}
+    .R_no{margin-top:10px;font-size:22px;font-weight:1350;line-height:1.15}
+    .R_sta{margin-top:8px;font-size:22px;font-weight:1350;line-height:1.15}
+    .R_maker{margin-top:8px;font-size:16px;color:var(--muted);line-height:1.25}
 
     .miniRow{margin-top:10px;display:flex;gap:10px;flex-wrap:wrap;align-items:center}
     .chip{
@@ -156,7 +135,7 @@
     <div class="top">
       <div class="title">
         <h1>LinQ VAL Scanner</h1>
-        <div class="sub">MEDIS/kikidb辞書（複数候補対応） / 大表示：商品名 + 合計償還価格</div>
+        <div class="sub">復旧優先版：背面切替（手動）＋デコーダ再起動（手動）</div>
       </div>
       <div class="build">BUILD <b id="buildLabel">v0</b></div>
     </div>
@@ -177,8 +156,8 @@
           <div class="row">
             <button class="btn primary" id="btnStart">Start</button>
             <button class="btn" id="btnStop">Stop</button>
-            <button class="btn" id="btnTorch">Light</button>
-            <button class="btn" id="btnRecover">復帰</button>
+            <button class="btn" id="btnBack">背面へ切替</button>
+            <button class="btn danger" id="btnDecReset">デコーダ再起動</button>
           </div>
 
           <div style="margin-top:12px" class="videoWrap">
@@ -190,24 +169,16 @@
                 <div class="popStatus" id="popStatus">OK</div>
                 <div class="popMeta" id="popMeta">—</div>
               </div>
-              <div class="popName" id="popName">—</div>
-              <div class="popPrice" id="popPrice">—</div>
+              <div class="bigA" id="popName">—</div>
+              <div class="bigB" id="popTotal">—</div>
+              <div class="bigC" id="popProdNo">—</div>
+              <div class="bigD" id="popProdSta">—</div>
               <div class="popSmall" id="popSmall">—</div>
-            </div>
-
-            <div class="recover" id="recoverOverlay">
-              <div class="recoverCard">
-                <div class="t1">カメラが停止しました</div>
-                <div class="t2">iPhone Safari で初回に止まることがあります。<br>「復帰」をタップしてください。</div>
-                <div style="margin-top:10px">
-                  <button class="btn primary" id="btnRecoverInner">復帰</button>
-                </div>
-              </div>
             </div>
           </div>
 
           <div class="hint">
-            コツ：バーコードを大きく写す／明るく／手ブレを止める。<span class="em">同一バーコードは5秒間無視</span>
+            まず <b>Start</b> → 読めなければ <b>背面へ切替</b>。それでも無理なら <b>デコーダ再起動</b>。<span class="em">同一バーコードは5秒間無視</span>
           </div>
 
           <details>
@@ -218,11 +189,11 @@
                 <option value="all">互換：MultiFormat（全部）</option>
               </select>
               <select class="select" id="selCamera">
-                <option value="">自動（背面優先）</option>
+                <option value="">カメラ（許可後に候補表示）</option>
               </select>
             </div>
             <div class="hint" style="margin-top:10px">
-              候補が複数の時：<span class="mono">GTIN一致</span>を優先、同率なら<span class="mono">合計償還価格最大</span>を表示します。
+              候補が複数の時：GTIN一致を優先、同率なら合計償還価格最大を表示。
             </div>
           </details>
         </div>
@@ -251,28 +222,16 @@
             <div class="rightInfo">ログ <span class="mono" id="logCount">0</span> 件</div>
           </div>
 
-          <div class="prodName" id="vName">—</div>
-          <div class="price" id="vTotalPrice">—</div>
-          <div class="maker" id="vMaker">—</div>
+          <div class="R_name" id="vName">—</div>
+          <div class="R_price" id="vTotalPrice">—</div>
+          <div class="R_no" id="vProdNo">—</div>
+          <div class="R_sta" id="vProdSta">—</div>
+          <div class="R_maker" id="vMaker">—</div>
 
           <div class="miniRow">
             <div class="chip">候補 <b id="candPos">0</b> / <b id="candTotal">0</b></div>
             <div class="chip">JAN <b class="mono" id="vJan">—</b></div>
             <div class="chip">GTIN <b class="mono" id="vGtin">—</b></div>
-          </div>
-
-          <div class="kv">
-            <div class="k">製品番号</div><div class="v mono" id="vProdNo">—</div>
-            <div class="k">規格</div><div class="v" id="vProdSta">—</div>
-            <div class="k">入数</div><div class="v mono" id="vPackQty">—</div>
-
-            <div class="k">償還名称01</div><div class="v" id="vTok01">—</div>
-            <div class="k">償還価格01</div><div class="v mono" id="vTok01Price">—</div>
-            <div class="k">医事コード01</div><div class="v mono" id="vIji01">—</div>
-          </div>
-
-          <div class="hint" style="margin-top:12px">
-            反映が遅いときは URL末尾に <span class="mono">?v=数字</span> を付けて更新。
           </div>
         </div>
       </div>
@@ -280,22 +239,14 @@
   </div>
 
 <script>
-  // =========================
-  // BUILD
-  // =========================
-  const BUILD = "v2026-01-20-01";
+  const BUILD = "v2026-01-20-02";
   document.getElementById("buildLabel").textContent = BUILD;
 
-  // =========================
-  // Helpers
-  // =========================
   const $ = (id) => document.getElementById(id);
   const el = {
     pillZxing: $("pillZxing"),
     pillCam: $("pillCam"),
     pillDict: $("pillDict"),
-    recoverOverlay: $("recoverOverlay"),
-
     video: $("video"),
     selMode: $("selMode"),
     selCamera: $("selCamera"),
@@ -305,33 +256,37 @@
     txtSub: $("txtSub"),
     logCount: $("logCount"),
 
+    // popout
     popout: $("popout"),
     popStatus: $("popStatus"),
     popMeta: $("popMeta"),
     popName: $("popName"),
-    popPrice: $("popPrice"),
+    popTotal: $("popTotal"),
+    popProdNo: $("popProdNo"),
+    popProdSta: $("popProdSta"),
     popSmall: $("popSmall"),
 
     // result
     vName: $("vName"),
     vTotalPrice: $("vTotalPrice"),
+    vProdNo: $("vProdNo"),
+    vProdSta: $("vProdSta"),
     vMaker: $("vMaker"),
     vJan: $("vJan"),
     vGtin: $("vGtin"),
     candPos: $("candPos"),
     candTotal: $("candTotal"),
-    vProdNo: $("vProdNo"),
-    vProdSta: $("vProdSta"),
-    vPackQty: $("vPackQty"),
-    vTok01: $("vTok01"),
-    vTok01Price: $("vTok01Price"),
-    vIji01: $("vIji01"),
 
-    btnNext: $("btnNext")
+    btnNext: $("btnNext"),
+    btnStart: $("btnStart"),
+    btnStop: $("btnStop"),
+    btnBack: $("btnBack"),
+    btnDecReset: $("btnDecReset"),
+    btnExport: $("btnExport"),
+    btnClear: $("btnClear"),
   };
 
   function setPill(pill, on){ pill.classList.toggle("on", !!on); }
-  function showRecover(on){ el.recoverOverlay.classList.toggle("show", !!on); }
   function digits(s){ return (s ?? "").toString().replace(/\D/g,""); }
   function fmtYenInt(s){
     const d = digits(s);
@@ -339,7 +294,6 @@
     const n = Number(d);
     return Number.isFinite(n) ? ("¥" + n.toLocaleString("ja-JP")) : ("¥" + d);
   }
-
   function setStatus(kind, label, sub){
     el.dotStatus.style.background =
       kind === "ok" ? "var(--accent)" :
@@ -348,50 +302,20 @@
     el.txtStatus.textContent = label;
     el.txtSub.textContent = sub || "";
   }
-
-  function showPopout({status, meta, name, totalYen, small}){
+  function showPopout({status, meta, name, totalYen, prodNo, prodSta, small}){
     el.popStatus.textContent = status;
     el.popMeta.textContent = meta || "";
     el.popName.textContent = name || "—";
-    el.popPrice.textContent = totalYen || "—";
+    el.popTotal.textContent = totalYen || "—";
+    el.popProdNo.textContent = prodNo ? ("製品番号: " + prodNo) : "—";
+    el.popProdSta.textContent = prodSta ? ("規格: " + prodSta) : "—";
     el.popSmall.textContent = small || "";
     el.popout.classList.add("show");
     clearTimeout(showPopout._t);
     showPopout._t = setTimeout(()=>el.popout.classList.remove("show"), 2200);
   }
 
-  // =========================
-  // Storage & CSV
-  // =========================
-  const LS_KEY = "linq_val_scans_medis_v1";
-  function loadScans(){ try{ return JSON.parse(localStorage.getItem(LS_KEY) || "[]"); }catch(e){ return []; } }
-  function saveScans(arr){ localStorage.setItem(LS_KEY, JSON.stringify(arr)); }
-  function updateCount(){ el.logCount.textContent = String(loadScans().length); }
-
-  function escapeCSV(v){
-    if (v === null || v === undefined) return "";
-    const s = String(v);
-    if (/[",\n\r]/.test(s)) return '"' + s.replace(/"/g,'""') + '"';
-    return s;
-  }
-  function toCSV(rows, header){
-    const lines = [];
-    lines.push(header.map(escapeCSV).join(","));
-    for (const r of rows) lines.push(header.map(h => escapeCSV(r[h] ?? "")).join(","));
-    return lines.join("\n");
-  }
-  function downloadText(filename, text){
-    const blob = new Blob([text], {type:"text/csv;charset=utf-8"});
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url; a.download = filename;
-    document.body.appendChild(a); a.click(); a.remove();
-    URL.revokeObjectURL(url);
-  }
-
-  // =========================
-  // ZXing loader
-  // =========================
+  // ---------- ZXing loader ----------
   function loadScript(src){
     return new Promise((resolve,reject)=>{
       const s = document.createElement("script");
@@ -417,61 +341,31 @@
     return false;
   }
 
-  // =========================
-  // GS1 parser (AI 01/10/17/21)
-  // =========================
+  // ---------- GS1 parser ----------
   function parseGS1(raw){
     let s = (raw ?? "").trim();
     if (s.startsWith("]C1")) s = s.slice(3);
     const GS = String.fromCharCode(29);
     const out = { gtin14:"", lot:"", exp_yyMMdd:"", serial:"" };
-
     function readVar(start, maxLen){
       const endGS = s.indexOf(GS, start);
       const end = (endGS !== -1) ? Math.min(endGS, start+maxLen) : Math.min(s.length, start+maxLen);
       return s.slice(start, end);
     }
-
     let i = 0;
     while (i < s.length){
       if (s[i] === GS) { i++; continue; }
       const ai2 = s.slice(i, i+2);
-      if (ai2 === "01"){
-        const val = s.slice(i+2, i+16);
-        if (/^\d{14}$/.test(val)) out.gtin14 = val;
-        i += 16; continue;
-      }
-      if (ai2 === "17"){
-        const val = s.slice(i+2, i+8);
-        if (/^\d{6}$/.test(val)) out.exp_yyMMdd = val;
-        i += 8; continue;
-      }
-      if (ai2 === "10"){
-        const val = readVar(i+2, 20);
-        out.lot = val;
-        i += 2 + val.length;
-        if (s[i] === GS) i++;
-        continue;
-      }
-      if (ai2 === "21"){
-        const val = readVar(i+2, 20);
-        out.serial = val;
-        i += 2 + val.length;
-        if (s[i] === GS) i++;
-        continue;
-      }
+      if (ai2 === "01"){ const val = s.slice(i+2, i+16); if (/^\d{14}$/.test(val)) out.gtin14 = val; i += 16; continue; }
+      if (ai2 === "17"){ const val = s.slice(i+2, i+8); if (/^\d{6}$/.test(val)) out.exp_yyMMdd = val; i += 8; continue; }
+      if (ai2 === "10"){ const val = readVar(i+2, 20); out.lot = val; i += 2 + val.length; if (s[i] === GS) i++; continue; }
+      if (ai2 === "21"){ const val = readVar(i+2, 20); out.serial = val; i += 2 + val.length; if (s[i] === GS) i++; continue; }
       i++;
     }
     return out;
   }
-  function ymdFromAI17(yyMMdd){
-    if (!yyMMdd || yyMMdd.length !== 6) return "";
-    return `20${yyMMdd.slice(0,2)}-${yyMMdd.slice(2,4)}-${yyMMdd.slice(4,6)}`;
-  }
 
-  // =========================
-  // Dict loading (split)
-  // =========================
+  // ---------- Dict loading (split) ----------
   const cache = new Map(); // url -> objects[]
   async function fetchText(url){
     const res = await fetch(url, {cache:"no-store"});
@@ -529,54 +423,39 @@
     if (d.length < 4) return ["",""];
     return [d.slice(0,3), d.slice(0,4)];
   }
-
   async function lookupCandidatesByJan(jan13){
     const [jan3, jan4] = pick3_4(jan13);
     if (!jan4) return [];
-    const url = `dict_jan/${jan3}/${jan4}.csv`;
-    const rows = await loadObjects(url);
-    const cand = rows.filter(r => digits(r.jan13keta) === jan13);
-    return cand;
+    const rows = await loadObjects(`dict_jan/${jan3}/${jan4}.csv`);
+    return rows.filter(r => digits(r.jan13keta) === jan13);
   }
-
   async function lookupJanByGtin(gtin14){
     const [gt3, gt4] = pick3_4(gtin14);
     if (!gt4) return "";
-    const url = `gtin_index/${gt3}/${gt4}.csv`;
-    const rows = await loadObjects(url);
+    const rows = await loadObjects(`gtin_index/${gt3}/${gt4}.csv`);
     const hit = rows.find(r => digits(r.gtin14) === gtin14);
     return hit ? digits(hit.jan13keta) : "";
   }
-
   function gtinMatchesCandidate(gtin14, cand){
     const gt = digits(gtin14);
     if (!gt) return false;
     return gt === digits(cand.gtin14_i0) || gt === digits(cand.gtin14_i1) || gt === digits(cand.gtin14_i2);
   }
-
   function pickBestCandidate(cands, gtin14){
     if (!cands.length) return {best:null, ordered:[]};
-
-    // 1) GTIN一致があればその集合
     let pool = cands;
     if (gtin14){
       const m = cands.filter(c => gtinMatchesCandidate(gtin14, c));
       if (m.length) pool = m;
     }
-
-    // 2) total_reimbursement_price_yen 最大
-    const withScore = pool.map((c, idx) => {
-      const price = Number(digits(c.total_reimbursement_price_yen || "")) || 0;
-      return {c, idx, price};
-    }).sort((a,b)=> b.price - a.price || a.idx - b.idx);
-
-    const ordered = withScore.map(x=>x.c);
+    const ordered = pool
+      .map((c, idx) => ({c, idx, price: Number(digits(c.total_reimbursement_price_yen||""))||0}))
+      .sort((a,b)=> b.price-a.price || a.idx-b.idx)
+      .map(x=>x.c);
     return {best: ordered[0], ordered};
   }
 
-  // =========================
-  // Result UI (candidates)
-  // =========================
+  // ---------- Candidates UI ----------
   let currentCandidates = [];
   let currentIndex = 0;
   let currentJan = "";
@@ -589,120 +468,76 @@
       el.candPos.textContent = "0";
       el.vName.textContent = "—";
       el.vTotalPrice.textContent = "—";
+      el.vProdNo.textContent = "—";
+      el.vProdSta.textContent = "—";
       el.vMaker.textContent = "—";
       el.vJan.textContent = currentJan || "—";
       el.vGtin.textContent = currentGtin || "—";
-      el.vProdNo.textContent = "—";
-      el.vProdSta.textContent = "—";
-      el.vPackQty.textContent = "—";
-      el.vTok01.textContent = "—";
-      el.vTok01Price.textContent = "—";
-      el.vIji01.textContent = "—";
       return;
     }
     currentIndex = (idx + total) % total;
     el.candPos.textContent = String(currentIndex + 1);
 
     const c = currentCandidates[currentIndex];
+    el.vName.textContent = c.product_name || "—";
+    el.vTotalPrice.textContent = fmtYenInt(c.total_reimbursement_price_yen||"") || "—";
+    el.vProdNo.textContent = (c.product_no ? ("製品番号: " + c.product_no) : "—");
+    el.vProdSta.textContent = (c.product_sta ? ("規格: " + c.product_sta) : "—");
+    el.vMaker.textContent = c.manufacturer_name || "—";
 
-    const name = c.product_name || "—";
-    const maker = c.manufacturer_name || "—";
-    const totalYen = fmtYenInt(c.total_reimbursement_price_yen || "");
-    const jan = currentJan || digits(c.jan13keta) || "—";
-    const gt = currentGtin || digits(c.gtin14_i0) || digits(c.gtin14_i1) || digits(c.gtin14_i2) || "—";
-
-    el.vName.textContent = name;
-    el.vTotalPrice.textContent = totalYen || "—";
-    el.vMaker.textContent = maker;
-
-    el.vJan.textContent = jan;
-    el.vGtin.textContent = gt;
-
-    el.vProdNo.textContent = c.product_no || "—";
-    el.vProdSta.textContent = c.product_sta || "—";
-    el.vPackQty.textContent = c.pack_qty || "—";
-
-    el.vTok01.textContent = c.tokutei01_name || "—";
-    el.vTok01Price.textContent = fmtYenInt(c.tokutei01_price || c.reimbursement_price_yen || "") || "—";
-    el.vIji01.textContent = c.tokutei01_iji_code || c.iji_code || "—";
+    el.vJan.textContent = currentJan || digits(c.jan13keta) || "—";
+    el.vGtin.textContent = currentGtin || digits(c.gtin14_i0) || digits(c.gtin14_i1) || digits(c.gtin14_i2) || "—";
   }
+  el.btnNext.addEventListener("click", ()=>{ if (currentCandidates.length) renderCandidate(currentIndex+1); });
 
-  el.btnNext.addEventListener("click", ()=>{
-    if (currentCandidates.length) renderCandidate(currentIndex + 1);
-  });
-
-  // =========================
-  // Camera + scanning (iPhone Safari: back camera selection)
-  // =========================
+  // ---------- Camera + Decode ----------
   let stream = null;
   let reader = null;
-  let torchOn = false;
 
   const DEDUP_MS = 5000;
   let lastRaw = "";
   let lastAt = 0;
 
-  function bestBackDeviceId(devices){
-    const lower = (s)=>String(s||"").toLowerCase();
-    const cams = devices.filter(d => d.kind === "videoinput");
-    const backs = cams.filter(d => lower(d.label).includes("back") || lower(d.label).includes("rear"));
-    if (backs.length) return backs[0].deviceId;
-    if (!cams.length) return "";
-    return cams[cams.length - 1].deviceId;
+  async function stopAll(){
+    try{ if (reader) { try{ reader.reset(); }catch(e){} reader=null; } }catch(e){}
+    try{
+      if (el.video){ el.video.pause(); el.video.srcObject=null; }
+      if (stream){ for (const t of stream.getTracks()) t.stop(); stream=null; }
+    }catch(e){}
+    setPill(el.pillCam, false);
   }
 
-  async function startCameraForceBack(){
-    showRecover(false);
-
-    // warm-up: permission + labels
-    const warm = await navigator.mediaDevices.getUserMedia({audio:false, video:{facingMode:{ideal:"environment"}}});
-    el.video.srcObject = warm;
-    await el.video.play().catch(()=>{});
-
-    const devices = await navigator.mediaDevices.enumerateDevices();
-    const backId = bestBackDeviceId(devices);
-
-    // fill select (optional UI)
-    const cur = el.selCamera.value;
-    el.selCamera.innerHTML = `<option value="">自動（背面優先）</option>`;
-    for (const d of devices.filter(x=>x.kind==="videoinput")){
-      const opt = document.createElement("option");
-      opt.value = d.deviceId;
-      opt.textContent = d.label || `Camera ${d.deviceId.slice(0,6)}`;
-      el.selCamera.appendChild(opt);
-    }
-    if (cur) el.selCamera.value = cur;
-
-    // stop warm
-    try{ for (const t of warm.getTracks()) t.stop(); }catch(e){}
-
-    const chosen = (el.selCamera.value && el.selCamera.value !== "") ? el.selCamera.value : backId;
-    const mainConstraints = {
-      audio:false,
-      video:{
-        deviceId: chosen ? { exact: chosen } : undefined,
-        facingMode: chosen ? undefined : { ideal:"environment" },
-        width:{ideal:1920}, height:{ideal:1080}
+  async function listCameras(){
+    try{
+      const devices = await navigator.mediaDevices.enumerateDevices();
+      const cams = devices.filter(d=>d.kind==="videoinput");
+      const cur = el.selCamera.value;
+      el.selCamera.innerHTML = `<option value="">カメラ（自動/背面推奨）</option>`;
+      for (const c of cams){
+        const opt = document.createElement("option");
+        opt.value = c.deviceId;
+        opt.textContent = c.label || `Camera ${c.deviceId.slice(0,6)}`;
+        el.selCamera.appendChild(opt);
       }
-    };
-
-    stream = await navigator.mediaDevices.getUserMedia(mainConstraints);
-    el.video.srcObject = stream;
-
-    const track = stream.getVideoTracks()[0];
-    if (track){
-      track.onended = () => { setStatus("warn","停止","復帰をタップ"); showRecover(true); };
+      if (cur) el.selCamera.value = cur;
+      return cams;
+    }catch(e){
+      return [];
     }
-    el.video.onpause = () => { if (stream){ setStatus("warn","停止","復帰をタップ"); showRecover(true);} };
+  }
 
-    await el.video.play().catch(()=>{
-      setStatus("warn","再生不可","復帰をタップ");
-      showRecover(true);
-      throw new Error("video.play failed");
-    });
+  function pickBackDeviceId(cams){
+    const lower = s => String(s||"").toLowerCase();
+    const backs = cams.filter(c => lower(c.label).includes("back") || lower(c.label).includes("rear"));
+    if (backs.length) return backs[0].deviceId;
+    return cams.length ? cams[cams.length-1].deviceId : "";
+  }
 
+  async function startCamera(constraints){
+    stream = await navigator.mediaDevices.getUserMedia(constraints);
+    el.video.srcObject = stream;
+    await el.video.play();
     setPill(el.pillCam, true);
-    torchOn = false;
   }
 
   function buildReader(){
@@ -712,50 +547,27 @@
       const hints = new Map();
       hints.set(ZX.DecodeHintType.POSSIBLE_FORMATS, [ZX.BarcodeFormat.CODE_128, ZX.BarcodeFormat.EAN_13]);
       hints.set(ZX.DecodeHintType.TRY_HARDER, true);
-      return new ZX.BrowserMultiFormatReader(hints, 250);
+      return new ZX.BrowserMultiFormatReader(hints, 300);
     }
-    return new ZX.BrowserMultiFormatReader(undefined, 250);
+    return new ZX.BrowserMultiFormatReader(undefined, 300);
   }
 
   function startDecode(){
     const ZX = window.ZXing;
+    if (reader) { try{ reader.reset(); }catch(e){} }
     reader = buildReader();
     reader.decodeFromVideoElementContinuously(el.video, (result, err)=>{
       if (result){
         const text = result.getText ? result.getText() : String(result.text || result);
         const fmt = result.getBarcodeFormat ? result.getBarcodeFormat() : (result.format || "");
         onDecoded(text, fmt);
-      } else if (err && !(err instanceof ZX.NotFoundException)){
+      } else if (err && !(err instanceof ZX.NotFoundException)) {
         // ignore
       }
     });
   }
 
-  async function stopAll(){
-    try{ if (reader) { try{ reader.reset(); }catch(e){} reader=null; } }catch(e){}
-    try{
-      if (el.video){ el.video.pause(); el.video.srcObject=null; }
-      if (stream){ for (const t of stream.getTracks()) t.stop(); stream=null; }
-    }catch(e){}
-    setPill(el.pillCam, false);
-    torchOn = false;
-    showRecover(false);
-  }
-
-  async function setTorch(on){
-    if (!stream) return;
-    const track = stream.getVideoTracks()[0];
-    const caps = track.getCapabilities?.();
-    if (!caps?.torch){ return; }
-    try{
-      await track.applyConstraints({advanced:[{torch:!!on}]});
-      torchOn = !!on;
-    }catch(e){}
-  }
-
-  // =========================
-  // Decode event -> dict lookup (candidates)
-  // =========================
+  // ---------- Decode event -> dict ----------
   async function onDecoded(raw, fmt){
     const t = Date.now();
     if (raw === lastRaw && (t - lastAt) < DEDUP_MS) return;
@@ -767,17 +579,12 @@
 
     let gtin14 = "";
     let jan13 = "";
-    let lot = "";
-    let exp_ymd = "";
-    let serial = "";
 
     const d = digits(raw || "");
+
     if (fmtName.includes("CODE_128")){
       const p = parseGS1(raw);
       gtin14 = digits(p.gtin14);
-      lot = p.lot || "";
-      serial = p.serial || "";
-      exp_ymd = ymdFromAI17(p.exp_yyMMdd || "");
     } else {
       if (d.length === 13) jan13 = d;
       if (!jan13 && (raw || "").includes("01")){
@@ -786,7 +593,6 @@
       }
     }
 
-    // If GTIN only -> get JAN via gtin_index
     if (!jan13 && gtin14){
       try{
         const j = await lookupJanByGtin(gtin14);
@@ -799,12 +605,11 @@
 
     if (!jan13 && !gtin14){
       setStatus("warn","未検出","距離/ブレ/照明");
-      showPopout({status:"WARN", meta:"未検出", name:"—", totalYen:"—", small:""});
+      showPopout({status:"WARN", meta:"未検出", name:"—", totalYen:"—", prodNo:"", prodSta:"", small:""});
       return;
     }
 
     setStatus("warn","照合中…","辞書照合");
-
     let cands = [];
     try{
       if (jan13) cands = await lookupCandidatesByJan(jan13);
@@ -814,20 +619,20 @@
       cands = [];
     }
 
-    // pick best & order
     const {best, ordered} = pickBestCandidate(cands, gtin14);
     currentCandidates = ordered;
-    currentIndex = 0;
     renderCandidate(0);
 
     if (best){
       setStatus("ok","OK","辞書一致");
-      const totalYen = fmtYenInt(best.total_reimbursement_price_yen || "");
+      const totalYen = fmtYenInt(best.total_reimbursement_price_yen||"") || "—";
       showPopout({
         status:"OK",
         meta: ordered.length > 1 ? `候補${ordered.length}件` : "辞書一致",
         name: best.product_name || "—",
-        totalYen: totalYen || "—",
+        totalYen,
+        prodNo: best.product_no || "",
+        prodSta: best.product_sta || "",
         small: `JAN:${jan13}${gtin14 ? "  GTIN:"+gtin14 : ""}`
       });
     } else {
@@ -837,12 +642,13 @@
         meta:"辞書なし",
         name: jan13 || gtin14,
         totalYen:"—",
+        prodNo:"",
+        prodSta:"",
         small: `JAN:${jan13}${gtin14 ? "  GTIN:"+gtin14 : ""}`
       });
     }
 
-    // save log (store shown best candidate fields too)
-    const bestRow = best || null;
+    // log
     const scans = loadScans();
     scans.push({
       timestamp: new Date().toISOString(),
@@ -850,17 +656,11 @@
       format: fmtName,
       gtin14,
       jan13keta: jan13,
-      lot,
-      exp_ymd,
-      serial,
-
-      product_name: bestRow?.product_name || "",
-      total_reimbursement_price_yen: bestRow?.total_reimbursement_price_yen || "",
-      manufacturer_name: bestRow?.manufacturer_name || "",
-      product_no: bestRow?.product_no || "",
-      product_sta: bestRow?.product_sta || "",
-      pack_qty: bestRow?.pack_qty || "",
-
+      product_name: best?.product_name || "",
+      total_reimbursement_price_yen: best?.total_reimbursement_price_yen || "",
+      product_no: best?.product_no || "",
+      product_sta: best?.product_sta || "",
+      manufacturer_name: best?.manufacturer_name || "",
       candidate_count: ordered.length,
       status: best ? "ok" : "warn",
     });
@@ -868,59 +668,104 @@
     updateCount();
   }
 
-  // =========================
-  // Start / Stop / Recover
-  // =========================
-  async function startScan(){
-    showRecover(false);
-    setStatus("idle","起動中…","ZXing/カメラ準備");
+  // ---------- Storage ----------
+  const LS_KEY = "linq_val_medis_scans_v2";
+  function loadScans(){ try{ return JSON.parse(localStorage.getItem(LS_KEY) || "[]"); }catch(e){ return []; } }
+  function saveScans(arr){ localStorage.setItem(LS_KEY, JSON.stringify(arr)); }
+  function updateCount(){ el.logCount.textContent = String(loadScans().length); }
+
+  function escapeCSV(v){
+    if (v === null || v === undefined) return "";
+    const s = String(v);
+    if (/[",\n\r]/.test(s)) return '"' + s.replace(/"/g,'""') + '"';
+    return s;
+  }
+  function toCSV(rows, header){
+    const lines = [];
+    lines.push(header.map(escapeCSV).join(","));
+    for (const r of rows) lines.push(header.map(h => escapeCSV(r[h] ?? "")).join(","));
+    return lines.join("\n");
+  }
+  function downloadText(filename, text){
+    const blob = new Blob([text], {type:"text/csv;charset=utf-8"});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url; a.download = filename;
+    document.body.appendChild(a); a.click(); a.remove();
+    URL.revokeObjectURL(url);
+  }
+
+  // ---------- Buttons ----------
+  el.btnStart.addEventListener("click", async ()=>{
+    setStatus("idle","起動中…","準備しています");
     const ok = await ensureZXing();
     setPill(el.pillZxing, ok);
-    if (!ok){
-      setStatus("warn","ZXing失敗","CDN/通信");
-      return;
-    }
+    if (!ok){ setStatus("warn","ZXing失敗","通信/CDN"); return; }
 
     await stopAll();
 
+    // Start with selected deviceId if present; otherwise environment
+    const deviceId = el.selCamera.value;
+    const constraints = deviceId
+      ? {audio:false, video:{deviceId:{exact: deviceId}, width:{ideal:1920}, height:{ideal:1080}}}
+      : {audio:false, video:{facingMode:{ideal:"environment"}, width:{ideal:1920}, height:{ideal:1080}}};
+
     try{
-      await startCameraForceBack();
+      await startCamera(constraints);
+      const cams = await listCameras(); // labels become available after permission
+      // auto-select "back-ish" into dropdown (no auto-restart)
+      if (!el.selCamera.value && cams.length){
+        const backId = pickBackDeviceId(cams);
+        if (backId) el.selCamera.value = backId;
+      }
+      startDecode();
+      setStatus("idle","待機","スキャンしてください");
     }catch(e){
-      setStatus("warn","カメラ起動失敗","復帰をタップ");
-      showRecover(true);
-      return;
+      setStatus("warn","カメラ起動失敗","Safariのカメラ許可を確認");
     }
+  });
 
-    setStatus("idle","待機","スキャンしてください");
+  el.btnStop.addEventListener("click", async ()=>{
+    await stopAll();
+    setStatus("idle","停止中","Startで起動");
+  });
+
+  el.btnBack.addEventListener("click", async ()=>{
+    // user-gesture switch to back deviceId (most reliable on iOS)
+    const cams = await listCameras();
+    const backId = pickBackDeviceId(cams);
+    if (!backId){ setStatus("warn","背面なし","カメラ候補なし"); return; }
+    el.selCamera.value = backId;
+
+    try{
+      await stopAll();
+      await startCamera({audio:false, video:{deviceId:{exact: backId}, width:{ideal:1920}, height:{ideal:1080}}});
+      startDecode();
+      setStatus("idle","待機","背面に切替済み");
+    }catch(e){
+      setStatus("warn","切替失敗","許可/他アプリ使用を確認");
+    }
+  });
+
+  el.btnDecReset.addEventListener("click", async ()=>{
+    if (!stream){ setStatus("warn","未起動","Startしてください"); return; }
     startDecode();
-  }
+    setStatus("idle","待機","デコーダ再起動しました");
+  });
 
-  $("btnStart").addEventListener("click", async ()=>{ await startScan(); });
-  $("btnStop").addEventListener("click", async ()=>{ await stopAll(); setStatus("idle","停止中","Startで起動"); });
-  $("btnRecover").addEventListener("click", async ()=>{ await startScan(); });
-  $("btnRecoverInner").addEventListener("click", async ()=>{ await startScan(); });
-
-  $("btnTorch").addEventListener("click", async ()=>{ await setTorch(!torchOn); });
-
-  $("btnExport").addEventListener("click", ()=>{
+  el.btnExport.addEventListener("click", ()=>{
     const scans = loadScans();
-    const header = [
-      "timestamp","raw","format","gtin14","jan13keta","lot","exp_ymd","serial",
-      "product_name","total_reimbursement_price_yen","manufacturer_name","product_no","product_sta","pack_qty",
-      "candidate_count","status"
-    ];
+    const header = ["timestamp","raw","format","gtin14","jan13keta","product_name","total_reimbursement_price_yen","product_no","product_sta","manufacturer_name","candidate_count","status"];
     downloadText(`linq_val_medis_scans_${new Date().toISOString().slice(0,10)}.csv`, toCSV(scans, header));
   });
 
-  $("btnClear").addEventListener("click", ()=>{
+  el.btnClear.addEventListener("click", ()=>{
     if (!confirm("端末内ログを削除しますか？")) return;
     localStorage.removeItem(LS_KEY);
     updateCount();
   });
 
-  // =========================
   // Init
-  // =========================
   (async function init(){
     updateCount();
     setStatus("idle","待機","Startで起動");
