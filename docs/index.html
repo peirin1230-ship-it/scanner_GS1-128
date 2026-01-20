@@ -52,11 +52,12 @@
       box-shadow: 0 10px 18px rgba(225,29,72,.10);
       background: linear-gradient(135deg, rgba(225,29,72,.12), rgba(255,255,255,.0));
     }
+    .btn.small{padding:10px 12px;font-size:14px;border-radius:12px}
     .pill{display:inline-flex;align-items:center;gap:8px;padding:8px 10px;border:1px solid var(--line);border-radius:999px;font-size:13px;color:var(--muted);background:#fff;white-space:nowrap}
     .dot{width:10px;height:10px;border-radius:999px;background: rgba(20,19,22,.20)}
     .pill.on .dot{ background: var(--accent); }
 
-    /* scanner area */
+    /* scanner */
     #scanner{
       position:relative;
       border-radius: var(--r);
@@ -65,7 +66,6 @@
       background:#000;
       min-height: 260px;
     }
-    /* Quagga injects video/canvas inside target; make it full */
     #scanner video, #scanner canvas{
       width:100% !important;
       height:auto !important;
@@ -73,13 +73,20 @@
     }
     .overlay{pointer-events:none;position:absolute; inset:0;background: linear-gradient(180deg, rgba(0,0,0,.10), transparent 25%, transparent 75%, rgba(0,0,0,.18));}
 
+    /* POPUP fixed to viewport (no scroll needed) */
     .popout{
-      position:absolute;left:12px; right:12px; bottom:12px;
-      border-radius: 18px; border:1px solid rgba(225,29,72,.25);
-      background: linear-gradient(135deg, rgba(225,29,72,.22), rgba(255,255,255,.90) 60%);
+      position:fixed;
+      left:12px; right:12px; bottom:12px;
+      max-width:980px;
+      margin:0 auto;
+      border-radius: 18px;
+      border:1px solid rgba(225,29,72,.25);
+      background: linear-gradient(135deg, rgba(225,29,72,.22), rgba(255,255,255,.92) 60%);
       box-shadow: 0 18px 40px rgba(20,19,22,.22);
       backdrop-filter: blur(6px);
-      padding:14px 14px; display:none;
+      padding:14px 14px;
+      display:none;
+      z-index: 9999;
     }
     .popout.show{display:block; animation: pop .16s ease-out}
     @keyframes pop{from{opacity:0; transform: translateY(6px)} to{opacity:1; transform: translateY(0)}}
@@ -96,6 +103,7 @@
     .mono{font-family:var(--mono)}
     .em{display:inline-flex;align-items:center;padding:2px 8px;border-radius:999px;border:1px solid rgba(225,29,72,.22);background: rgba(225,29,72,.08);font-weight:1200}
 
+    /* results */
     .okBanner{
       display:flex;align-items:center;justify-content:space-between;gap:10px;
       padding:14px 14px;border:1px solid var(--line);border-radius: 16px;
@@ -133,7 +141,7 @@
     <div class="top">
       <div class="title">
         <h1>LinQ VAL Scanner</h1>
-        <div class="sub">JAN(EAN-13)優先：Quagga2（iPhone Safariで読みやすい）</div>
+        <div class="sub">JAN(EAN-13) + GTIN14(GS1-128/Code128) / Popは画面固定 / CSV出力</div>
       </div>
       <div class="build">BUILD <b id="buildLabel">v0</b></div>
     </div>
@@ -157,22 +165,10 @@
 
           <div style="margin-top:12px" id="scanner">
             <div class="overlay"></div>
-
-            <div class="popout" id="popout">
-              <div class="popTop">
-                <div class="popStatus" id="popStatus">OK</div>
-                <div class="popMeta" id="popMeta">—</div>
-              </div>
-              <div class="bigA" id="popName">—</div>
-              <div class="bigB" id="popTotal">—</div>
-              <div class="bigC" id="popProdNo">—</div>
-              <div class="bigD" id="popProdSta">—</div>
-              <div class="popSmall" id="popSmall">—</div>
-            </div>
           </div>
 
           <div class="hint">
-            JAN-13は「バーコードを画面の半分以上に大きく・静止」。<span class="em">同一バーコードは5秒間無視</span>
+            優先：JAN(EAN-13)。GS1-128はAI(01)からGTIN14を抽出します。<span class="em">同一コードは5秒間無視</span>
           </div>
 
           <details>
@@ -186,8 +182,9 @@
         <div class="hd">
           <div class="label">結果</div>
           <div class="row">
-            <button class="btn" id="btnNext">候補切替</button>
-            <button class="btn" id="btnClear">Clear</button>
+            <button class="btn small" id="btnNext">候補切替</button>
+            <button class="btn small" id="btnExport">CSV</button>
+            <button class="btn small" id="btnClear">Clear</button>
           </div>
         </div>
 
@@ -212,14 +209,28 @@
           <div class="miniRow">
             <div class="chip">候補 <b id="candPos">0</b> / <b id="candTotal">0</b></div>
             <div class="chip">JAN <b class="mono" id="vJan">—</b></div>
+            <div class="chip">GTIN <b class="mono" id="vGtin">—</b></div>
           </div>
         </div>
       </div>
     </div>
   </div>
 
+  <!-- Fixed popup (viewport) -->
+  <div class="popout" id="popout">
+    <div class="popTop">
+      <div class="popStatus" id="popStatus">OK</div>
+      <div class="popMeta" id="popMeta">—</div>
+    </div>
+    <div class="bigA" id="popName">—</div>
+    <div class="bigB" id="popTotal">—</div>
+    <div class="bigC" id="popProdNo">—</div>
+    <div class="bigD" id="popProdSta">—</div>
+    <div class="popSmall" id="popSmall">—</div>
+  </div>
+
 <script>
-  const BUILD = "v2026-01-20-10";
+  const BUILD = "v2026-01-20-11";
   document.getElementById("buildLabel").textContent = BUILD;
 
   const $ = (id)=>document.getElementById(id);
@@ -235,9 +246,10 @@
 
     vName: $("vName"), vTotalPrice: $("vTotalPrice"), vProdNo: $("vProdNo"),
     vProdSta: $("vProdSta"), vMaker: $("vMaker"),
-    vJan: $("vJan"), candPos: $("candPos"), candTotal: $("candTotal"),
+    vJan: $("vJan"), vGtin: $("vGtin"), candPos: $("candPos"), candTotal: $("candTotal"),
 
-    btnStart: $("btnStart"), btnStop: $("btnStop"), btnNext: $("btnNext"), btnClear: $("btnClear")
+    btnStart: $("btnStart"), btnStop: $("btnStop"),
+    btnNext: $("btnNext"), btnExport: $("btnExport"), btnClear: $("btnClear")
   };
 
   function log(msg){ el.log.textContent = msg + "\n\n" + el.log.textContent; }
@@ -265,10 +277,27 @@
     el.popSmall.textContent = small || "";
     el.popout.classList.add("show");
     clearTimeout(showPopout._t);
-    showPopout._t = setTimeout(()=>el.popout.classList.remove("show"), 2200);
+    showPopout._t = setTimeout(()=>el.popout.classList.remove("show"), 2400);
   }
 
-  // ===== Quagga2 loader =====
+  // ---- robust field picking (old/new headers) ----
+  function pick(obj, keys){
+    for (const k of keys){
+      if (obj && Object.prototype.hasOwnProperty.call(obj, k)){
+        const v = (obj[k] ?? "").toString().trim();
+        if (v !== "") return v;
+      }
+    }
+    return "";
+  }
+  function f_product_name(o){ return pick(o, ["product_name","商品名"]); }
+  function f_total(o){ return pick(o, ["total_reimbursement_price_yen","（医科）償還価格合計","償還価格合計"]); }
+  function f_prodno(o){ return pick(o, ["product_no","製品番号"]); }
+  function f_prodsta(o){ return pick(o, ["product_sta","規格"]); }
+  function f_maker(o){ return pick(o, ["manufacturer_name","製造販売業者：企業略称名","製造販売業者"]); }
+  function f_jan(o){ return digits(pick(o, ["jan13keta","ＪＡＮコード","JAN","jan13"])); }
+
+  // ---- Quagga2 loader ----
   function loadScript(src){
     return new Promise((resolve,reject)=>{
       const s = document.createElement("script");
@@ -293,7 +322,7 @@
     return false;
   }
 
-  // ===== Dict split loading =====
+  // ---- Dict split loading ----
   const cache = new Map();
   async function fetchText(url){
     const res = await fetch(url, {cache:"no-store"});
@@ -353,19 +382,26 @@
     const [jan3, jan4]=pick3_4(jan13);
     if (!jan4) return [];
     const rows=await loadObjects(`dict_jan/${jan3}/${jan4}.csv`);
-    return rows.filter(r=>digits(r.jan13keta)===jan13);
+    return rows.filter(r => digits(r.jan13keta || r["ＪＡＮコード"] || r["JAN"] || "") === jan13);
+  }
+  async function lookupJanByGtin(gtin14){
+    const [gt3, gt4]=pick3_4(gtin14);
+    if (!gt4) return "";
+    const rows=await loadObjects(`gtin_index/${gt3}/${gt4}.csv`);
+    const hit = rows.find(r => digits(r.gtin14) === gtin14);
+    return hit ? digits(hit.jan13keta) : "";
   }
   function pickBestCandidate(cands){
     if (!cands.length) return {best:null, ordered:[]};
     const ordered = cands
-      .map((c,idx)=>({c,idx,price:Number(digits(c.total_reimbursement_price_yen||""))||0}))
+      .map((c,idx)=>({c,idx,price:Number(digits(f_total(c)||""))||0}))
       .sort((a,b)=>b.price-a.price||a.idx-b.idx)
       .map(x=>x.c);
     return {best:ordered[0], ordered};
   }
 
-  // ===== candidate UI =====
-  let currentCandidates=[], currentIndex=0, currentJan="";
+  // ---- candidates UI ----
+  let currentCandidates=[], currentIndex=0, currentJan="", currentGtin="";
   function renderCandidate(idx){
     const total=currentCandidates.length;
     el.candTotal.textContent=String(total);
@@ -375,33 +411,100 @@
       el.vProdNo.textContent="—"; el.vProdSta.textContent="—";
       el.vMaker.textContent="—";
       el.vJan.textContent=currentJan||"—";
+      el.vGtin.textContent=currentGtin||"—";
       return;
     }
     currentIndex=(idx+total)%total;
     el.candPos.textContent=String(currentIndex+1);
-    const c=currentCandidates[currentIndex];
 
-    el.vName.textContent=c.product_name||"—";
-    el.vTotalPrice.textContent=fmtYenInt(c.total_reimbursement_price_yen||"")||"—";
-    el.vProdNo.textContent=c.product_no?("製品番号: "+c.product_no):"—";
-    el.vProdSta.textContent=c.product_sta?("規格: "+c.product_sta):"—";
-    el.vMaker.textContent=c.manufacturer_name||"—";
-    el.vJan.textContent=currentJan||digits(c.jan13keta)||"—";
+    const c=currentCandidates[currentIndex];
+    el.vName.textContent = f_product_name(c) || "—";
+    el.vTotalPrice.textContent = fmtYenInt(f_total(c)) || "—";
+    el.vProdNo.textContent = f_prodno(c) ? ("製品番号: " + f_prodno(c)) : "—";
+    el.vProdSta.textContent = f_prodsta(c) ? ("規格: " + f_prodsta(c)) : "—";
+    el.vMaker.textContent = f_maker(c) || "—";
+
+    el.vJan.textContent = currentJan || f_jan(c) || "—";
+    el.vGtin.textContent = currentGtin || "—";
   }
   el.btnNext.addEventListener("click", ()=>{ if (currentCandidates.length) renderCandidate(currentIndex+1); });
 
-  // ===== dedup =====
+  // ---- dedup ----
   const DEDUP_MS = 5000;
-  let lastJan = "";
+  let lastKey = "";
   let lastAt = 0;
 
-  // ===== start/stop quagga =====
+  // ---- parse GTIN14 from GS1-128 raw ----
+  function parseGS1AI01(raw){
+    let s = (raw ?? "").toString();
+    if (s.startsWith("]C1")) s = s.slice(3);
+    const GS = String.fromCharCode(29);
+    // look for "01" then 14 digits
+    for (let i=0; i<s.length-16; i++){
+      if (s[i] === GS) continue;
+      if (s[i] === "0" && s[i+1] === "1"){
+        const val = s.slice(i+2, i+16);
+        if (/^\d{14}$/.test(val)) return val;
+      }
+    }
+    // sometimes digits only
+    const d = digits(s);
+    if (d.length === 14) return d;
+    return "";
+  }
+
+  // ---- scan log + CSV export ----
+  const LS_KEY = "linq_val_scanlog_v1";
+  function loadLogs(){ try{ return JSON.parse(localStorage.getItem(LS_KEY) || "[]"); }catch(e){ return []; } }
+  function saveLogs(arr){ localStorage.setItem(LS_KEY, JSON.stringify(arr)); }
+  function updateCount(){ el.logCount.textContent = String(loadLogs().length); }
+
+  function escapeCSV(v){
+    if (v === null || v === undefined) return "";
+    const s = String(v);
+    if (/[",\n\r]/.test(s)) return '"' + s.replace(/"/g,'""') + '"';
+    return s;
+  }
+  function toCSV(rows, header){
+    const lines = [];
+    lines.push(header.map(escapeCSV).join(","));
+    for (const r of rows) lines.push(header.map(h => escapeCSV(r[h] ?? "")).join(","));
+    return lines.join("\n");
+  }
+  function downloadText(filename, text){
+    const blob = new Blob([text], {type:"text/csv;charset=utf-8"});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url; a.download = filename;
+    document.body.appendChild(a); a.click(); a.remove();
+    URL.revokeObjectURL(url);
+  }
+
+  el.btnExport.addEventListener("click", ()=>{
+    const logs = loadLogs();
+    const header = [
+      "timestamp","raw","format","jan13keta","gtin14",
+      "product_name","total_reimbursement_price_yen","product_no","product_sta","manufacturer_name",
+      "candidate_count","status"
+    ];
+    downloadText(`linq_val_scans_${new Date().toISOString().slice(0,10)}.csv`, toCSV(logs, header));
+  });
+
+  el.btnClear.addEventListener("click", ()=>{
+    if (!confirm("端末内ログを削除しますか？")) return;
+    localStorage.removeItem(LS_KEY);
+    updateCount();
+    log("Logs cleared.");
+  });
+
+  // ---- Quagga start/stop ----
   let running = false;
 
   async function stopAll(){
     try{
       if (running && window.Quagga){
-        await new Promise((res)=>{ try{ Quagga.stop(); }catch(e){} res(); });
+        try{ Quagga.offDetected(onDetected); }catch(e){}
+        try{ Quagga.stop(); }catch(e){}
       }
     }catch(e){}
     running = false;
@@ -420,8 +523,7 @@
       return;
     }
 
-    // Clear previous injected nodes
-    // (Quagga sometimes leaves canvases on iOS)
+    // Clear injected nodes
     Array.from(el.scanner.querySelectorAll("video,canvas")).forEach(n=>n.remove());
 
     const config = {
@@ -435,30 +537,24 @@
           height: { ideal: 720 }
         }
       },
-      locator: {
-        halfSample: true,
-        patchSize: "medium"
-      },
+      locator: { halfSample: true, patchSize: "medium" },
       numOfWorkers: 0,   // iOS Safari safe
-      frequency: 10,     // scan frequency
+      frequency: 10,
       locate: true,
       decoder: {
         readers: [
-          "ean_reader",      // JAN-13
+          "ean_reader",
           "ean_8_reader",
           "upc_reader",
-          "upc_e_reader"
+          "upc_e_reader",
+          "code_128_reader"     // ✅ GTIN14(GS1-128)用
         ]
       }
     };
 
     log("Quagga init...");
-
     await new Promise((resolve, reject)=>{
-      Quagga.init(config, (err)=>{
-        if (err) return reject(err);
-        resolve();
-      });
+      Quagga.init(config, (err)=> err ? reject(err) : resolve());
     });
 
     Quagga.onDetected(onDetected);
@@ -472,23 +568,57 @@
 
   async function onDetected(result){
     try{
-      const code = result?.codeResult?.code || "";
-      const jan13 = digits(code);
-      if (jan13.length !== 13) return;
-
+      const raw = result?.codeResult?.code || "";
+      const fmt = result?.codeResult?.format || "";
       const t = Date.now();
-      if (jan13 === lastJan && (t - lastAt) < DEDUP_MS) return;
-      lastJan = jan13; lastAt = t;
+
+      // identify JAN / GTIN
+      let jan13 = "";
+      let gtin14 = "";
+
+      const d = digits(raw);
+      if (d.length === 13){
+        jan13 = d;
+      } else {
+        // try GTIN14 from GS1-128/Code128
+        gtin14 = parseGS1AI01(raw);
+        if (gtin14){
+          // resolve JAN by gtin_index
+          try{
+            const j = await lookupJanByGtin(gtin14);
+            if (j && j.length === 13) jan13 = j;
+          }catch(e){}
+        }
+      }
+
+      const key = (jan13 ? ("JAN:"+jan13) : "") + (gtin14 ? ("|GTIN:"+gtin14) : ("|RAW:"+raw));
+      if (key === lastKey && (t - lastAt) < DEDUP_MS) return;
+      lastKey = key; lastAt = t;
+
+      currentJan = jan13 || "";
+      currentGtin = gtin14 || "";
 
       // READ feedback first
-      showPopout({status:"READ", meta:"JAN検出", name: jan13, totalYen:"—", prodNo:"", prodSta:"", small:""});
+      showPopout({
+        status:"READ",
+        meta: jan13 ? "JAN検出" : (gtin14 ? "GTIN検出" : "検出"),
+        name: jan13 || gtin14 || raw,
+        totalYen:"—",
+        prodNo:"",
+        prodSta:"",
+        small: fmt ? ("format:" + fmt) : ""
+      });
 
-      currentJan = jan13;
+      if (!jan13 && !gtin14){
+        setStatus("warn","未検出","距離/ブレ/照明");
+        return;
+      }
+
       setStatus("warn","照合中…","辞書照合");
 
       let cands = [];
       try{
-        cands = await lookupCandidatesByJan(jan13);
+        if (jan13) cands = await lookupCandidatesByJan(jan13);
         setPill(el.pillDict, true);
       }catch(e){
         setPill(el.pillDict, false);
@@ -501,64 +631,80 @@
 
       if (best){
         setStatus("ok","OK","辞書一致");
-        const totalYen = fmtYenInt(best.total_reimbursement_price_yen||"") || "—";
+        const totalYen = fmtYenInt(f_total(best)) || "—";
         showPopout({
           status:"OK",
           meta: ordered.length > 1 ? `候補${ordered.length}件` : "辞書一致",
-          name: best.product_name || "—",
+          name: f_product_name(best) || "—",
           totalYen,
-          prodNo: best.product_no || "",
-          prodSta: best.product_sta || "",
-          small: `JAN:${jan13}`
+          prodNo: f_prodno(best) || "",
+          prodSta: f_prodsta(best) || "",
+          small: `JAN:${jan13 || ""}${gtin14 ? "  GTIN:"+gtin14 : ""}`
         });
+
+        // log save
+        const logs = loadLogs();
+        logs.push({
+          timestamp: new Date().toISOString(),
+          raw,
+          format: fmt,
+          jan13keta: jan13,
+          gtin14: gtin14,
+          product_name: f_product_name(best),
+          total_reimbursement_price_yen: f_total(best),
+          product_no: f_prodno(best),
+          product_sta: f_prodsta(best),
+          manufacturer_name: f_maker(best),
+          candidate_count: ordered.length,
+          status: "ok"
+        });
+        saveLogs(logs); updateCount();
+
       } else {
         setStatus("warn","WARN","辞書なし");
         showPopout({
           status:"WARN",
           meta:"辞書なし",
-          name: jan13,
+          name: jan13 || gtin14 || raw,
           totalYen:"—",
           prodNo:"",
           prodSta:"",
-          small:`JAN:${jan13}`
+          small:`JAN:${jan13 || ""}${gtin14 ? "  GTIN:"+gtin14 : ""}`
         });
+
+        const logs = loadLogs();
+        logs.push({
+          timestamp: new Date().toISOString(),
+          raw,
+          format: fmt,
+          jan13keta: jan13,
+          gtin14: gtin14,
+          product_name: "",
+          total_reimbursement_price_yen: "",
+          product_no: "",
+          product_sta: "",
+          manufacturer_name: "",
+          candidate_count: 0,
+          status: "warn"
+        });
+        saveLogs(logs); updateCount();
       }
-
-      // count log (minimal)
-      const scans = loadScans();
-      scans.push({ts:new Date().toISOString(), jan13keta: jan13});
-      saveScans(scans); updateCount();
-
     } catch(e){
       // ignore
     }
   }
 
-  // ===== tiny scan count =====
-  const LS_KEY = "linq_val_quagga_count_v1";
-  function loadScans(){ try{ return JSON.parse(localStorage.getItem(LS_KEY) || "[]"); }catch(e){ return []; } }
-  function saveScans(arr){ localStorage.setItem(LS_KEY, JSON.stringify(arr)); }
-  function updateCount(){ el.logCount.textContent = String(loadScans().length); }
-
-  el.btnClear.addEventListener("click", ()=>{
-    if (!confirm("ログを削除しますか？")) return;
-    localStorage.removeItem(LS_KEY);
-    updateCount();
-    log("Logs cleared.");
-  });
-
-  // ===== buttons =====
+  // ---- buttons ----
   el.btnStart.addEventListener("click", async ()=>{
-    try{
-      await startAll();
-    }catch(e){
+    try{ await startAll(); }
+    catch(e){
       log("Start FAILED: " + (e?.name ? (e.name+": "+e.message) : String(e)));
       setStatus("warn","起動失敗","カメラ許可/他アプリ占有を確認");
     }
   });
   el.btnStop.addEventListener("click", async ()=>{ await stopAll(); });
 
-  // init
+  // ---- init ----
   (function init(){
     updateCount();
     setStatus("idle","待機","Startで起動");
