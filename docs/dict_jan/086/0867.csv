@@ -1,3 +1,4 @@
-jan13keta,gtin14,product_name,manufacturer_name,iji_code,kinou_kubun_code,tokutei_name,reimbursement_price_yen,pack_qty
-0867770000209,00867770000209,CapsoCam Plusカプセル内視鏡,長瀬産業,710010068,B00214801,カプセル型内視鏡　小腸用,76500,1
-0867770000261,00867770000261,CapsoCam Plusカプセル内視鏡,長瀬産業,710010068,B00214801,カプセル型内視鏡　小腸用,76500,1
+jan13keta,gtin14_i0,unit_name_i0,gtin14_i1,unit_name_i1,gtin14_i2,unit_name_i2,product_name,product_no,product_sta,total_reimbursement_price_yen,pack_qty,manufacturer_name,tokutei01_iji_code,tokutei01_name,tokutei01_price,tokutei02_iji_code,tokutei02_name,tokutei02_price,tokutei03_iji_code,tokutei03_name,tokutei03_price,tokutei04_iji_code,tokutei04_name,tokutei04_price,tokutei05_iji_code,tokutei05_name,tokutei05_price,tokutei06_iji_code,tokutei06_name,tokutei06_price,tokutei07_iji_code,tokutei07_name,tokutei07_price,tokutei08_iji_code,tokutei08_name,tokutei08_price,tokutei09_iji_code,tokutei09_name,tokutei09_price,tokutei10_iji_code,tokutei10_name,tokutei10_price
+0867770000209,00867770000209,個,,,,,CapsoCam Plusカプセル内視鏡,00867770000209,Φ11.3 × 30.5 (mm),76500,1,長瀬産業,710010068,カプセル型内視鏡（小腸用）,76500,,,,,,,,,,,,,,,,,,,,,,,,,,,
+0867770000261,00867770000261,個,,,,,CapsoCam Plusカプセル内視鏡,00867770000261,Φ11.3 × 30.5 (mm),76500,1,長瀬産業,710010068,カプセル型内視鏡（小腸用）,76500,,,,,,,,,,,,,,,,,,,,,,,,,,,
+0867487000134,00867487000134,本,,,,,Ｈｙｄｒｕｓ緑内障マイクロステント,F00022,眼内ドレーン,,1,日本アルコン,-,-,0,,,,,,,,,,,,,,,,,,,,,,,,,,,

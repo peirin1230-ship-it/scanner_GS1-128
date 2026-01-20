@@ -1,3 +1,9 @@
-jan13keta,gtin14,product_name,manufacturer_name,iji_code,kinou_kubun_code,tokutei_name,reimbursement_price_yen,pack_qty
-0897146002018,00897146002018,Ａｄｈｅｒｕｓ　デュラル　シーラント,日本ストライカー,710010550,B002156,合成吸収性硬膜補強材,65100,1
-0897146002025,00897146002025,Ａｄｈｅｒｕｓ　デュラル　シーラント,日本ストライカー,710010550,B002156,合成吸収性硬膜補強材,65100,1
+jan13keta,gtin14_i0,unit_name_i0,gtin14_i1,unit_name_i1,gtin14_i2,unit_name_i2,product_name,product_no,product_sta,total_reimbursement_price_yen,pack_qty,manufacturer_name,tokutei01_iji_code,tokutei01_name,tokutei01_price,tokutei02_iji_code,tokutei02_name,tokutei02_price,tokutei03_iji_code,tokutei03_name,tokutei03_price,tokutei04_iji_code,tokutei04_name,tokutei04_price,tokutei05_iji_code,tokutei05_name,tokutei05_price,tokutei06_iji_code,tokutei06_name,tokutei06_price,tokutei07_iji_code,tokutei07_name,tokutei07_price,tokutei08_iji_code,tokutei08_name,tokutei08_price,tokutei09_iji_code,tokutei09_name,tokutei09_price,tokutei10_iji_code,tokutei10_name,tokutei10_price
+0897772002284,00897772002284,個,,,,,AII酸素電池,PSR-11-915-2i,直径28.96mm,,,メッツ,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+0897772002192,00897772002192,個,,,,,AII酸素電池,PSR-11-75-KE7,直径22.86mm×62.87mm,,,メッツ,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+0897772002611,00897772002611,個,,,,,AII酸素電池,PSR-11-75-KE13-PB,直径22.86mm×47.24mm,,,メッツ,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+0897772002109,00897772002109,個,,,,,AII酸素電池,PSR-11-917-J,直径30.48mm×44.45mm,,,メッツ,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+0897772002369,00897772002369,個,,,,,AII酸素電池,PSR-11-917-MH1,直径26.16mm×40.41mm,,,メッツ,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+0897772002499,00897772002499,個,,,,,AII酸素電池,PSR-11-917-MH3,直径26.21mm×40.56mm,,,メッツ,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+0897146002018,00897146002018,箱,,,,,Ａｄｈｅｒｕｓ　デュラル　シーラント,NUS-106,５個入り,65100,5,日本ストライカー,710010550,合成吸収性硬膜補強材,65100,,,,,,,,,,,,,,,,,,,,,,,,,,,
+0897146002025,00897146002025,箱,,,,,Ａｄｈｅｒｕｓ　デュラル　シーラント,NUS-109,ＥＴ　5個入り,65100,5,日本ストライカー,710010550,合成吸収性硬膜補強材,65100,,,,,,,,,,,,,,,,,,,,,,,,,,,

@@ -1,7 +1,4 @@
-jan13keta,gtin14,product_name,manufacturer_name,iji_code,kinou_kubun_code,tokutei_name,reimbursement_price_yen,pack_qty
-0183739000081,00183739000081,OCT IMAGE WIRE 1.5,アボットメディカルジャパン,710010269,B002149,血管内光断層撮影用カテーテル,132000,1
-0183739000111,00183739000111,OCT IMAGE WIRE 1.8,アボットメディカルジャパン,710010269,B002149,血管内光断層撮影用カテーテル,132000,1
-0183739000562,00183739000562,OCT DRAGONFLY IMAGING CATHETER,アボットメディカルジャパン,710010269,B002149,血管内光断層撮影用カテーテル,132000,1
-0183739000647,00183739000647,ＯＣＴ　Ｄｒａｇｏｎｆｌｙ　ＯＰＴＩＳ,アボットメディカルジャパン,710010269,B002149,血管内光断層撮影用カテーテル,132000,1
-0183739000654,00183739000654,Dragonfly OPTIS,アボットメディカルジャパン,710010269,B002149,血管内光断層撮影用カテーテル,132000,1
-0183739000951,00183739000951,ＯＣＴ　ＤｒａｇｏｎＦｌｙ　ＯＰＴＩＳ（滅菌カバー入り）,アボットメディカルジャパン,710010269,B002149,血管内光断層撮影用カテーテル,132000,1
+jan13keta,gtin14_i0,unit_name_i0,gtin14_i1,unit_name_i1,gtin14_i2,unit_name_i2,product_name,product_no,product_sta,total_reimbursement_price_yen,pack_qty,manufacturer_name,tokutei01_iji_code,tokutei01_name,tokutei01_price,tokutei02_iji_code,tokutei02_name,tokutei02_price,tokutei03_iji_code,tokutei03_name,tokutei03_price,tokutei04_iji_code,tokutei04_name,tokutei04_price,tokutei05_iji_code,tokutei05_name,tokutei05_price,tokutei06_iji_code,tokutei06_name,tokutei06_price,tokutei07_iji_code,tokutei07_name,tokutei07_price,tokutei08_iji_code,tokutei08_name,tokutei08_price,tokutei09_iji_code,tokutei09_name,tokutei09_price,tokutei10_iji_code,tokutei10_name,tokutei10_price
+0183739000647,00183739000647,本,,,,,ＯＣＴ　Ｄｒａｇｏｎｆｌｙ　ＯＰＴＩＳ,C408645,,132000,1,アボットメディカルジャパン,710010269,血管内光断層撮影用カテ-テル,132000,,,,,,,,,,,,,,,,,,,,,,,,,,,
+0183739000951,00183739000951,本,,,,,ＯＣＴ　ＤｒａｇｏｎＦｌｙ　ＯＰＴＩＳ（滅菌カバー入り）,C408641,C408641,132000,1,アボットメディカルジャパン,710010269,血管内光断層撮影用カテ-テル,132000,,,,,,,,,,,,,,,,,,,,,,,,,,,
+0183739000654,00183739000654,個,,,,,Dragonfly OPTIS,C408646,ー,132000,1,アボットメディカルジャパン,710010269,血管内光断層撮影用カテ-テル,132000,,,,,,,,,,,,,,,,,,,,,,,,,,,

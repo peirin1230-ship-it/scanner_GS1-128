@@ -1,3 +1,6 @@
-jan13keta,gtin14,product_name,manufacturer_name,iji_code,kinou_kubun_code,tokutei_name,reimbursement_price_yen,pack_qty
-0868976000109,00868976000109,HEARTLIGHT CATHETER,日本ライフライン,710010950,B0021230103,経皮的カテーテル心筋焼灼術用カテーテル　熱アブレーション用　バルーン型,505000,1
-0868976000147,00868976000147,HEARTLIGHT DEFLECTABLE SHEATH,日本ライフライン,710010274,B00200105,血管造影用シースイントロデューサーセット　遠位端可動型,116000,1
+jan13keta,gtin14_i0,unit_name_i0,gtin14_i1,unit_name_i1,gtin14_i2,unit_name_i2,product_name,product_no,product_sta,total_reimbursement_price_yen,pack_qty,manufacturer_name,tokutei01_iji_code,tokutei01_name,tokutei01_price,tokutei02_iji_code,tokutei02_name,tokutei02_price,tokutei03_iji_code,tokutei03_name,tokutei03_price,tokutei04_iji_code,tokutei04_name,tokutei04_price,tokutei05_iji_code,tokutei05_name,tokutei05_price,tokutei06_iji_code,tokutei06_name,tokutei06_price,tokutei07_iji_code,tokutei07_name,tokutei07_price,tokutei08_iji_code,tokutei08_name,tokutei08_price,tokutei09_iji_code,tokutei09_name,tokutei09_price,tokutei10_iji_code,tokutei10_name,tokutei10_price
+0868976000147,00868976000147,本,,,,,HEARTLIGHT DEFLECTABLE SHEATH,18-3356,有効長75cm、シャフト内径4.051mm(12F)、外径5.334mm(16F),116000,1,日本ライフライン,710010274,血管造影用シ-スイントロデュ-サ-セット（遠位端可動型）,116000,,,,,,,,,,,,,,,,,,,,,,,,,,,
+0868976000109,00868976000109,本,,,,,HEARTLIGHT CATHETER,18-2531-N250,有効長１１０５ｍｍ、外径３．８９ｍｍ（１２Ｆ）,505000,1,日本ライフライン,710010950,経皮的カテ-テル心筋焼灼術用カテ-テル（熱・バル-ン型）,505000,,,,,,,,,,,,,,,,,,,,,,,,,,,
+0868976000123,00868976000123,本,,,,,内視鏡ファイバ,18-1447,ファイバ全長３００ｃｍ、シャフト外径０．６４ｍｍ（２Ｆ）,,,日本ライフライン,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+0868976000130,00868976000130,本,,,,,拡張液,18-1342,容量９５ｍＬ、成分：重水・ヨード系造影剤１０％,,,日本ライフライン,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
+0868976000161,00868976000161,台,,,,,HEARTLIGHT CONSOLE,18-4247,-,,,日本ライフライン,,,,,,,,,,,,,,,,,,,,,,,,,,,,,,
