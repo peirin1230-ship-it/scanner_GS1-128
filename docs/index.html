@@ -3,1147 +3,716 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-  <meta name="theme-color" content="#0b1220" />
-  <title>LinQ VAL PoC Scanner</title>
+  <meta name="theme-color" content="#ffffff" />
+  <title>LinQ VAL Scanner</title>
   <style>
     :root{
-      --bg:#0b1220;
-      --card:#0f1a2d;
-      --card2:#0c1526;
-      --muted:#a7b0c0;
-      --text:#e9eef7;
-      --accent:#63b3ff;
-      --accent2:#7c5cff;
-      --ok:#22c55e;
-      --warn:#f59e0b;
-      --bad:#ef4444;
-      --line:rgba(255,255,255,.08);
-      --shadow: 0 12px 30px rgba(0,0,0,.35);
-      --radius:16px;
-      --radius2:22px;
-      --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
-      --sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans JP", "Hiragino Kaku Gothic ProN", "Yu Gothic", Arial, "Apple Color Emoji", "Segoe UI Emoji";
+      --ink:#141316; --muted:rgba(20,19,22,.62); --line:rgba(20,19,22,.10);
+      --accent:#e11d48; --shadow: 0 10px 28px rgba(20,19,22,.10);
+      --r:18px; --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono","Courier New", monospace;
+      --sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans JP","Hiragino Kaku Gothic ProN","Yu Gothic", Arial;
     }
     *{box-sizing:border-box}
     body{
-      margin:0;
-      font-family:var(--sans);
-      background: radial-gradient(1200px 500px at 30% -10%, rgba(99,179,255,.18), transparent 60%),
-                  radial-gradient(900px 450px at 100% 0%, rgba(124,92,255,.18), transparent 55%),
-                  linear-gradient(180deg, #081022 0%, #070e1a 60%, #060b14 100%);
-      color:var(--text);
-    }
-    a{color:inherit}
-    .wrap{max-width:1100px;margin:0 auto;padding:18px 14px 34px}
-    .topbar{
-      display:flex;gap:12px;align-items:center;justify-content:space-between;
-      margin:6px 0 14px;
-    }
-    .brand{
-      display:flex;align-items:center;gap:12px;
-    }
-    .logo{
-      width:42px;height:42px;border-radius:14px;
-      background: linear-gradient(135deg, rgba(99,179,255,.95), rgba(124,92,255,.95));
-      box-shadow: 0 10px 24px rgba(99,179,255,.12), 0 10px 24px rgba(124,92,255,.12);
-      position:relative; overflow:hidden;
-    }
-    .logo:after{
-      content:""; position:absolute; inset:-30% -30%;
-      background: radial-gradient(circle at 30% 30%, rgba(255,255,255,.35), transparent 55%);
-      transform: rotate(25deg);
-    }
-    .title h1{font-size:16px;margin:0 0 2px;font-weight:750;letter-spacing:.2px}
-    .title .sub{font-size:12px;color:var(--muted)}
-    .pill{
-      display:inline-flex;align-items:center;gap:8px;
-      padding:8px 10px;border:1px solid var(--line); border-radius:999px;
-      background: rgba(255,255,255,.04);
-      font-size:12px; color:var(--muted);
-      backdrop-filter: blur(10px);
-    }
-    .pill b{color:var(--text);font-weight:700}
-    .grid{
-      display:grid;
-      grid-template-columns: 1.2fr .8fr;
-      gap:14px;
-    }
-    @media (max-width: 920px){
-      .grid{grid-template-columns:1fr}
-    }
-    .card{
-      border:1px solid var(--line);
-      background: linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.03));
-      border-radius:var(--radius2);
-      box-shadow: var(--shadow);
-      overflow:hidden;
-    }
-    .card .hd{
-      padding:14px 14px 10px;
-      display:flex;align-items:center;justify-content:space-between;gap:12px;
-      border-bottom:1px solid var(--line);
-      background: linear-gradient(180deg, rgba(255,255,255,.04), transparent);
-    }
-    .card .hd h2{
-      margin:0;font-size:13px;font-weight:800;letter-spacing:.2px
-    }
-    .card .bd{padding:14px}
-    .hint{
-      font-size:12px;color:var(--muted);line-height:1.45
-    }
-    .row{display:flex;gap:10px;flex-wrap:wrap}
-    .btn{
-      appearance:none;border:1px solid var(--line);
-      background: rgba(255,255,255,.05);
-      color:var(--text);
-      padding:10px 12px;border-radius:12px;
-      cursor:pointer;
-      font-weight:700;font-size:13px;
-      display:inline-flex;align-items:center;gap:10px;
-      transition: transform .05s ease, background .15s ease, border-color .15s ease;
-      user-select:none;
-    }
-    .btn:hover{background: rgba(255,255,255,.08)}
-    .btn:active{transform: scale(.99)}
-    .btn.primary{
-      border-color: rgba(99,179,255,.25);
-      background: linear-gradient(135deg, rgba(99,179,255,.18), rgba(124,92,255,.12));
-    }
-    .btn.danger{
-      border-color: rgba(239,68,68,.25);
-      background: rgba(239,68,68,.10);
-    }
-    .btn.ok{
-      border-color: rgba(34,197,94,.25);
-      background: rgba(34,197,94,.10);
-    }
-    .btn.small{padding:8px 10px;border-radius:10px;font-size:12px}
-    .select, .input{
-      border:1px solid var(--line);
-      background: rgba(0,0,0,.18);
-      color:var(--text);
-      padding:10px 12px;border-radius:12px;
-      font-size:13px; min-width: 220px;
-      outline:none;
-    }
-    .select:focus, .input:focus{border-color: rgba(99,179,255,.35)}
-    .kv{
-      display:grid;
-      grid-template-columns: 140px 1fr;
-      gap:10px 12px;
-      margin-top:10px;
-      padding-top:12px;
-      border-top:1px dashed rgba(255,255,255,.12);
-    }
-    .k{color:var(--muted);font-size:12px}
-    .v{font-size:13px}
-    .mono{font-family:var(--mono)}
-    .videoWrap{
-      position:relative;
-      border-radius: 18px;
-      overflow:hidden;
-      border:1px solid var(--line);
-      background: #000;
-    }
-    video{
-      width:100%;
-      height:auto;
-      display:block;
-      transform: scaleX(-1); /* selfie mirror off? We actually want rear cam; but some browsers mirror. We'll unmirror via CSS toggle below */
-    }
-    .unmirror video{transform:none;}
-    .overlay{
-      pointer-events:none;
-      position:absolute; inset:0;
+      margin:0; font-family:var(--sans); color:var(--ink);
       background:
-        radial-gradient(closest-side at 50% 50%, transparent 0 62%, rgba(0,0,0,.55) 70% 100%),
-        linear-gradient(180deg, rgba(0,0,0,.15), transparent 20%, transparent 80%, rgba(0,0,0,.25));
+        radial-gradient(900px 480px at 15% -10%, rgba(225,29,72,.10), transparent 60%),
+        radial-gradient(700px 420px at 100% 0%, rgba(225,29,72,.08), transparent 55%),
+        linear-gradient(180deg, #ffffff 0%, #fff6f8 100%);
     }
-    .frame{
-      position:absolute; left:50%; top:50%;
-      width: 78%; height: 42%;
-      transform: translate(-50%,-50%);
-      border-radius: 18px;
-      border: 2px solid rgba(99,179,255,.45);
-      box-shadow: 0 0 0 9999px rgba(0,0,0,.10) inset;
+    .wrap{max-width:980px;margin:0 auto;padding:14px 12px 26px}
+    .top{
+      display:flex;align-items:center;justify-content:space-between;gap:10px;
+      padding:12px 14px;border:1px solid var(--line);border-radius: var(--r);
+      background: rgba(255,255,255,.90);box-shadow: var(--shadow);backdrop-filter: blur(6px);
     }
-    .frame:after{
-      content:""; position:absolute; left:10%; right:10%; top:50%;
-      height:1px; background: rgba(99,179,255,.25);
+    .title h1{margin:0;font-size:18px;font-weight:1200;letter-spacing:.2px;line-height:1.1}
+    .title .sub{margin-top:3px;font-size:13px;color:var(--muted);line-height:1.2}
+    .build{font-size:12px;color:var(--muted);padding:8px 10px;border:1px solid var(--line);border-radius:999px;background:#fff;white-space:nowrap}
+    .build b{color:var(--ink)}
+    .grid{display:grid;grid-template-columns: 1.05fr .95fr;gap:12px;margin-top:12px}
+    @media (max-width: 920px){ .grid{grid-template-columns:1fr} }
+    .card{border:1px solid var(--line);border-radius: var(--r);background: rgba(255,255,255,.92);box-shadow: var(--shadow);overflow:hidden}
+    .hd{
+      padding:12px 14px;border-bottom:1px solid var(--line);
+      display:flex;align-items:center;justify-content:space-between;gap:10px;
+      background: linear-gradient(90deg, rgba(225,29,72,.08), rgba(255,255,255,0));
     }
-    .tag{
-      display:inline-flex;align-items:center;gap:8px;
-      font-size:12px;
-      padding:6px 10px;border-radius:999px;
-      border:1px solid var(--line);
-      background: rgba(255,255,255,.04);
-      color:var(--muted);
-      white-space:nowrap;
+    .hd .label{font-size:14px;font-weight:1200;letter-spacing:.2px}
+    .bd{padding:14px}
+    .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+    .btn{
+      appearance:none;border:1px solid var(--line);background:#fff;color:var(--ink);
+      padding:14px 14px;border-radius: 14px;cursor:pointer;
+      font-size:16px;font-weight:1200;letter-spacing:.2px;user-select:none;
     }
-    .tag .dot{
-      width:8px;height:8px;border-radius:999px;background: rgba(167,176,192,.55);
+    .btn:active{transform:scale(.99)}
+    .btn.primary{
+      border-color: rgba(225,29,72,.28);
+      box-shadow: 0 10px 18px rgba(225,29,72,.10);
+      background: linear-gradient(135deg, rgba(225,29,72,.12), rgba(255,255,255,.0));
     }
-    .tag.ok .dot{background: rgba(34,197,94,.85)}
-    .tag.bad .dot{background: rgba(239,68,68,.85)}
-    .tag.warn .dot{background: rgba(245,158,11,.9)}
-    .tag b{color:var(--text)}
-    .last{
-      background: rgba(0,0,0,.18);
-      border:1px solid var(--line);
-      border-radius: 16px;
-      padding:12px;
-      margin-top:10px;
-    }
-    .last .head{display:flex;gap:10px;align-items:center;justify-content:space-between}
-    .last .head .ttl{font-weight:850;font-size:13px}
-    .last .raw{
-      margin-top:8px;
-      font-family:var(--mono);
-      font-size:12px;
-      color: rgba(233,238,247,.9);
-      white-space:pre-wrap;
-      word-break:break-all;
-    }
-    .table{
-      width:100%; border-collapse: collapse;
-      margin-top:10px;
-      border:1px solid var(--line);
-      border-radius: 14px;
+    .btn.small{padding:10px 12px;font-size:14px;border-radius:12px}
+    .pill{display:inline-flex;align-items:center;gap:8px;padding:8px 10px;border:1px solid var(--line);border-radius:999px;font-size:13px;color:var(--muted);background:#fff;white-space:nowrap}
+    .dot{width:10px;height:10px;border-radius:999px;background: rgba(20,19,22,.20)}
+    .pill.on .dot{ background: var(--accent); }
+
+    /* scanner */
+    #scanner{
+      position:relative;
+      border-radius: var(--r);
       overflow:hidden;
+      border:1px solid var(--line);
+      background:#000;
+      min-height: 260px;
+    }
+    #scanner video, #scanner canvas{
+      width:100% !important;
+      height:auto !important;
       display:block;
     }
-    .table thead{display:block;background: rgba(255,255,255,.04);border-bottom:1px solid var(--line)}
-    .table tbody{display:block;max-height: 300px; overflow:auto}
-    .table tr{display:grid; grid-template-columns: 128px 1fr 120px; gap:10px; align-items:center}
-    .table th, .table td{padding:10px 12px; font-size:12px}
-    .table th{color:var(--muted); text-align:left; font-weight:800}
-    .table td{border-top:1px solid rgba(255,255,255,.06)}
-    .table .small{color:var(--muted)}
-    .badge{
-      display:inline-flex;align-items:center;justify-content:center;
-      min-width:74px;
-      padding:6px 10px;border-radius:999px;font-weight:800;font-size:12px;
-      border:1px solid var(--line);
-      background: rgba(255,255,255,.04);
-    }
-    .badge.ok{border-color: rgba(34,197,94,.25); background: rgba(34,197,94,.10)}
-    .badge.bad{border-color: rgba(239,68,68,.25); background: rgba(239,68,68,.10)}
-    .badge.warn{border-color: rgba(245,158,11,.25); background: rgba(245,158,11,.10)}
-    .toast{
-      position:fixed; left:50%; bottom:18px;
-      transform: translateX(-50%);
-      min-width: 260px;
-      max-width: 92vw;
-      padding:12px 14px;
-      border-radius: 16px;
-      border:1px solid var(--line);
-      background: rgba(15,26,45,.88);
-      backdrop-filter: blur(10px);
-      box-shadow: var(--shadow);
+    .overlay{pointer-events:none;position:absolute; inset:0;background: linear-gradient(180deg, rgba(0,0,0,.10), transparent 25%, transparent 75%, rgba(0,0,0,.18));}
+
+    /* POPUP fixed to viewport (no scroll needed) */
+    .popout{
+      position:fixed;
+      left:12px; right:12px; bottom:12px;
+      max-width:980px;
+      margin:0 auto;
+      border-radius: 18px;
+      border:1px solid rgba(225,29,72,.25);
+      background: linear-gradient(135deg, rgba(225,29,72,.22), rgba(255,255,255,.92) 60%);
+      box-shadow: 0 18px 40px rgba(20,19,22,.22);
+      backdrop-filter: blur(6px);
+      padding:14px 14px;
       display:none;
-      z-index:9999;
+      z-index: 9999;
     }
-    .toast.show{display:block; animation: pop .16s ease-out}
-    @keyframes pop{from{opacity:0; transform: translateX(-50%) translateY(6px)} to{opacity:1; transform: translateX(-50%) translateY(0)}}
-    .toast .t1{font-weight:900;font-size:13px}
-    .toast .t2{font-size:12px;color:var(--muted);margin-top:2px;line-height:1.35}
-    .footer{
-      margin-top:12px;
-      display:flex;gap:10px;flex-wrap:wrap;
-      justify-content:space-between; align-items:center;
-      color: var(--muted);
-      font-size:12px;
+    .popout.show{display:block; animation: pop .16s ease-out}
+    @keyframes pop{from{opacity:0; transform: translateY(6px)} to{opacity:1; transform: translateY(0)}}
+    .popTop{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+    .popStatus{font-size:34px;font-weight:1400;letter-spacing:.2px;line-height:1;color: var(--accent)}
+    .popMeta{font-size:13px;color:rgba(20,19,22,.65);line-height:1.2;text-align:right;white-space:nowrap}
+    .bigA{margin-top:8px;font-size:22px;font-weight:1400;line-height:1.18}
+    .bigB{margin-top:6px;font-size:24px;font-weight:1400;color: var(--accent);letter-spacing:.2px;line-height:1.1}
+    .bigC{margin-top:6px;font-size:20px;font-weight:1350;line-height:1.18}
+    .bigD{margin-top:6px;font-size:20px;font-weight:1350;line-height:1.18}
+    .popSmall{margin-top:8px;font-size:13px;color:rgba(20,19,22,.65);font-family: var(--mono);word-break: break-all}
+
+    .hint{margin-top:10px;font-size:14px;color:var(--muted);line-height:1.35}
+    .mono{font-family:var(--mono)}
+    .em{display:inline-flex;align-items:center;padding:2px 8px;border-radius:999px;border:1px solid rgba(225,29,72,.22);background: rgba(225,29,72,.08);font-weight:1200}
+
+    /* results */
+    .okBanner{
+      display:flex;align-items:center;justify-content:space-between;gap:10px;
+      padding:14px 14px;border:1px solid var(--line);border-radius: 16px;
+      background: linear-gradient(135deg, rgba(225,29,72,.10), rgba(255,255,255,0) 60%);
     }
-    .switch{
-      display:flex; align-items:center; gap:10px;
-      padding:8px 10px; border:1px solid var(--line);
-      background: rgba(255,255,255,.04);
-      border-radius:999px;
+    .okLeft{display:flex;align-items:center;gap:12px}
+    .badgeDot{width:14px;height:14px;border-radius:999px;background: rgba(20,19,22,.20)}
+    .okText{font-size:34px;font-weight:1400;letter-spacing:.2px;line-height:1}
+    .okSub{font-size:14px;color:var(--muted);margin-top:2px}
+    .rightInfo{font-size:14px;color:var(--muted)}
+
+    .R_name{margin-top:14px;font-size:26px;font-weight:1400;line-height:1.18;letter-spacing:.1px}
+    .R_price{margin-top:10px;font-size:26px;font-weight:1400;color: var(--accent);letter-spacing:.2px;line-height:1.1}
+    .R_no{margin-top:10px;font-size:22px;font-weight:1350;line-height:1.15}
+    .R_sta{margin-top:8px;font-size:22px;font-weight:1350;line-height:1.15}
+    .R_maker{margin-top:8px;font-size:16px;color:var(--muted);line-height:1.25}
+
+    .miniRow{margin-top:10px;display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+    .chip{
+      display:inline-flex;align-items:center;gap:8px;
+      padding:8px 10px;border:1px solid var(--line);border-radius:999px;
+      background:#fff;color:var(--muted);font-size:13px;
     }
-    .switch input{accent-color: var(--accent)}
-    .dangerText{color: rgba(239,68,68,.92)}
-    .okText{color: rgba(34,197,94,.92)}
-    .warnText{color: rgba(245,158,11,.95)}
-    .noteBox{
-      padding:10px 12px; border-radius: 14px;
-      border:1px dashed rgba(255,255,255,.14);
-      background: rgba(0,0,0,.14);
-      margin-top:10px;
-    }
+    .chip b{color:var(--ink);font-weight:1300}
+
+    details{margin-top:10px}
+    summary{cursor:pointer;color:var(--muted);font-weight:1100}
+    .log{margin-top:8px;padding:10px 12px;border:1px solid var(--line);border-radius:14px;background:#fff;color:#666;
+      white-space:pre-wrap;font-family:var(--mono);font-size:12px}
   </style>
 </head>
+
 <body>
   <div class="wrap">
-    <div class="topbar">
-      <div class="brand">
-        <div class="logo" aria-hidden="true"></div>
-        <div class="title">
-          <h1>LinQ VAL PoC Scanner</h1>
-          <div class="sub">GS1-128（CODE128）優先 / JAN-13（EAN13）代替・CSV収集</div>
-        </div>
+    <div class="top">
+      <div class="title">
+        <h1>LinQ VAL Scanner</h1>
+        <div class="sub">JAN(EAN-13) + GTIN14(GS1-128/Code128) / Popは画面固定 / CSV出力</div>
       </div>
-      <div class="pill" title="キャッシュ回避は URL 末尾に ?v=数字 を付けてください">
-        <span>BUILD</span> <b id="buildLabel">v0</b>
-      </div>
+      <div class="build">BUILD <b id="buildLabel">v0</b></div>
     </div>
 
     <div class="grid">
-      <!-- Left: Camera -->
       <div class="card">
         <div class="hd">
-          <h2>スキャン</h2>
+          <div class="label">スキャン</div>
           <div class="row">
-            <span class="tag" id="zxingStatus"><span class="dot"></span><b>ZXing</b> <span id="zxingText">未読込</span></span>
-            <span class="tag" id="camStatus"><span class="dot"></span><b>Camera</b> <span id="camText">停止中</span></span>
+            <div class="pill" id="pillQ"><span class="dot"></span><span>Quagga</span></div>
+            <div class="pill" id="pillCam"><span class="dot"></span><span>Camera</span></div>
+            <div class="pill" id="pillDict"><span class="dot"></span><span>Dict</span></div>
           </div>
         </div>
+
         <div class="bd">
-          <div class="hint">
-            「期限・ロットが読めるバーコード（GS1-128）があればそれを優先。なければJANでもOK」<br/>
-            目安：バーコードを枠いっぱいに／明るく／2秒静止。
+          <div class="row">
+            <button class="btn primary" id="btnStart">Start</button>
+            <button class="btn" id="btnStop">Stop</button>
           </div>
 
-          <div style="margin-top:12px" class="row">
-            <button class="btn primary" id="btnStart">▶︎ Start</button>
-            <button class="btn" id="btnStop">■ Stop</button>
-            <button class="btn" id="btnTorch">🔦 Light</button>
-            <label class="switch" title="一部ブラウザで映像が左右反転する時の補正">
-              <input type="checkbox" id="chkUnmirror" checked />
-              <span>Unmirror</span>
-            </label>
-          </div>
-
-          <div style="margin-top:10px" class="row">
-            <select class="select" id="selCamera" title="カメラが複数ある場合に選べます">
-              <option value="">カメラ自動選択（背面優先）</option>
-            </select>
-            <select class="select" id="selMode" title="PoC向けに必要な形式だけに絞ると精度が上がることがあります">
-              <option value="strict">推奨：CODE128 + EAN13</option>
-              <option value="all">互換：MultiFormat（全部）</option>
-            </select>
-          </div>
-
-          <div style="margin-top:12px" class="videoWrap unmirror" id="videoWrap">
-            <video id="video" playsinline muted></video>
+          <div style="margin-top:12px" id="scanner">
             <div class="overlay"></div>
-            <div class="frame" aria-hidden="true"></div>
           </div>
 
-          <div class="noteBox">
-            <div class="hint">
-              読み取りが不安定な場合：<b>解像度</b>を上げる（本実装済み）／<b>CODE128だけ</b>に絞る（推奨モード）／枠に寄せる。
-            </div>
+          <div class="hint">
+            優先：JAN(EAN-13)。GS1-128はAI(01)からGTIN14を抽出します。<span class="em">同一コードは5秒間無視</span>
           </div>
 
-          <div class="last">
-            <div class="head">
-              <div class="ttl">Last Scan</div>
-              <span class="badge" id="lastBadge">—</span>
-            </div>
-            <div class="raw" id="lastRaw">まだスキャンされていません</div>
-
-            <div class="kv">
-              <div class="k">GTIN-14</div><div class="v mono" id="vGtin">—</div>
-              <div class="k">JAN-13</div><div class="v mono" id="vJan">—</div>
-              <div class="k">ロット(AI10)</div><div class="v mono" id="vLot">—</div>
-              <div class="k">期限(AI17)</div><div class="v mono" id="vExp">—</div>
-              <div class="k">シリアル(AI21)</div><div class="v mono" id="vSer">—</div>
-            </div>
-
-            <div class="kv" style="margin-top:12px">
-              <div class="k">製品名</div><div class="v" id="vName">—</div>
-              <div class="k">メーカー</div><div class="v" id="vMaker">—</div>
-              <div class="k">医事コード</div><div class="v mono" id="vIji">—</div>
-              <div class="k">機能区分</div><div class="v mono" id="vKinou">—</div>
-              <div class="k">特定名</div><div class="v" id="vTokutei">—</div>
-              <div class="k">償還価格</div><div class="v mono" id="vPrice">—</div>
-              <div class="k">包装数量</div><div class="v mono" id="vPack">—</div>
-            </div>
-
-            <div class="footer">
-              <div>保存先：端末内（localStorage）</div>
-              <div class="hint">CSVに辞書項目も追記（辞書が見つかった場合）</div>
-            </div>
-          </div>
+          <details>
+            <summary>ログ</summary>
+            <div class="log" id="log">Ready.</div>
+          </details>
         </div>
       </div>
 
-      <!-- Right: Logs / Export -->
       <div class="card">
         <div class="hd">
-          <h2>ログ & CSV</h2>
+          <div class="label">結果</div>
           <div class="row">
-            <button class="btn ok small" id="btnExport">⬇︎ CSV Export</button>
-            <button class="btn danger small" id="btnClear">🗑 Clear</button>
+            <button class="btn small" id="btnNext">候補切替</button>
+            <button class="btn small" id="btnExport">CSV</button>
+            <button class="btn small" id="btnClear">Clear</button>
           </div>
         </div>
+
         <div class="bd">
-          <div class="hint">
-            連続読取の二重登録は <b>同一rawを1秒無視</b> で防止。<br/>
-            CSV列：timestamp, raw, format, gtin14, jan13, lot, exp_ymd, serial, product_name, manufacturer_name, iji_code, kinou_kubun_code, tokutei_name, reimbursement_price_yen, pack_qty
+          <div class="okBanner">
+            <div class="okLeft">
+              <div class="badgeDot" id="dotStatus"></div>
+              <div>
+                <div class="okText" id="txtStatus">待機</div>
+                <div class="okSub" id="txtSub">Startで起動</div>
+              </div>
+            </div>
+            <div class="rightInfo">ログ <span class="mono" id="logCount">0</span> 件</div>
           </div>
 
-          <table class="table" role="table" aria-label="Scan log">
-            <thead>
-              <tr>
-                <th>時刻</th>
-                <th>内容</th>
-                <th>状態</th>
-              </tr>
-            </thead>
-            <tbody id="logBody">
-              <!-- rows -->
-            </tbody>
-          </table>
+          <div class="R_name" id="vName">—</div>
+          <div class="R_price" id="vTotalPrice">—</div>
+          <div class="R_no" id="vProdNo">—</div>
+          <div class="R_sta" id="vProdSta">—</div>
+          <div class="R_maker" id="vMaker">—</div>
 
-          <div class="noteBox">
-            <div class="hint">
-              辞書が巨大で読込が重い場合は、<b>4桁分割</b>（dict_jan/490/4901.csv のような構造）を推奨。<br/>
-              本ページは <b>4桁→3桁の順で自動フォールバック</b>します。
-            </div>
+          <div class="miniRow">
+            <div class="chip">候補 <b id="candPos">0</b> / <b id="candTotal">0</b></div>
+            <div class="chip">JAN <b class="mono" id="vJan">—</b></div>
+            <div class="chip">GTIN <b class="mono" id="vGtin">—</b></div>
           </div>
         </div>
       </div>
     </div>
   </div>
 
-  <div class="toast" id="toast">
-    <div class="t1" id="toastT1">OK</div>
-    <div class="t2" id="toastT2">—</div>
+  <!-- Fixed popup (viewport) -->
+  <div class="popout" id="popout">
+    <div class="popTop">
+      <div class="popStatus" id="popStatus">OK</div>
+      <div class="popMeta" id="popMeta">—</div>
+    </div>
+    <div class="bigA" id="popName">—</div>
+    <div class="bigB" id="popTotal">—</div>
+    <div class="bigC" id="popProdNo">—</div>
+    <div class="bigD" id="popProdSta">—</div>
+    <div class="popSmall" id="popSmall">—</div>
   </div>
 
-  <script>
-    // ===== BUILD =====
-    const BUILD = "v2026-01-19-01";
-    document.getElementById("buildLabel").textContent = BUILD;
+<script>
+  const BUILD = "v2026-01-20-11";
+  document.getElementById("buildLabel").textContent = BUILD;
 
-    // ===== Utils =====
-    const $ = (id) => document.getElementById(id);
-    const sleep = (ms) => new Promise(r => setTimeout(r, ms));
-    const nowISO = () => new Date().toISOString();
-    const ymdFromAI17 = (yyMMdd) => {
-      if (!yyMMdd || yyMMdd.length !== 6) return "";
-      const yy = yyMMdd.slice(0,2), mm = yyMMdd.slice(2,4), dd = yyMMdd.slice(4,6);
-      return `20${yy}-${mm}-${dd}`;
-    };
-    const isExpired = (ymd) => {
-      if (!ymd) return false;
-      const d = new Date(ymd + "T00:00:00");
-      const today = new Date();
-      today.setHours(0,0,0,0);
-      return d < today;
-    };
-    function toast(title, msg, kind="ok"){
-      const t = $("toast");
-      $("toastT1").textContent = title;
-      $("toastT2").textContent = msg;
-      t.classList.add("show");
-      if (kind === "ok") t.style.borderColor = "rgba(34,197,94,.25)";
-      else if (kind === "warn") t.style.borderColor = "rgba(245,158,11,.30)";
-      else t.style.borderColor = "rgba(239,68,68,.30)";
-      setTimeout(()=>t.classList.remove("show"), 1400);
+  const $ = (id)=>document.getElementById(id);
+  const el = {
+    pillQ: $("pillQ"), pillCam: $("pillCam"), pillDict: $("pillDict"),
+    scanner: $("scanner"), log: $("log"),
+
+    popout: $("popout"), popStatus: $("popStatus"), popMeta: $("popMeta"),
+    popName: $("popName"), popTotal: $("popTotal"),
+    popProdNo: $("popProdNo"), popProdSta: $("popProdSta"), popSmall: $("popSmall"),
+
+    dotStatus: $("dotStatus"), txtStatus: $("txtStatus"), txtSub: $("txtSub"), logCount: $("logCount"),
+
+    vName: $("vName"), vTotalPrice: $("vTotalPrice"), vProdNo: $("vProdNo"),
+    vProdSta: $("vProdSta"), vMaker: $("vMaker"),
+    vJan: $("vJan"), vGtin: $("vGtin"), candPos: $("candPos"), candTotal: $("candTotal"),
+
+    btnStart: $("btnStart"), btnStop: $("btnStop"),
+    btnNext: $("btnNext"), btnExport: $("btnExport"), btnClear: $("btnClear")
+  };
+
+  function log(msg){ el.log.textContent = msg + "\n\n" + el.log.textContent; }
+  function setPill(p,on){ p.classList.toggle("on", !!on); }
+  function digits(s){ return (s ?? "").toString().replace(/\D/g,""); }
+  function fmtYenInt(s){
+    const d = digits(s); if (!d) return "";
+    const n = Number(d); return Number.isFinite(n) ? ("¥"+n.toLocaleString("ja-JP")) : ("¥"+d);
+  }
+  function setStatus(kind, label, sub){
+    el.dotStatus.style.background =
+      kind==="ok" ? "var(--accent)" :
+      kind==="warn" ? "rgba(225,29,72,.45)" :
+      "rgba(20,19,22,.20)";
+    el.txtStatus.textContent = label;
+    el.txtSub.textContent = sub || "";
+  }
+  function showPopout({status, meta, name, totalYen, prodNo, prodSta, small}){
+    el.popStatus.textContent = status;
+    el.popMeta.textContent = meta || "";
+    el.popName.textContent = name || "—";
+    el.popTotal.textContent = totalYen || "—";
+    el.popProdNo.textContent = prodNo ? ("製品番号: " + prodNo) : "—";
+    el.popProdSta.textContent = prodSta ? ("規格: " + prodSta) : "—";
+    el.popSmall.textContent = small || "";
+    el.popout.classList.add("show");
+    clearTimeout(showPopout._t);
+    showPopout._t = setTimeout(()=>el.popout.classList.remove("show"), 2400);
+  }
+
+  // ---- robust field picking (old/new headers) ----
+  function pick(obj, keys){
+    for (const k of keys){
+      if (obj && Object.prototype.hasOwnProperty.call(obj, k)){
+        const v = (obj[k] ?? "").toString().trim();
+        if (v !== "") return v;
+      }
     }
-    function haptic(){
+    return "";
+  }
+  function f_product_name(o){ return pick(o, ["product_name","商品名"]); }
+  function f_total(o){ return pick(o, ["total_reimbursement_price_yen","（医科）償還価格合計","償還価格合計"]); }
+  function f_prodno(o){ return pick(o, ["product_no","製品番号"]); }
+  function f_prodsta(o){ return pick(o, ["product_sta","規格"]); }
+  function f_maker(o){ return pick(o, ["manufacturer_name","製造販売業者：企業略称名","製造販売業者"]); }
+  function f_jan(o){ return digits(pick(o, ["jan13keta","ＪＡＮコード","JAN","jan13"])); }
+
+  // ---- Quagga2 loader ----
+  function loadScript(src){
+    return new Promise((resolve,reject)=>{
+      const s = document.createElement("script");
+      s.src = src; s.async = true;
+      s.onload = resolve; s.onerror = ()=>reject(new Error("Failed "+src));
+      document.head.appendChild(s);
+    });
+  }
+  async function ensureQuagga(){
+    if (window.Quagga) return true;
+    const bust = "v=" + encodeURIComponent(BUILD) + "&t=" + Date.now();
+    const urls = [
+      "https://unpkg.com/@ericblade/quagga2@1.2.6/dist/quagga.min.js?" + bust,
+      "https://cdn.jsdelivr.net/npm/@ericblade/quagga2@1.2.6/dist/quagga.min.js?" + bust
+    ];
+    for (const u of urls){
       try{
-        if (navigator.vibrate) navigator.vibrate(40);
+        await loadScript(u);
+        if (window.Quagga) return true;
       }catch(e){}
     }
-    function setTag(el, state, text){
-      // state: ok / warn / bad / idle
-      el.classList.remove("ok","warn","bad");
-      if (state === "ok") el.classList.add("ok");
-      if (state === "warn") el.classList.add("warn");
-      if (state === "bad") el.classList.add("bad");
-      el.querySelector("span:last-child").textContent = text;
-      const dot = el.querySelector(".dot");
-      if (state === "ok") dot.style.background = "rgba(34,197,94,.85)";
-      else if (state === "warn") dot.style.background = "rgba(245,158,11,.9)";
-      else if (state === "bad") dot.style.background = "rgba(239,68,68,.85)";
-      else dot.style.background = "rgba(167,176,192,.55)";
-    }
+    return false;
+  }
 
-    // ===== LocalStorage =====
-    const LS_KEY = "linq_val_scans_v1";
-    function loadScans(){
-      try{
-        const v = localStorage.getItem(LS_KEY);
-        return v ? JSON.parse(v) : [];
-      }catch(e){ return []; }
-    }
-    function saveScans(arr){
-      localStorage.setItem(LS_KEY, JSON.stringify(arr));
-    }
-
-    // ===== CSV helpers =====
-    function escapeCSV(v){
-      if (v === null || v === undefined) return "";
-      const s = String(v);
-      if (/[",\n\r]/.test(s)) return '"' + s.replace(/"/g,'""') + '"';
-      return s;
-    }
-    function toCSV(rows, header){
-      const lines = [];
-      lines.push(header.map(escapeCSV).join(","));
-      for (const r of rows){
-        lines.push(header.map(h => escapeCSV(r[h] ?? "")).join(","));
-      }
-      return lines.join("\n");
-    }
-    function downloadText(filename, text){
-      const blob = new Blob([text], {type:"text/csv;charset=utf-8"});
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = filename;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      URL.revokeObjectURL(url);
-    }
-
-    // ===== Robust script loader for ZXing =====
-    function loadScript(src){
-      return new Promise((resolve, reject)=>{
-        const s = document.createElement("script");
-        s.src = src;
-        s.async = true;
-        s.onload = () => resolve();
-        s.onerror = () => reject(new Error("Failed to load: " + src));
-        document.head.appendChild(s);
-      });
-    }
-    async function ensureZXing(){
-      if (window.ZXing && window.ZXing.BrowserMultiFormatReader) return true;
-      const bust = "v=" + encodeURIComponent(BUILD) + "&t=" + Date.now();
-      const candidates = [
-        "https://unpkg.com/@zxing/library@0.20.0/umd/index.min.js?" + bust,
-        "https://cdn.jsdelivr.net/npm/@zxing/library@0.20.0/umd/index.min.js?" + bust
-      ];
-      for (const src of candidates){
-        try{
-          await loadScript(src);
-          if (window.ZXing && window.ZXing.BrowserMultiFormatReader) return true;
-        }catch(e){}
-      }
-      return false;
-    }
-
-    // ===== GS1 parser (Code128 decoded text like ]C101... or raw AI data) =====
-    // We handle AI (01)(10)(17)(21) typical for PoC.
-    function parseGS1(raw){
-      // Normalize: remove symbology prefix if present
-      let s = (raw ?? "").trim();
-      // Some decoders return "]C1" prefix for GS1-128
-      if (s.startsWith("]C1")) s = s.slice(3);
-
-      // GS1 may include FNC1 as ASCII 29 (GS). Convert to separator.
-      const GS = String.fromCharCode(29);
-      // We'll parse by scanning AIs.
-      const out = { gtin14:"", lot:"", exp_yyMMdd:"", serial:"" };
-
-      // Helper to read fixed/variable AIs
-      function readFixed(start, len){
-        return s.slice(start, start+len);
-      }
-      function readVar(start, maxLen){
-        // variable length until GS or maxLen
-        const endGS = s.indexOf(GS, start);
-        const end = (endGS !== -1) ? Math.min(endGS, start+maxLen) : Math.min(s.length, start+maxLen);
-        return s.slice(start, end);
-      }
-
-      // We'll scan sequentially.
-      let i = 0;
-      while (i < s.length){
-        // skip separators
-        if (s[i] === GS) { i++; continue; }
-
-        // AI could be 2,3,4 digits. We only need 01/10/17/21.
-        const ai2 = s.slice(i, i+2);
-        if (ai2 === "01"){
-          const val = s.slice(i+2, i+2+14);
-          if (/^\d{14}$/.test(val)) out.gtin14 = val;
-          i += 2 + 14;
-          continue;
+  // ---- Dict split loading ----
+  const cache = new Map();
+  async function fetchText(url){
+    const res = await fetch(url, {cache:"no-store"});
+    if (!res.ok) throw new Error("HTTP "+res.status);
+    return await res.text();
+  }
+  function parseCSV(text){
+    const rows=[]; let i=0, field="", row=[], inQ=false;
+    while (i<text.length){
+      const c=text[i];
+      if (inQ){
+        if (c === '"'){
+          if (text[i+1] === '"'){ field+='"'; i+=2; continue; }
+          inQ=false; i++; continue;
         }
-        if (ai2 === "17"){
-          const val = s.slice(i+2, i+2+6);
-          if (/^\d{6}$/.test(val)) out.exp_yyMMdd = val;
-          i += 2 + 6;
-          continue;
+        field+=c; i++; continue;
+      }else{
+        if (c === '"'){ inQ=true; i++; continue; }
+        if (c === ","){ row.push(field); field=""; i++; continue; }
+        if (c === "\n"){
+          row.push(field); field="";
+          if (row.length>1 || (row.length===1 && row[0]!== "")) rows.push(row);
+          row=[]; i++; continue;
         }
-        if (ai2 === "10"){
-          const val = readVar(i+2, 20);
-          out.lot = val;
-          i += 2 + val.length;
-          // consume GS if present
-          if (s[i] === GS) i++;
-          continue;
+        if (c === "\r"){ i++; continue; }
+        field+=c; i++; continue;
+      }
+    }
+    row.push(field);
+    if (row.length>1 || (row.length===1 && row[0]!== "")) rows.push(row);
+    return rows;
+  }
+  function toObjects(rows){
+    if (!rows.length) return [];
+    const header=rows[0].map(h=>(h??"").trim());
+    const objs=[];
+    for (let r=1;r<rows.length;r++){
+      const arr=rows[r]; const o={};
+      for (let c=0;c<header.length;c++) o[header[c]]=(arr[c]??"").trim();
+      objs.push(o);
+    }
+    return objs;
+  }
+  async function loadObjects(url){
+    if (cache.has(url)) return cache.get(url);
+    const t=await fetchText(url);
+    const objs=toObjects(parseCSV(t));
+    cache.set(url, objs);
+    return objs;
+  }
+  function pick3_4(d){
+    d = digits(d);
+    if (d.length<4) return ["",""];
+    return [d.slice(0,3), d.slice(0,4)];
+  }
+  async function lookupCandidatesByJan(jan13){
+    const [jan3, jan4]=pick3_4(jan13);
+    if (!jan4) return [];
+    const rows=await loadObjects(`dict_jan/${jan3}/${jan4}.csv`);
+    return rows.filter(r => digits(r.jan13keta || r["ＪＡＮコード"] || r["JAN"] || "") === jan13);
+  }
+  async function lookupJanByGtin(gtin14){
+    const [gt3, gt4]=pick3_4(gtin14);
+    if (!gt4) return "";
+    const rows=await loadObjects(`gtin_index/${gt3}/${gt4}.csv`);
+    const hit = rows.find(r => digits(r.gtin14) === gtin14);
+    return hit ? digits(hit.jan13keta) : "";
+  }
+  function pickBestCandidate(cands){
+    if (!cands.length) return {best:null, ordered:[]};
+    const ordered = cands
+      .map((c,idx)=>({c,idx,price:Number(digits(f_total(c)||""))||0}))
+      .sort((a,b)=>b.price-a.price||a.idx-b.idx)
+      .map(x=>x.c);
+    return {best:ordered[0], ordered};
+  }
+
+  // ---- candidates UI ----
+  let currentCandidates=[], currentIndex=0, currentJan="", currentGtin="";
+  function renderCandidate(idx){
+    const total=currentCandidates.length;
+    el.candTotal.textContent=String(total);
+    if (!total){
+      el.candPos.textContent="0";
+      el.vName.textContent="—"; el.vTotalPrice.textContent="—";
+      el.vProdNo.textContent="—"; el.vProdSta.textContent="—";
+      el.vMaker.textContent="—";
+      el.vJan.textContent=currentJan||"—";
+      el.vGtin.textContent=currentGtin||"—";
+      return;
+    }
+    currentIndex=(idx+total)%total;
+    el.candPos.textContent=String(currentIndex+1);
+
+    const c=currentCandidates[currentIndex];
+    el.vName.textContent = f_product_name(c) || "—";
+    el.vTotalPrice.textContent = fmtYenInt(f_total(c)) || "—";
+    el.vProdNo.textContent = f_prodno(c) ? ("製品番号: " + f_prodno(c)) : "—";
+    el.vProdSta.textContent = f_prodsta(c) ? ("規格: " + f_prodsta(c)) : "—";
+    el.vMaker.textContent = f_maker(c) || "—";
+
+    el.vJan.textContent = currentJan || f_jan(c) || "—";
+    el.vGtin.textContent = currentGtin || "—";
+  }
+  el.btnNext.addEventListener("click", ()=>{ if (currentCandidates.length) renderCandidate(currentIndex+1); });
+
+  // ---- dedup ----
+  const DEDUP_MS = 5000;
+  let lastKey = "";
+  let lastAt = 0;
+
+  // ---- parse GTIN14 from GS1-128 raw ----
+  function parseGS1AI01(raw){
+    let s = (raw ?? "").toString();
+    if (s.startsWith("]C1")) s = s.slice(3);
+    const GS = String.fromCharCode(29);
+    // look for "01" then 14 digits
+    for (let i=0; i<s.length-16; i++){
+      if (s[i] === GS) continue;
+      if (s[i] === "0" && s[i+1] === "1"){
+        const val = s.slice(i+2, i+16);
+        if (/^\d{14}$/.test(val)) return val;
+      }
+    }
+    // sometimes digits only
+    const d = digits(s);
+    if (d.length === 14) return d;
+    return "";
+  }
+
+  // ---- scan log + CSV export ----
+  const LS_KEY = "linq_val_scanlog_v1";
+  function loadLogs(){ try{ return JSON.parse(localStorage.getItem(LS_KEY) || "[]"); }catch(e){ return []; } }
+  function saveLogs(arr){ localStorage.setItem(LS_KEY, JSON.stringify(arr)); }
+  function updateCount(){ el.logCount.textContent = String(loadLogs().length); }
+
+  function escapeCSV(v){
+    if (v === null || v === undefined) return "";
+    const s = String(v);
+    if (/[",\n\r]/.test(s)) return '"' + s.replace(/"/g,'""') + '"';
+    return s;
+  }
+  function toCSV(rows, header){
+    const lines = [];
+    lines.push(header.map(escapeCSV).join(","));
+    for (const r of rows) lines.push(header.map(h => escapeCSV(r[h] ?? "")).join(","));
+    return lines.join("\n");
+  }
+  function downloadText(filename, text){
+    const blob = new Blob([text], {type:"text/csv;charset=utf-8"});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url; a.download = filename;
+    document.body.appendChild(a); a.click(); a.remove();
+    URL.revokeObjectURL(url);
+  }
+
+  el.btnExport.addEventListener("click", ()=>{
+    const logs = loadLogs();
+    const header = [
+      "timestamp","raw","format","jan13keta","gtin14",
+      "product_name","total_reimbursement_price_yen","product_no","product_sta","manufacturer_name",
+      "candidate_count","status"
+    ];
+    downloadText(`linq_val_scans_${new Date().toISOString().slice(0,10)}.csv`, toCSV(logs, header));
+  });
+
+  el.btnClear.addEventListener("click", ()=>{
+    if (!confirm("端末内ログを削除しますか？")) return;
+    localStorage.removeItem(LS_KEY);
+    updateCount();
+    log("Logs cleared.");
+  });
+
+  // ---- Quagga start/stop ----
+  let running = false;
+
+  async function stopAll(){
+    try{
+      if (running && window.Quagga){
+        try{ Quagga.offDetected(onDetected); }catch(e){}
+        try{ Quagga.stop(); }catch(e){}
+      }
+    }catch(e){}
+    running = false;
+    setPill(el.pillCam, false);
+    setStatus("idle","停止中","Startで起動");
+  }
+
+  async function startAll(){
+    await stopAll();
+    setStatus("idle","起動中…","準備中");
+
+    const ok = await ensureQuagga();
+    setPill(el.pillQ, ok);
+    if (!ok){
+      setStatus("warn","Quagga失敗","通信/CDN");
+      return;
+    }
+
+    // Clear injected nodes
+    Array.from(el.scanner.querySelectorAll("video,canvas")).forEach(n=>n.remove());
+
+    const config = {
+      inputStream: {
+        name: "Live",
+        type: "LiveStream",
+        target: el.scanner,
+        constraints: {
+          facingMode: "environment",
+          width: { ideal: 1280 },
+          height: { ideal: 720 }
         }
-        if (ai2 === "21"){
-          const val = readVar(i+2, 20);
-          out.serial = val;
-          i += 2 + val.length;
-          if (s[i] === GS) i++;
-          continue;
-        }
-
-        // If unknown, move forward a char (best effort)
-        i++;
+      },
+      locator: { halfSample: true, patchSize: "medium" },
+      numOfWorkers: 0,   // iOS Safari safe
+      frequency: 10,
+      locate: true,
+      decoder: {
+        readers: [
+          "ean_reader",
+          "ean_8_reader",
+          "upc_reader",
+          "upc_e_reader",
+          "code_128_reader"     // ✅ GTIN14(GS1-128)用
+        ]
       }
-      return out;
-    }
-
-    // ===== Dictionary lookup (split files, 4-digit first, fallback to 3-digit) =====
-    const dictCache = new Map(); // key: url -> parsed rows (array of objects)
-    async function fetchText(url){
-      const res = await fetch(url, {cache:"no-store"});
-      if (!res.ok) throw new Error("HTTP " + res.status);
-      return await res.text();
-    }
-    function parseCSV(text){
-      // Simple CSV parser with quotes support (good enough for PoC)
-      const rows = [];
-      let i = 0, field = "", row = [], inQ = false;
-      while (i < text.length){
-        const c = text[i];
-        if (inQ){
-          if (c === '"'){
-            if (text[i+1] === '"'){ field += '"'; i += 2; continue; }
-            inQ = false; i++; continue;
-          }
-          field += c; i++; continue;
-        }else{
-          if (c === '"'){ inQ = true; i++; continue; }
-          if (c === ","){ row.push(field); field=""; i++; continue; }
-          if (c === "\n"){
-            row.push(field); field="";
-            // ignore empty trailing row
-            if (row.length > 1 || (row.length === 1 && row[0] !== "")) rows.push(row);
-            row=[]; i++; continue;
-          }
-          if (c === "\r"){ i++; continue; }
-          field += c; i++; continue;
-        }
-      }
-      // flush last
-      row.push(field);
-      if (row.length > 1 || (row.length === 1 && row[0] !== "")) rows.push(row);
-      return rows;
-    }
-    function toObjects(csvRows){
-      if (!csvRows.length) return [];
-      const header = csvRows[0].map(h => (h ?? "").trim());
-      const objs = [];
-      for (let r = 1; r < csvRows.length; r++){
-        const arr = csvRows[r];
-        const o = {};
-        for (let c = 0; c < header.length; c++){
-          o[header[c]] = (arr[c] ?? "").trim();
-        }
-        objs.push(o);
-      }
-      return objs;
-    }
-    async function loadCSVObjects(url){
-      if (dictCache.has(url)) return dictCache.get(url);
-      const t = await fetchText(url);
-      const rows = parseCSV(t);
-      const objs = toObjects(rows);
-      dictCache.set(url, objs);
-      return objs;
-    }
-    async function tryLoad(url){
-      try{
-        const data = await loadCSVObjects(url);
-        return { ok:true, data };
-      }catch(e){
-        return { ok:false, data:null };
-      }
-    }
-
-    function pickJan3Jan4(jan13){
-      const j = (jan13||"").replace(/\D/g,"");
-      if (j.length < 4) return {jan3:"", jan4:""};
-      return { jan3: j.slice(0,3), jan4: j.slice(0,4) };
-    }
-    function pickGtin3Gtin4(gtin14){
-      const g = (gtin14||"").replace(/\D/g,"");
-      if (g.length < 4) return {gtin3:"", gtin4:""};
-      return { gtin3: g.slice(0,3), gtin4: g.slice(0,4) };
-    }
-
-    async function lookupFromSplitDict({gtin14, jan13}){
-      // Returns product fields or null
-      // 1) Determine jan13 if missing and gtin index exists
-      let effectiveJan13 = jan13 ? jan13.replace(/\D/g,"") : "";
-      let jan3="", jan4="";
-      if (!effectiveJan13 && gtin14){
-        const {gtin3, gtin4} = pickGtin3Gtin4(gtin14);
-        if (gtin3){
-          // 4-digit first
-          const url4 = `gtin_index/${gtin3}/${gtin4}.csv`;
-          const r4 = await tryLoad(url4);
-          let idxRows = null;
-          if (r4.ok) idxRows = r4.data;
-          else{
-            const url3 = `gtin_index/${gtin3}.csv`;
-            const r3 = await tryLoad(url3);
-            if (r3.ok) idxRows = r3.data;
-          }
-          if (idxRows){
-            // header variations:
-            // - gtin14, jan_prefix, jan13
-            // - gtin14, jan3, jan4, jan13
-            const hit = idxRows.find(r => (r.gtin14 || "").replace(/\D/g,"") === gtin14.replace(/\D/g,""));
-            if (hit){
-              effectiveJan13 = (hit.jan13 || "").replace(/\D/g,"");
-              if (!effectiveJan13){
-                // fallback: build from prefix not possible; ignore
-              }
-              jan3 = (hit.jan4 ? (hit.jan4||"").slice(0,3) : (hit.jan3||hit.jan_prefix||"")).trim();
-              jan4 = (hit.jan4 || "").trim();
-            }
-          }
-        }
-      }
-
-      if (effectiveJan13){
-        const jj = pickJan3Jan4(effectiveJan13);
-        jan3 = jan3 || jj.jan3;
-        jan4 = jan4 || jj.jan4;
-      }
-
-      if (!jan3) return null;
-
-      // 2) Load dict segment (4-digit first)
-      let dictRows = null;
-      if (jan4){
-        const url4 = `dict_jan/${jan3}/${jan4}.csv`;
-        const r4 = await tryLoad(url4);
-        if (r4.ok) dictRows = r4.data;
-      }
-      if (!dictRows){
-        const url3 = `dict_jan/${jan3}.csv`;
-        const r3 = await tryLoad(url3);
-        if (r3.ok) dictRows = r3.data;
-      }
-      if (!dictRows) return null;
-
-      // 3) Match by jan13 (primary) or gtin14
-      const wantJan = effectiveJan13 || "";
-      const wantGtin = gtin14 ? gtin14.replace(/\D/g,"") : "";
-
-      let hit = null;
-      if (wantJan){
-        hit = dictRows.find(r => (r.jan13||"").replace(/\D/g,"") === wantJan);
-      }
-      if (!hit && wantGtin){
-        hit = dictRows.find(r => (r.gtin14||"").replace(/\D/g,"") === wantGtin);
-      }
-      return hit || null;
-    }
-
-    // ===== Scanner =====
-    let stream = null;
-    let reader = null;
-    let lastRaw = "";
-    let lastRawAt = 0;
-    let torchOn = false;
-
-    const els = {
-      zxingStatus: $("zxingStatus"),
-      camStatus: $("camStatus"),
-      video: $("video"),
-      videoWrap: $("videoWrap"),
-      selCamera: $("selCamera"),
-      selMode: $("selMode"),
-      chkUnmirror: $("chkUnmirror"),
-      lastBadge: $("lastBadge"),
-      lastRaw: $("lastRaw"),
-      vGtin: $("vGtin"),
-      vJan: $("vJan"),
-      vLot: $("vLot"),
-      vExp: $("vExp"),
-      vSer: $("vSer"),
-      vName: $("vName"),
-      vMaker: $("vMaker"),
-      vIji: $("vIji"),
-      vKinou: $("vKinou"),
-      vTokutei: $("vTokutei"),
-      vPrice: $("vPrice"),
-      vPack: $("vPack"),
-      logBody: $("logBody"),
     };
 
-    function setLastBadge(state, text){
-      els.lastBadge.classList.remove("ok","warn","bad");
-      if (state) els.lastBadge.classList.add(state);
-      els.lastBadge.textContent = text;
-    }
+    log("Quagga init...");
+    await new Promise((resolve, reject)=>{
+      Quagga.init(config, (err)=> err ? reject(err) : resolve());
+    });
 
-    function clearLastFields(){
-      els.vGtin.textContent = "—";
-      els.vJan.textContent = "—";
-      els.vLot.textContent = "—";
-      els.vExp.textContent = "—";
-      els.vSer.textContent = "—";
-      els.vName.textContent = "—";
-      els.vMaker.textContent = "—";
-      els.vIji.textContent = "—";
-      els.vKinou.textContent = "—";
-      els.vTokutei.textContent = "—";
-      els.vPrice.textContent = "—";
-      els.vPack.textContent = "—";
-    }
+    Quagga.onDetected(onDetected);
+    Quagga.start();
+    running = true;
 
-    function renderLog(){
-      const scans = loadScans();
-      els.logBody.innerHTML = "";
-      const recent = scans.slice().reverse().slice(0, 200);
-      for (const s of recent){
-        const tr = document.createElement("tr");
-        const badge = s.status === "ok" ? "ok" : (s.status === "warn" ? "warn" : "bad");
-        const badgeText = s.status === "ok" ? "OK" : (s.status === "warn" ? "WARN" : "NG");
-        tr.innerHTML = `
-          <td class="mono">${(s.timestamp||"").replace("T"," ").replace("Z","")}</td>
-          <td>
-            <div class="mono">${(s.gtin14||s.jan13||"—")}</div>
-            <div class="small mono" style="opacity:.9">${(s.raw||"").slice(0,72)}${(s.raw||"").length>72?"…":""}</div>
-          </td>
-          <td><span class="badge ${badge}">${badgeText}</span></td>
-        `;
-        els.logBody.appendChild(tr);
-      }
-    }
+    setPill(el.pillCam, true);
+    setStatus("idle","待機","スキャンしてください");
+    log("Quagga started.");
+  }
 
-    async function listCameras(){
-      // needs permission in some browsers; we try anyway
-      try{
-        const devices = await navigator.mediaDevices.enumerateDevices();
-        const cams = devices.filter(d => d.kind === "videoinput");
-        // keep current selection
-        const cur = els.selCamera.value;
-        els.selCamera.innerHTML = `<option value="">カメラ自動選択（背面優先）</option>`;
-        for (const c of cams){
-          const opt = document.createElement("option");
-          opt.value = c.deviceId;
-          opt.textContent = c.label || `Camera ${c.deviceId.slice(0,6)}`;
-          els.selCamera.appendChild(opt);
-        }
-        if (cur) els.selCamera.value = cur;
-      }catch(e){}
-    }
-
-    async function startCamera(){
-      if (!navigator.mediaDevices?.getUserMedia) throw new Error("getUserMedia not supported");
-
-      const deviceId = els.selCamera.value;
-      const constraints = {
-        audio: false,
-        video: {
-          facingMode: deviceId ? undefined : { ideal: "environment" },
-          deviceId: deviceId ? { exact: deviceId } : undefined,
-          width: { ideal: 1920 },
-          height: { ideal: 1080 }
-        }
-      };
-
-      stream = await navigator.mediaDevices.getUserMedia(constraints);
-      els.video.srcObject = stream;
-      await els.video.play();
-      await listCameras();
-
-      setTag(els.camStatus, "ok", "稼働中");
-      torchOn = false;
-      return stream;
-    }
-
-    async function stopCamera(){
-      try{
-        if (reader){
-          try{ reader.reset(); }catch(e){}
-          reader = null;
-        }
-        if (els.video){
-          els.video.pause();
-          els.video.srcObject = null;
-        }
-        if (stream){
-          for (const t of stream.getTracks()) t.stop();
-          stream = null;
-        }
-      }catch(e){}
-      setTag(els.camStatus, "idle", "停止中");
-      torchOn = false;
-    }
-
-    async function setTorch(on){
-      if (!stream) { toast("Light", "カメラ開始後に利用できます", "warn"); return; }
-      const track = stream.getVideoTracks()[0];
-      const caps = track.getCapabilities?.();
-      if (!caps?.torch){
-        toast("Light", "この端末/ブラウザはライト非対応", "warn");
-        return;
-      }
-      try{
-        await track.applyConstraints({ advanced: [{ torch: !!on }] });
-        torchOn = !!on;
-        toast("Light", torchOn ? "ON" : "OFF", "ok");
-      }catch(e){
-        toast("Light", "ライト切替に失敗", "bad");
-      }
-    }
-
-    function buildReader(){
-      const ZX = window.ZXing;
-      if (!ZX) throw new Error("ZXing not loaded");
-
-      const mode = els.selMode.value;
-
-      if (mode === "strict"){
-        const hints = new Map();
-        hints.set(ZX.DecodeHintType.POSSIBLE_FORMATS, [
-          ZX.BarcodeFormat.CODE_128, // GS1-128
-          ZX.BarcodeFormat.EAN_13    // JAN-13
-        ]);
-        hints.set(ZX.DecodeHintType.TRY_HARDER, true);
-        return new ZX.BrowserMultiFormatReader(hints, 250);
-      }
-      // fallback all
-      return new ZX.BrowserMultiFormatReader(undefined, 250);
-    }
-
-    async function startScanLoop(){
-      const ok = await ensureZXing();
-      setTag(els.zxingStatus, ok ? "ok" : "bad", ok ? "Ready" : "読込失敗");
-      if (!ok){
-        toast("ZXing", "ライブラリ読み込みに失敗（CDN/通信）", "bad");
-        return;
-      }
-
-      await startCamera();
-
-      const ZX = window.ZXing;
-      reader = buildReader();
-
-      // decode continuously from video device; use decodeFromVideoElementContinuously for stability
-      // Some builds: decodeFromVideoElementContinuously(video, cb)
-      try{
-        reader.decodeFromVideoElementContinuously(els.video, async (result, err) => {
-          if (result){
-            const text = result.getText ? result.getText() : String(result.text || result);
-            const format = result.getBarcodeFormat ? result.getBarcodeFormat() : (result.format || "");
-            await onDecoded(text, format);
-          } else if (err && !(err instanceof ZX.NotFoundException)){
-            // We don't spam UI for NotFound; only show non-NotFound occasionally.
-            // console.debug(err);
-          }
-        });
-      }catch(e){
-        // Fallback for older API
-        reader.decodeFromVideoElement(els.video, async (result, err) => {
-          if (result){
-            const text = result.getText ? result.getText() : String(result.text || result);
-            const format = result.getBarcodeFormat ? result.getBarcodeFormat() : (result.format || "");
-            await onDecoded(text, format);
-          }
-        });
-      }
-    }
-
-    async function onDecoded(raw, format){
-      // Debounce duplicate raws within 1s
+  async function onDetected(result){
+    try{
+      const raw = result?.codeResult?.code || "";
+      const fmt = result?.codeResult?.format || "";
       const t = Date.now();
-      if (raw === lastRaw && (t - lastRawAt) < 1000) return;
-      lastRaw = raw; lastRawAt = t;
 
-      els.lastRaw.textContent = raw || "—";
-      clearLastFields();
-
-      let gtin14 = "";
+      // identify JAN / GTIN
       let jan13 = "";
-      let lot = "";
-      let exp_ymd = "";
-      let serial = "";
+      let gtin14 = "";
 
-      // Determine content
-      const rawDigits = (raw || "").replace(/\D/g,"");
-
-      const fmtName = (typeof format === "number" && window.ZXing)
-        ? Object.keys(window.ZXing.BarcodeFormat).find(k => window.ZXing.BarcodeFormat[k] === format) || String(format)
-        : String(format || "");
-
-      // If Code128: parse GS1
-      if (fmtName.includes("CODE_128") || fmtName === "CODE_128"){
-        const p = parseGS1(raw);
-        gtin14 = p.gtin14 || "";
-        lot = p.lot || "";
-        serial = p.serial || "";
-        exp_ymd = ymdFromAI17(p.exp_yyMMdd || "");
+      const d = digits(raw);
+      if (d.length === 13){
+        jan13 = d;
       } else {
-        // If EAN13 (JAN) or unknown: treat 13-digit as JAN
-        if (rawDigits.length === 13) jan13 = rawDigits;
-        // Some devices decode GS1 without format marking; attempt heuristic:
-        if (!jan13 && raw.includes("01") && rawDigits.length >= 14){
-          const p = parseGS1(raw);
-          if (p.gtin14) gtin14 = p.gtin14;
-          lot = p.lot || lot;
-          serial = p.serial || serial;
-          exp_ymd = ymdFromAI17(p.exp_yyMMdd || "");
+        // try GTIN14 from GS1-128/Code128
+        gtin14 = parseGS1AI01(raw);
+        if (gtin14){
+          // resolve JAN by gtin_index
+          try{
+            const j = await lookupJanByGtin(gtin14);
+            if (j && j.length === 13) jan13 = j;
+          }catch(e){}
         }
       }
 
-      // If gtin14 present and jan13 missing, we can derive later via index
-      els.vGtin.textContent = gtin14 || "—";
-      els.vJan.textContent = jan13 || "—";
-      els.vLot.textContent = lot || "—";
-      els.vSer.textContent = serial || "—";
+      const key = (jan13 ? ("JAN:"+jan13) : "") + (gtin14 ? ("|GTIN:"+gtin14) : ("|RAW:"+raw));
+      if (key === lastKey && (t - lastAt) < DEDUP_MS) return;
+      lastKey = key; lastAt = t;
 
-      // Expiry
-      if (exp_ymd){
-        const expired = isExpired(exp_ymd);
-        els.vExp.innerHTML = expired
-          ? `<span class="dangerText mono">${exp_ymd}（期限切れ）</span>`
-          : `<span class="okText mono">${exp_ymd}</span>`;
-      } else {
-        els.vExp.textContent = "—";
-      }
+      currentJan = jan13 || "";
+      currentGtin = gtin14 || "";
 
-      // Lookup dict
-      let dict = null;
-      try{
-        dict = await lookupFromSplitDict({gtin14, jan13});
-      }catch(e){
-        dict = null;
-      }
+      // READ feedback first
+      showPopout({
+        status:"READ",
+        meta: jan13 ? "JAN検出" : (gtin14 ? "GTIN検出" : "検出"),
+        name: jan13 || gtin14 || raw,
+        totalYen:"—",
+        prodNo:"",
+        prodSta:"",
+        small: fmt ? ("format:" + fmt) : ""
+      });
 
-      let status = "ok";
-      let badgeText = "OK";
-      if (!gtin14 && !jan13){
-        status = "bad"; badgeText = "NG";
-        setLastBadge("bad", "NG");
-        toast("読み取りエラー", "コードが検出できません（距離/ブレ/照明）", "bad");
+      if (!jan13 && !gtin14){
+        setStatus("warn","未検出","距離/ブレ/照明");
         return;
       }
 
-      // If jan still empty but dict resolved, fill it
-      if (dict){
-        if (!jan13 && dict.jan13) jan13 = (dict.jan13 || "").replace(/\D/g,"");
-        if (!gtin14 && dict.gtin14) gtin14 = (dict.gtin14 || "").replace(/\D/g,"");
+      setStatus("warn","照合中…","辞書照合");
 
-        els.vJan.textContent = jan13 || els.vJan.textContent;
-        els.vGtin.textContent = gtin14 || els.vGtin.textContent;
-
-        els.vName.textContent = dict.product_name || "—";
-        els.vMaker.textContent = dict.manufacturer_name || "—";
-        els.vIji.textContent = dict.iji_code || "—";
-        els.vKinou.textContent = dict.kinou_kubun_code || "—";
-        els.vTokutei.textContent = dict.tokutei_name || "—";
-        els.vPrice.textContent = dict.reimbursement_price_yen || "—";
-        els.vPack.textContent = dict.pack_qty || "—";
-      } else {
-        // lookup miss is not fatal for PoC
-        status = "warn"; badgeText = "WARN";
-        els.vName.textContent = "（辞書未ヒット）";
-        setLastBadge("warn", "WARN");
-      }
-
-      // Success feedback
-      if (status === "ok"){
-        setLastBadge("ok", "OK");
-        toast("スキャン成功", (dict?.product_name ? dict.product_name : (gtin14 || jan13)), "ok");
-        haptic();
-      } else if (status === "warn"){
-        toast("スキャン成功（辞書なし）", (gtin14 || jan13), "warn");
-        haptic();
-      }
-
-      // Save log
-      const scans = loadScans();
-      scans.push({
-        timestamp: nowISO(),
-        raw,
-        format: fmtName,
-        gtin14,
-        jan13,
-        lot,
-        exp_ymd,
-        serial,
-        product_name: dict?.product_name || "",
-        manufacturer_name: dict?.manufacturer_name || "",
-        iji_code: dict?.iji_code || "",
-        kinou_kubun_code: dict?.kinou_kubun_code || "",
-        tokutei_name: dict?.tokutei_name || "",
-        reimbursement_price_yen: dict?.reimbursement_price_yen || "",
-        pack_qty: dict?.pack_qty || "",
-        status
-      });
-      saveScans(scans);
-      renderLog();
-    }
-
-    // ===== Buttons =====
-    $("btnStart").addEventListener("click", async ()=>{
+      let cands = [];
       try{
-        toast("Start", "カメラ起動…", "ok");
-        await startScanLoop();
+        if (jan13) cands = await lookupCandidatesByJan(jan13);
+        setPill(el.pillDict, true);
       }catch(e){
-        setTag(els.camStatus, "bad", "失敗");
-        toast("Start失敗", String(e.message || e), "bad");
+        setPill(el.pillDict, false);
+        cands = [];
       }
-    });
-    $("btnStop").addEventListener("click", async ()=>{
-      await stopCamera();
-      toast("Stop", "停止しました", "ok");
-    });
-    $("btnTorch").addEventListener("click", async ()=>{
-      await setTorch(!torchOn);
-    });
-    $("btnExport").addEventListener("click", ()=>{
-      const scans = loadScans();
-      const header = [
-        "timestamp","raw","format","gtin14","jan13","lot","exp_ymd","serial",
-        "product_name","manufacturer_name","iji_code","kinou_kubun_code","tokutei_name","reimbursement_price_yen","pack_qty"
-      ];
-      const csv = toCSV(scans, header);
-      const fname = `linq_val_poc_scans_${new Date().toISOString().slice(0,10)}.csv`;
-      downloadText(fname, csv);
-      toast("CSV Export", `${scans.length}件を出力`, "ok");
-    });
-    $("btnClear").addEventListener("click", ()=>{
-      if (!confirm("保存済みログを削除しますか？（端末内）")) return;
-      localStorage.removeItem(LS_KEY);
-      renderLog();
-      toast("Clear", "ログを削除しました", "ok");
-    });
 
-    // Mirror toggle
-    els.chkUnmirror.addEventListener("change", ()=>{
-      if (els.chkUnmirror.checked) els.videoWrap.classList.add("unmirror");
-      else els.videoWrap.classList.remove("unmirror");
-    });
+      const {best, ordered} = pickBestCandidate(cands);
+      currentCandidates = ordered;
+      renderCandidate(0);
 
-    // Camera select change: restart if running
-    els.selCamera.addEventListener("change", async ()=>{
-      if (!stream) return;
-      await stopCamera();
-      await startScanLoop();
-    });
-    els.selMode.addEventListener("change", async ()=>{
-      if (!stream) return;
-      await stopCamera();
-      await startScanLoop();
-    });
+      if (best){
+        setStatus("ok","OK","辞書一致");
+        const totalYen = fmtYenInt(f_total(best)) || "—";
+        showPopout({
+          status:"OK",
+          meta: ordered.length > 1 ? `候補${ordered.length}件` : "辞書一致",
+          name: f_product_name(best) || "—",
+          totalYen,
+          prodNo: f_prodno(best) || "",
+          prodSta: f_prodsta(best) || "",
+          small: `JAN:${jan13 || ""}${gtin14 ? "  GTIN:"+gtin14 : ""}`
+        });
 
-    // ===== Init =====
-    (async function init(){
-      renderLog();
-      const ok = await ensureZXing();
-      setTag(els.zxingStatus, ok ? "ok" : "warn", ok ? "Ready" : "未読込");
-      setTag(els.camStatus, "idle", "停止中");
-      await listCameras();
-    })();
-  </script>
+        // log save
+        const logs = loadLogs();
+        logs.push({
+          timestamp: new Date().toISOString(),
+          raw,
+          format: fmt,
+          jan13keta: jan13,
+          gtin14: gtin14,
+          product_name: f_product_name(best),
+          total_reimbursement_price_yen: f_total(best),
+          product_no: f_prodno(best),
+          product_sta: f_prodsta(best),
+          manufacturer_name: f_maker(best),
+          candidate_count: ordered.length,
+          status: "ok"
+        });
+        saveLogs(logs); updateCount();
+
+      } else {
+        setStatus("warn","WARN","辞書なし");
+        showPopout({
+          status:"WARN",
+          meta:"辞書なし",
+          name: jan13 || gtin14 || raw,
+          totalYen:"—",
+          prodNo:"",
+          prodSta:"",
+          small:`JAN:${jan13 || ""}${gtin14 ? "  GTIN:"+gtin14 : ""}`
+        });
+
+        const logs = loadLogs();
+        logs.push({
+          timestamp: new Date().toISOString(),
+          raw,
+          format: fmt,
+          jan13keta: jan13,
+          gtin14: gtin14,
+          product_name: "",
+          total_reimbursement_price_yen: "",
+          product_no: "",
+          product_sta: "",
+          manufacturer_name: "",
+          candidate_count: 0,
+          status: "warn"
+        });
+        saveLogs(logs); updateCount();
+      }
+    } catch(e){
+      // ignore
+    }
+  }
+
+  // ---- buttons ----
+  el.btnStart.addEventListener("click", async ()=>{
+    try{ await startAll(); }
+    catch(e){
+      log("Start FAILED: " + (e?.name ? (e.name+": "+e.message) : String(e)));
+      setStatus("warn","起動失敗","カメラ許可/他アプリ占有を確認");
+    }
+  });
+  el.btnStop.addEventListener("click", async ()=>{ await stopAll(); });
+
+  // ---- init ----
+  (function init(){
+    updateCount();
+    setStatus("idle","待機","Startで起動");
+    setPill(el.pillQ, false);
+    setPill(el.pillCam, false);
+    setPill(el.pillDict, false);
+    renderCandidate(0);
+  })();
+</script>
 </body>
 </html>
