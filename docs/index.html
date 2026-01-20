@@ -53,6 +53,7 @@
       background: linear-gradient(135deg, rgba(225,29,72,.12), rgba(255,255,255,.0));
     }
     .btn.small{padding:10px 12px;font-size:14px;border-radius:12px}
+    .btn:disabled{opacity:.6; cursor:not-allowed}
     .pill{display:inline-flex;align-items:center;gap:8px;padding:8px 10px;border:1px solid var(--line);border-radius:999px;font-size:13px;color:var(--muted);background:#fff;white-space:nowrap}
     .dot{width:10px;height:10px;border-radius:999px;background: rgba(20,19,22,.20)}
     .pill.on .dot{ background: var(--accent); }
@@ -73,12 +74,11 @@
     }
     .overlay{pointer-events:none;position:absolute; inset:0;background: linear-gradient(180deg, rgba(0,0,0,.10), transparent 25%, transparent 75%, rgba(0,0,0,.18));}
 
-    /* POPUP fixed to viewport */
+    /* POPUP fixed */
     .popout{
       position:fixed;
       left:12px; right:12px; bottom:12px;
-      max-width:980px;
-      margin:0 auto;
+      max-width:980px; margin:0 auto;
       border-radius: 18px;
       border:1px solid rgba(225,29,72,.25);
       background: linear-gradient(135deg, rgba(225,29,72,.22), rgba(255,255,255,.92) 60%);
@@ -141,7 +141,7 @@
     <div class="top">
       <div class="title">
         <h1>LinQ VAL Scanner</h1>
-        <div class="sub">JAN(EAN-13) + GTIN14(GS1-128) / Pop固定 / 結果＋償還名称 / CSV</div>
+        <div class="sub">安定版：Start多重防止 + locate無効化 / JAN+GTIN14 / 償還名称 / CSV</div>
       </div>
       <div class="build">BUILD <b id="buildLabel">v0</b></div>
     </div>
@@ -168,7 +168,7 @@
           </div>
 
           <div class="hint">
-            優先：JAN(EAN-13)。GS1-128はAI(01)からGTIN14抽出→gtin_indexでJAN化→照合。<span class="em">同一コードは5秒間無視</span>
+            優先：JAN(EAN-13)。GS1-128はAI(01)→GTIN14→gtin_indexでJAN化。<span class="em">同一コードは5秒間無視</span>
           </div>
 
           <details>
@@ -217,7 +217,6 @@
     </div>
   </div>
 
-  <!-- Fixed popup -->
   <div class="popout" id="popout">
     <div class="popTop">
       <div class="popStatus" id="popStatus">OK</div>
@@ -231,7 +230,7 @@
   </div>
 
 <script>
-  const BUILD = "v2026-01-21-01";
+  const BUILD = "v2026-01-21-02";
   document.getElementById("buildLabel").textContent = BUILD;
 
   const $ = (id)=>document.getElementById(id);
@@ -278,11 +277,11 @@
     el.popSmall.textContent = small || "";
     el.popout.classList.add("show");
     clearTimeout(showPopout._t);
-    // ✅ 3秒長く（2.4秒→5.4秒）
+    // ✅ 5.4秒表示（3秒延長済み）
     showPopout._t = setTimeout(()=>el.popout.classList.remove("show"), 5400);
   }
 
-  // ---- robust field picking ----
+  // ---- field picking ----
   function pick(obj, keys){
     for (const k of keys){
       if (obj && Object.prototype.hasOwnProperty.call(obj, k)){
@@ -324,10 +323,7 @@
       "https://cdn.jsdelivr.net/npm/@ericblade/quagga2@1.2.6/dist/quagga.min.js?" + bust
     ];
     for (const u of urls){
-      try{
-        await loadScript(u);
-        if (window.Quagga) return true;
-      }catch(e){}
+      try{ await loadScript(u); if (window.Quagga) return true; }catch(e){}
     }
     return false;
   }
@@ -388,13 +384,10 @@
     if (d.length<4) return ["",""];
     return [d.slice(0,3), d.slice(0,4)];
   }
-
   function readJanFromRow(r){
-    // 対応：英語/日本語/別名
     const v = r?.jan13keta ?? r?.["ＪＡＮコード"] ?? r?.["JAN"] ?? r?.["jan13"] ?? r?.["jan13keta"] ?? "";
     return digits(v);
   }
-
   async function lookupCandidatesByJan(jan13){
     const [jan3, jan4]=pick3_4(jan13);
     if (!jan4) return {cands:[], file:"", error:null};
@@ -407,7 +400,6 @@
       return {cands:[], file, error:e};
     }
   }
-
   async function lookupJanByGtin(gtin14){
     const [gt3, gt4]=pick3_4(gtin14);
     if (!gt4) return {jan:"", file:"", error:null};
@@ -420,7 +412,6 @@
       return {jan:"", file, error:e};
     }
   }
-
   function pickBestCandidate(cands){
     if (!cands.length) return {best:null, ordered:[]};
     const ordered = cands
@@ -483,7 +474,7 @@
   }
 
   // ---- scan log + CSV export ----
-  const LS_KEY = "linq_val_scanlog_v2";
+  const LS_KEY = "linq_val_scanlog_v3";
   function loadLogs(){ try{ return JSON.parse(localStorage.getItem(LS_KEY) || "[]"); }catch(e){ return []; } }
   function saveLogs(arr){ localStorage.setItem(LS_KEY, JSON.stringify(arr)); }
   function updateCount(){ el.logCount.textContent = String(loadLogs().length); }
@@ -513,7 +504,8 @@
     const logs = loadLogs();
     const header = [
       "timestamp","raw","format","jan13keta","gtin14",
-      "product_name","total_reimbursement_price_yen","product_no","product_sta","manufacturer_name","tokutei_name",
+      "product_name","total_reimbursement_price_yen","product_no","product_sta",
+      "manufacturer_name","tokutei_name",
       "candidate_count","status","dict_file","gtin_file"
     ];
     downloadText(`linq_val_scans_${new Date().toISOString().slice(0,10)}.csv`, toCSV(logs, header));
@@ -526,8 +518,11 @@
     log("Logs cleared.");
   });
 
-  // ---- Quagga start/stop ----
+  // ---- Quagga lifecycle (re-entry safe) ----
   let running = false;
+  let starting = false;
+
+  async function sleep(ms){ return new Promise(r=>setTimeout(r, ms)); }
 
   async function stopAll(){
     try{
@@ -537,51 +532,84 @@
       }
     }catch(e){}
     running = false;
+
+    // clean injected nodes (important on iOS)
+    try{
+      Array.from(el.scanner.querySelectorAll("video,canvas")).forEach(n=>n.remove());
+    }catch(e){}
+
     setPill(el.pillCam, false);
     setStatus("idle","停止中","Startで起動");
+    await sleep(180);
   }
 
-  async function startAll(){
-    await stopAll();
-    setStatus("idle","起動中…","準備中");
-
-    const ok = await ensureQuagga();
-    setPill(el.pillQ, ok);
-    if (!ok){
-      setStatus("warn","Quagga失敗","通信/CDN");
-      return;
+  // ---- global error guard (Quagga internal null coords) ----
+  window.addEventListener("error", (ev)=>{
+    const msg = String(ev?.message || "");
+    if (msg.includes("evaluating 'n.x'") || msg.includes("n.x")){
+      // prevent killing the app
+      ev.preventDefault?.();
+      log("[IGNORED] Quagga internal coord error");
     }
+  });
 
-    Array.from(el.scanner.querySelectorAll("video,canvas")).forEach(n=>n.remove());
+  // ---- start ----
+  async function startAll(){
+    if (starting) return;
+    starting = true;
+    el.btnStart.disabled = true;
+    el.btnStop.disabled = true;
 
-    const config = {
-      inputStream: {
-        name: "Live",
-        type: "LiveStream",
-        target: el.scanner,
-        constraints: { facingMode: "environment", width: { ideal: 1280 }, height: { ideal: 720 } }
-      },
-      locator: { halfSample: true, patchSize: "medium" },
-      numOfWorkers: 0,
-      frequency: 10,
-      locate: true,
-      decoder: { readers: ["ean_reader","ean_8_reader","upc_reader","upc_e_reader","code_128_reader"] }
-    };
+    try{
+      await stopAll();
+      setStatus("idle","起動中…","準備中");
 
-    log("Quagga init...");
-    await new Promise((resolve, reject)=>{
-      Quagga.init(config, (err)=> err ? reject(err) : resolve());
-    });
+      const ok = await ensureQuagga();
+      setPill(el.pillQ, ok);
+      if (!ok){
+        setStatus("warn","Quagga失敗","通信/CDN");
+        return;
+      }
 
-    Quagga.onDetected(onDetected);
-    Quagga.start();
-    running = true;
+      // ROI: center area only (helps speed + stability)
+      const config = {
+        inputStream: {
+          name: "Live",
+          type: "LiveStream",
+          target: el.scanner,
+          constraints: { facingMode: "environment", width: { ideal: 1280 }, height: { ideal: 720 } },
+          area: { top: "20%", right: "10%", left: "10%", bottom: "20%" }
+        },
+        locator: { halfSample: true, patchSize: "medium" },
+        numOfWorkers: 0,
+        frequency: 10,
+        locate: false, // ✅ iOS安定化（座標計算で落ちる系を回避）
+        decoder: { readers: ["ean_reader","ean_8_reader","upc_reader","upc_e_reader","code_128_reader"] }
+      };
 
-    setPill(el.pillCam, true);
-    setStatus("idle","待機","スキャンしてください");
-    log("Quagga started.");
+      log("Quagga init...");
+      await new Promise((resolve, reject)=>{
+        Quagga.init(config, (err)=> err ? reject(err) : resolve());
+      });
+
+      Quagga.onDetected(onDetected);
+      Quagga.start();
+      running = true;
+
+      setPill(el.pillCam, true);
+      setStatus("idle","待機","スキャンしてください");
+      log("Quagga started.");
+    } catch(e){
+      log("Start FAILED: " + (e?.name ? (e.name+": "+e.message) : String(e)));
+      setStatus("warn","起動失敗","カメラ許可/他アプリ占有を確認");
+    } finally {
+      starting = false;
+      el.btnStart.disabled = false;
+      el.btnStop.disabled = false;
+    }
   }
 
+  // ---- dedup & detection ----
   async function onDetected(result){
     try{
       const raw = result?.codeResult?.code || "";
@@ -598,11 +626,8 @@
         gtin14 = parseGS1AI01(raw);
         if (gtin14){
           const r = await lookupJanByGtin(gtin14);
-          if (r.error){
-            log(`[gtin_index ERROR] ${r.file} | ${r.error}`);
-          }
+          if (r.error) log(`[gtin_index ERROR] ${r.file} | ${r.error}`);
           if (r.jan && r.jan.length === 13) jan13 = r.jan;
-          currentGtin = gtin14;
         }
       }
 
@@ -628,18 +653,15 @@
 
       setStatus("warn","照合中…","辞書照合");
 
-      let dictFile = "";
-      let dictErr = null;
-
-      const r = jan13 ? await lookupCandidatesByJan(jan13) : {cands:[], file:"", error:null};
-      dictFile = r.file || "";
-      dictErr = r.error;
+      const rr = jan13 ? await lookupCandidatesByJan(jan13) : {cands:[], file:"", error:null};
+      const dictFile = rr.file || "";
+      const dictErr = rr.error;
 
       if (dictErr){
-        // ファイルが無い/読めない（404など）
         setPill(el.pillDict, false);
         setStatus("warn","WARN","辞書ファイル未取得");
         log(`[dict ERROR] ${dictFile} | ${dictErr}`);
+
         showPopout({
           status:"WARN",
           meta:"辞書ファイル未取得",
@@ -652,17 +674,20 @@
         logs.push({
           timestamp: new Date().toISOString(),
           raw, format: fmt, jan13keta: jan13, gtin14,
-          product_name:"", total_reimbursement_price_yen:"", product_no:"", product_sta:"", manufacturer_name:"", tokutei_name:"",
-          candidate_count: 0, status: "dict_fetch_error", dict_file: dictFile, gtin_file: ""
+          product_name:"", total_reimbursement_price_yen:"", product_no:"", product_sta:"",
+          manufacturer_name:"", tokutei_name:"",
+          candidate_count: 0, status: "dict_fetch_error",
+          dict_file: dictFile, gtin_file: ""
         });
         saveLogs(logs); updateCount();
+        currentCandidates = [];
         renderCandidate(0);
         return;
       }
 
       setPill(el.pillDict, true);
 
-      const {best, ordered} = pickBestCandidate(r.cands);
+      const {best, ordered} = pickBestCandidate(rr.cands);
       currentCandidates = ordered;
       renderCandidate(0);
 
@@ -697,7 +722,6 @@
         saveLogs(logs); updateCount();
 
       } else {
-        // 0件（ファイルは取れている）
         setStatus("warn","WARN","辞書0件");
         showPopout({
           status:"WARN",
@@ -711,27 +735,22 @@
         logs.push({
           timestamp: new Date().toISOString(),
           raw, format: fmt, jan13keta: jan13, gtin14,
-          product_name:"", total_reimbursement_price_yen:"", product_no:"", product_sta:"", manufacturer_name:"", tokutei_name:"",
+          product_name:"", total_reimbursement_price_yen:"", product_no:"", product_sta:"",
+          manufacturer_name:"", tokutei_name:"",
           candidate_count: 0, status: "no_match",
           dict_file: dictFile, gtin_file: gtinFile
         });
         saveLogs(logs); updateCount();
       }
-
     } catch(e){
-      // ignore
+      // keep alive
     }
   }
 
   // ---- buttons ----
-  el.btnStart.addEventListener("click", async ()=>{
-    try{ await startAll(); }
-    catch(e){
-      log("Start FAILED: " + (e?.name ? (e.name+": "+e.message) : String(e)));
-      setStatus("warn","起動失敗","カメラ許可/他アプリ占有を確認");
-    }
-  });
-  el.btnStop.addEventListener("click", async ()=>{ await stopAll(); });
+  el.btnStart.addEventListener("click", startAll);
+  el.btnStop.addEventListener("click", stopAll);
+  el.btnNext.addEventListener("click", ()=>{ if (currentCandidates.length) renderCandidate(currentIndex+1); });
 
   // ---- init ----
   (function init(){
