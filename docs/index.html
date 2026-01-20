@@ -7,20 +7,14 @@
   <title>LinQ VAL Scanner</title>
   <style>
     :root{
-      --ink:#141316;
-      --muted:rgba(20,19,22,.62);
-      --line:rgba(20,19,22,.10);
-      --accent:#e11d48;
-      --shadow: 0 10px 28px rgba(20,19,22,.10);
-      --r:18px;
-      --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono","Courier New", monospace;
-      --sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans JP", "Hiragino Kaku Gothic ProN", "Yu Gothic", Arial;
+      --ink:#141316; --muted:rgba(20,19,22,.62); --line:rgba(20,19,22,.10);
+      --accent:#e11d48; --shadow: 0 10px 28px rgba(20,19,22,.10);
+      --r:18px; --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono","Courier New", monospace;
+      --sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans JP","Hiragino Kaku Gothic ProN","Yu Gothic", Arial;
     }
     *{box-sizing:border-box}
     body{
-      margin:0;
-      font-family:var(--sans);
-      color:var(--ink);
+      margin:0; font-family:var(--sans); color:var(--ink);
       background:
         radial-gradient(900px 480px at 15% -10%, rgba(225,29,72,.10), transparent 60%),
         radial-gradient(700px 420px at 100% 0%, rgba(225,29,72,.08), transparent 55%),
@@ -66,15 +60,14 @@
     video{width:100%;height:auto;display:block}
     .overlay{pointer-events:none;position:absolute; inset:0;background: linear-gradient(180deg, rgba(0,0,0,.10), transparent 25%, transparent 75%, rgba(0,0,0,.18));}
 
+    /* Big popout */
     .popout{
       position:absolute;left:12px; right:12px; bottom:12px;
-      border-radius: 18px;
-      border:1px solid rgba(225,29,72,.25);
+      border-radius: 18px; border:1px solid rgba(225,29,72,.25);
       background: linear-gradient(135deg, rgba(225,29,72,.22), rgba(255,255,255,.90) 60%);
       box-shadow: 0 18px 40px rgba(20,19,22,.22);
       backdrop-filter: blur(6px);
-      padding:14px 14px;
-      display:none;
+      padding:14px 14px; display:none;
     }
     .popout.show{display:block; animation: pop .16s ease-out}
     @keyframes pop{from{opacity:0; transform: translateY(6px)} to{opacity:1; transform: translateY(0)}}
@@ -91,6 +84,7 @@
     .mono{font-family:var(--mono)}
     .em{display:inline-flex;align-items:center;padding:2px 8px;border-radius:999px;border:1px solid rgba(225,29,72,.22);background: rgba(225,29,72,.08);font-weight:1200}
 
+    /* Result */
     .okBanner{
       display:flex;align-items:center;justify-content:space-between;gap:10px;
       padding:14px 14px;border:1px solid var(--line);border-radius: 16px;
@@ -123,7 +117,7 @@
     <div class="top">
       <div class="title">
         <h1>LinQ VAL Scanner</h1>
-        <div class="sub">JAN-13優先：640×480 → 失敗時 1280×720 / ZXing(EAN-13優先)</div>
+        <div class="sub">読めた瞬間にRAWを必ず表示（辞書より先）/ ZXingがカメラ制御</div>
       </div>
       <div class="build">BUILD <b id="buildLabel">v0</b></div>
     </div>
@@ -151,10 +145,10 @@
 
             <div class="popout" id="popout">
               <div class="popTop">
-                <div class="popStatus" id="popStatus">OK</div>
+                <div class="popStatus" id="popStatus">READ</div>
                 <div class="popMeta" id="popMeta">—</div>
               </div>
-              <div class="bigA" id="popName">—</div>
+              <div class="bigA" id="popRaw">—</div>
               <div class="bigB" id="popTotal">—</div>
               <div class="bigC" id="popProdNo">—</div>
               <div class="bigD" id="popProdSta">—</div>
@@ -163,18 +157,17 @@
           </div>
 
           <div class="hint">
-            JAN-13は「近づけて、バーコードを大きく、静止」が最強。<span class="em">同一バーコードは5秒間無視</span>
+            まず「READ（rawが出る）」が出るか確認。出ない＝デコード未成立。<span class="em">同一バーコードは5秒間無視</span>
           </div>
         </div>
       </div>
 
       <div class="card">
         <div class="hd">
-          <div class="label">読み取り結果</div>
+          <div class="label">結果</div>
           <div class="row">
-            <button class="btn small" id="btnNext">候補切替</button>
-            <button class="btn small" id="btnExport">CSV</button>
-            <button class="btn small" id="btnClear">Clear</button>
+            <button class="btn" id="btnNext">候補切替</button>
+            <button class="btn" id="btnClear">Clear</button>
           </div>
         </div>
 
@@ -207,7 +200,7 @@
   </div>
 
 <script>
-  const BUILD = "v2026-01-20-05";
+  const BUILD = "v2026-01-20-06";
   document.getElementById("buildLabel").textContent = BUILD;
 
   const $ = (id) => document.getElementById(id);
@@ -217,19 +210,19 @@
     pillDict: $("pillDict"),
     video: $("video"),
 
-    dotStatus: $("dotStatus"),
-    txtStatus: $("txtStatus"),
-    txtSub: $("txtSub"),
-    logCount: $("logCount"),
-
     popout: $("popout"),
     popStatus: $("popStatus"),
     popMeta: $("popMeta"),
-    popName: $("popName"),
+    popRaw: $("popRaw"),
     popTotal: $("popTotal"),
     popProdNo: $("popProdNo"),
     popProdSta: $("popProdSta"),
     popSmall: $("popSmall"),
+
+    dotStatus: $("dotStatus"),
+    txtStatus: $("txtStatus"),
+    txtSub: $("txtSub"),
+    logCount: $("logCount"),
 
     vName: $("vName"),
     vTotalPrice: $("vTotalPrice"),
@@ -241,14 +234,13 @@
     candPos: $("candPos"),
     candTotal: $("candTotal"),
 
-    btnNext: $("btnNext"),
-    btnExport: $("btnExport"),
-    btnClear: $("btnClear"),
     btnStart: $("btnStart"),
     btnStop: $("btnStop"),
+    btnNext: $("btnNext"),
+    btnClear: $("btnClear"),
   };
 
-  function setPill(pill, on){ pill.classList.toggle("on", !!on); }
+  function setPill(p, on){ p.classList.toggle("on", !!on); }
   function digits(s){ return (s ?? "").toString().replace(/\D/g,""); }
   function fmtYenInt(s){
     const d = digits(s);
@@ -264,10 +256,10 @@
     el.txtStatus.textContent = label;
     el.txtSub.textContent = sub || "";
   }
-  function showPopout({status, meta, name, totalYen, prodNo, prodSta, small}){
+  function showPopout({status, meta, raw, totalYen, prodNo, prodSta, small}){
     el.popStatus.textContent = status;
     el.popMeta.textContent = meta || "";
-    el.popName.textContent = name || "—";
+    el.popRaw.textContent = raw || "—";
     el.popTotal.textContent = totalYen || "—";
     el.popProdNo.textContent = prodNo ? ("製品番号: " + prodNo) : "—";
     el.popProdSta.textContent = prodSta ? ("規格: " + prodSta) : "—";
@@ -275,33 +267,6 @@
     el.popout.classList.add("show");
     clearTimeout(showPopout._t);
     showPopout._t = setTimeout(()=>el.popout.classList.remove("show"), 2200);
-  }
-
-  // ===== Storage & CSV =====
-  const LS_KEY = "linq_val_medis_scans_v5";
-  function loadScans(){ try{ return JSON.parse(localStorage.getItem(LS_KEY) || "[]"); }catch(e){ return []; } }
-  function saveScans(arr){ localStorage.setItem(LS_KEY, JSON.stringify(arr)); }
-  function updateCount(){ el.logCount.textContent = String(loadScans().length); }
-
-  function escapeCSV(v){
-    if (v === null || v === undefined) return "";
-    const s = String(v);
-    if (/[",\n\r]/.test(s)) return '"' + s.replace(/"/g,'""') + '"';
-    return s;
-  }
-  function toCSV(rows, header){
-    const lines = [];
-    lines.push(header.map(escapeCSV).join(","));
-    for (const r of rows) lines.push(header.map(h => escapeCSV(r[h] ?? "")).join(","));
-    return lines.join("\n");
-  }
-  function downloadText(filename, text){
-    const blob = new Blob([text], {type:"text/csv;charset=utf-8"});
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url; a.download = filename;
-    document.body.appendChild(a); a.click(); a.remove();
-    URL.revokeObjectURL(url);
   }
 
   // ===== ZXing loader =====
@@ -315,7 +280,7 @@
     });
   }
   async function ensureZXing(){
-    if (window.ZXing?.BrowserMultiFormatReader) return true;
+    if (window.ZXing?.BrowserMultiFormatReader && window.ZXing?.BrowserCodeReader) return true;
     const bust = "v=" + encodeURIComponent(BUILD) + "&t=" + Date.now();
     const urls = [
       "https://unpkg.com/@zxing/library@0.20.0/umd/index.min.js?" + bust,
@@ -324,33 +289,13 @@
     for (const u of urls){
       try{
         await loadScript(u);
-        if (window.ZXing?.BrowserMultiFormatReader) return true;
+        if (window.ZXing?.BrowserMultiFormatReader && window.ZXing?.BrowserCodeReader) return true;
       }catch(e){}
     }
     return false;
   }
 
-  // ===== GS1 parser (AI01 only, keep as fallback) =====
-  function parseGS1(raw){
-    let s = (raw ?? "").trim();
-    if (s.startsWith("]C1")) s = s.slice(3);
-    const GS = String.fromCharCode(29);
-    const out = { gtin14:"" };
-    let i=0;
-    while (i < s.length){
-      if (s[i] === GS) { i++; continue; }
-      const ai2 = s.slice(i, i+2);
-      if (ai2 === "01"){
-        const val = s.slice(i+2, i+16);
-        if (/^\d{14}$/.test(val)) out.gtin14 = val;
-        break;
-      }
-      i++;
-    }
-    return out;
-  }
-
-  // ===== Dict loading (split) =====
+  // ===== Dict (split) =====
   const cache = new Map();
   async function fetchText(url){
     const res = await fetch(url, {cache:"no-store"});
@@ -466,8 +411,8 @@
     const c = currentCandidates[currentIndex];
     el.vName.textContent = c.product_name || "—";
     el.vTotalPrice.textContent = fmtYenInt(c.total_reimbursement_price_yen||"") || "—";
-    el.vProdNo.textContent = (c.product_no ? ("製品番号: " + c.product_no) : "—");
-    el.vProdSta.textContent = (c.product_sta ? ("規格: " + c.product_sta) : "—");
+    el.vProdNo.textContent = c.product_no ? ("製品番号: " + c.product_no) : "—";
+    el.vProdSta.textContent = c.product_sta ? ("規格: " + c.product_sta) : "—";
     el.vMaker.textContent = c.manufacturer_name || "—";
 
     el.vJan.textContent = currentJan || digits(c.jan13keta) || "—";
@@ -475,65 +420,55 @@
   }
   el.btnNext.addEventListener("click", ()=>{ if (currentCandidates.length) renderCandidate(currentIndex+1); });
 
-  // ===== Camera + ZXing =====
-  let stream = null;
+  // ===== Scan engine (ZXing controls camera) =====
   let reader = null;
-
   const DEDUP_MS = 5000;
   let lastRaw = "";
   let lastAt = 0;
+  let processing = false;
 
-  // watchdog for resolution fallback
-  let watchdog = null;
-  let startAt = 0;
-  let decodeHits = 0;
-  let tried720 = false;
-
-  async function stopAll(){
-    if (watchdog){ clearInterval(watchdog); watchdog=null; }
-    try{ if (reader) { try{ reader.reset(); }catch(e){} reader=null; } }catch(e){}
+  async function stopScan(){
     try{
-      if (el.video){ el.video.pause(); el.video.srcObject=null; }
-      if (stream){ for (const t of stream.getTracks()) t.stop(); stream=null; }
+      if (reader){ reader.reset(); reader = null; }
     }catch(e){}
     setPill(el.pillCam, false);
+    setStatus("idle","停止中","Startで起動");
   }
 
-  async function startCamera(res){ // res: "VGA" or "HD"
-    const isVGA = res === "VGA";
-    const constraints = {
-      audio:false,
-      video:{
-        facingMode:{ ideal:"environment" },
-        width:  isVGA ? { exact: 640 }  : { exact: 1280 },
-        height: isVGA ? { exact: 480 }  : { exact: 720 },
-        frameRate:{ ideal: 30 }
-      }
-    };
-    try{
-      stream = await navigator.mediaDevices.getUserMedia(constraints);
-    }catch(e){
-      // if exact fails, fall back to ideal dims
-      const fallback = {
-        audio:false,
-        video:{
-          facingMode:{ ideal:"environment" },
-          width:  isVGA ? { ideal: 640 } : { ideal: 1280 },
-          height: isVGA ? { ideal: 480 } : { ideal: 720 },
-          frameRate:{ ideal: 30 }
-        }
-      };
-      stream = await navigator.mediaDevices.getUserMedia(fallback);
+  async function startScan(){
+    setStatus("idle","起動中…","準備中");
+    await stopScan();
+
+    const ok = await ensureZXing();
+    setPill(el.pillZxing, ok);
+    if (!ok){
+      setStatus("warn","ZXing失敗","通信/CDN");
+      return;
     }
-    el.video.srcObject = stream;
-    await el.video.play();
-    setPill(el.pillCam, true);
-  }
 
-  function startZXingLoop(){
+    // permission unlock (labels)
+    try{
+      const s = await navigator.mediaDevices.getUserMedia({video:true, audio:false});
+      for (const t of s.getTracks()) t.stop();
+    }catch(e){
+      setStatus("warn","カメラ許可NG","Safariの許可を確認");
+      return;
+    }
+
+    // choose back-like deviceId if possible
+    let deviceId = undefined;
+    try{
+      const devs = await window.ZXing.BrowserCodeReader.listVideoInputDevices();
+      const lower = (x)=>String(x||"").toLowerCase();
+      const backs = devs.filter(d => lower(d.label).includes("back") || lower(d.label).includes("rear"));
+      if (backs.length) deviceId = backs[0].deviceId;
+      else if (devs.length) deviceId = devs[devs.length - 1].deviceId;
+    }catch(e){
+      deviceId = undefined;
+    }
+
     const ZX = window.ZXing;
     const hints = new Map();
-    // JAN優先：EAN_13 first（ただしライブラリ側の優先順は完全制御できないので formatsを絞る）
     hints.set(ZX.DecodeHintType.POSSIBLE_FORMATS, [
       ZX.BarcodeFormat.EAN_13,
       ZX.BarcodeFormat.EAN_8,
@@ -543,54 +478,68 @@
     ]);
     hints.set(ZX.DecodeHintType.TRY_HARDER, true);
 
-    if (reader){ try{ reader.reset(); }catch(e){} }
     reader = new ZX.BrowserMultiFormatReader(hints, 350);
 
-    reader.decodeFromVideoElementContinuously(el.video, (result, err)=>{
+    setPill(el.pillCam, true);
+    setStatus("idle","待機","スキャンしてください");
+
+    // IMPORTANT: ZXing handles camera + video element
+    reader.decodeFromVideoDeviceContinuously(deviceId, el.video, (result, err) => {
       if (result){
-        decodeHits++;
         const text = result.getText ? result.getText() : String(result.text || result);
         const fmt = result.getBarcodeFormat ? result.getBarcodeFormat() : (result.format || "");
-        onDecoded(text, fmt);
-      } else if (err && !(err instanceof ZX.NotFoundException)) {
-        // ignore
+        onDecodedFast(text, fmt);
       }
     });
   }
 
-  function startWatchdog(){
-    if (watchdog) clearInterval(watchdog);
-    watchdog = setInterval(async ()=>{
-      const elapsed = Date.now() - startAt;
-      // 5秒でヒットなし → HDへ1回だけ切替
-      if (elapsed > 5000 && decodeHits === 0 && !tried720){
-        tried720 = true;
-        setStatus("warn","調整中…","解像度を変更します");
-        await stopAll();
-        await startCamera("HD");
-        startZXingLoop();
-        setStatus("idle","待機","スキャンしてください");
-      }
-    }, 700);
-  }
-
-  async function onDecoded(raw, fmt){
+  function onDecodedFast(raw, fmt){
     const t = Date.now();
     if (raw === lastRaw && (t - lastAt) < DEDUP_MS) return;
     lastRaw = raw; lastAt = t;
 
-    let gtin14 = "";
-    let jan13 = "";
-    const d = digits(raw || "");
+    // ✅ まず必ず「READ（raw）」を出す（辞書より先）
+    showPopout({
+      status: "READ",
+      meta: "読み取り成功",
+      raw: (raw || "").slice(0, 60),
+      totalYen: "—",
+      prodNo: "",
+      prodSta: "",
+      small: ""
+    });
 
-    // JAN優先：13桁はJANとして扱う
-    if (d.length === 13) {
-      jan13 = d;
-    } else if (raw.includes("01")) {
-      // GS1 fallback
-      const p = parseGS1(raw);
-      gtin14 = digits(p.gtin14);
+    if (processing) return;
+    processing = true;
+    processScan(raw, fmt).finally(()=>{ processing = false; });
+  }
+
+  function parseGS1(raw){
+    let s = (raw ?? "").trim();
+    if (s.startsWith("]C1")) s = s.slice(3);
+    const GS = String.fromCharCode(29);
+    let i=0;
+    while (i < s.length){
+      if (s[i] === GS) { i++; continue; }
+      const ai2 = s.slice(i, i+2);
+      if (ai2 === "01"){
+        const val = s.slice(i+2, i+16);
+        if (/^\d{14}$/.test(val)) return val;
+        break;
+      }
+      i++;
     }
+    return "";
+  }
+
+  async function processScan(raw, fmt){
+    const d = digits(raw || "");
+    let jan13 = "";
+    let gtin14 = "";
+
+    // JAN優先
+    if (d.length === 13) jan13 = d;
+    if (!jan13 && raw.includes("01")) gtin14 = digits(parseGS1(raw));
 
     if (!jan13 && gtin14){
       try{
@@ -604,7 +553,6 @@
 
     if (!jan13 && !gtin14){
       setStatus("warn","未検出","距離/ブレ/照明");
-      showPopout({status:"WARN", meta:"未検出", name:"—", totalYen:"—", prodNo:"", prodSta:"", small:""});
       return;
     }
 
@@ -628,7 +576,7 @@
       showPopout({
         status:"OK",
         meta: ordered.length > 1 ? `候補${ordered.length}件` : "辞書一致",
-        name: best.product_name || "—",
+        raw: best.product_name || "—",
         totalYen,
         prodNo: best.product_no || "",
         prodSta: best.product_sta || "",
@@ -639,77 +587,32 @@
       showPopout({
         status:"WARN",
         meta:"辞書なし",
-        name: jan13 || gtin14,
+        raw: jan13 || gtin14,
         totalYen:"—",
         prodNo:"",
         prodSta:"",
         small: `JAN:${jan13}${gtin14 ? "  GTIN:"+gtin14 : ""}`
       });
     }
-
-    const scans = loadScans();
-    scans.push({
-      timestamp: new Date().toISOString(),
-      raw,
-      format: String(fmt || ""),
-      gtin14,
-      jan13keta: jan13,
-      product_name: best?.product_name || "",
-      total_reimbursement_price_yen: best?.total_reimbursement_price_yen || "",
-      product_no: best?.product_no || "",
-      product_sta: best?.product_sta || "",
-      manufacturer_name: best?.manufacturer_name || "",
-      candidate_count: ordered.length,
-      status: best ? "ok" : "warn",
-    });
-    saveScans(scans);
-    updateCount();
   }
 
-  // ===== Buttons =====
-  el.btnStart.addEventListener("click", async ()=>{
-    setStatus("idle","起動中…","準備中");
-    await stopAll();
-
-    const ok = await ensureZXing();
-    setPill(el.pillZxing, ok);
-    if (!ok){
-      setStatus("warn","ZXing失敗","通信/CDN");
-      return;
-    }
-
-    decodeHits = 0;
-    tried720 = false;
-    startAt = Date.now();
-
-    try{
-      await startCamera("VGA"); // JAN優先はVGAから
-      startZXingLoop();
-      startWatchdog();
-      setStatus("idle","待機","スキャンしてください");
-    }catch(e){
-      setStatus("warn","カメラ起動失敗","Safariのカメラ許可を確認");
-    }
-  });
-
-  el.btnStop.addEventListener("click", async ()=>{
-    await stopAll();
-    setStatus("idle","停止中","Startで起動");
-  });
-
-  el.btnExport.addEventListener("click", ()=>{
-    const scans = loadScans();
-    const header = ["timestamp","raw","format","gtin14","jan13keta","product_name","total_reimbursement_price_yen","product_no","product_sta","manufacturer_name","candidate_count","status"];
-    downloadText(`linq_val_medis_scans_${new Date().toISOString().slice(0,10)}.csv`, toCSV(scans, header));
-  });
+  // ===== log ui =====
+  const LS_KEY = "linq_val_debug_reads_v1";
+  function loadScans(){ try{ return JSON.parse(localStorage.getItem(LS_KEY) || "[]"); }catch(e){ return []; } }
+  function saveScans(arr){ localStorage.setItem(LS_KEY, JSON.stringify(arr)); }
+  function updateCount(){ el.logCount.textContent = String(loadScans().length); }
 
   el.btnClear.addEventListener("click", ()=>{
-    if (!confirm("端末内ログを削除しますか？")) return;
+    if (!confirm("ログを削除しますか？")) return;
     localStorage.removeItem(LS_KEY);
     updateCount();
   });
 
-  // init
+  // Buttons
+  el.btnStart.addEventListener("click", async ()=>{ await startScan(); });
+  el.btnStop.addEventListener("click", async ()=>{ await stopScan(); });
+
+  // Init
   (function init(){
     updateCount();
     setStatus("idle","待機","Startで起動");
