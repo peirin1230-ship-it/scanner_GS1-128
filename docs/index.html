@@ -4,623 +4,101 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
   <meta name="theme-color" content="#ffffff" />
-  <title>LinQ VAL Scanner</title>
+  <title>Camera Check</title>
   <style>
-    :root{
-      --ink:#141316; --muted:rgba(20,19,22,.62); --line:rgba(20,19,22,.10);
-      --accent:#e11d48; --shadow: 0 10px 28px rgba(20,19,22,.10);
-      --r:18px; --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono","Courier New", monospace;
-      --sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans JP","Hiragino Kaku Gothic ProN","Yu Gothic", Arial;
-    }
-    *{box-sizing:border-box}
-    body{
-      margin:0; font-family:var(--sans); color:var(--ink);
-      background:
-        radial-gradient(900px 480px at 15% -10%, rgba(225,29,72,.10), transparent 60%),
-        radial-gradient(700px 420px at 100% 0%, rgba(225,29,72,.08), transparent 55%),
-        linear-gradient(180deg, #ffffff 0%, #fff6f8 100%);
-    }
-    .wrap{max-width:980px;margin:0 auto;padding:14px 12px 26px}
-    .top{
-      display:flex;align-items:center;justify-content:space-between;gap:10px;
-      padding:12px 14px;border:1px solid var(--line);border-radius: var(--r);
-      background: rgba(255,255,255,.90);box-shadow: var(--shadow);backdrop-filter: blur(6px);
-    }
-    .title h1{margin:0;font-size:18px;font-weight:1200;letter-spacing:.2px;line-height:1.1}
-    .title .sub{margin-top:3px;font-size:13px;color:var(--muted);line-height:1.2}
-    .build{font-size:12px;color:var(--muted);padding:8px 10px;border:1px solid var(--line);border-radius:999px;background:#fff;white-space:nowrap}
-    .build b{color:var(--ink)}
-    .grid{display:grid;grid-template-columns: 1.05fr .95fr;gap:12px;margin-top:12px}
-    @media (max-width: 920px){ .grid{grid-template-columns:1fr} }
-    .card{border:1px solid var(--line);border-radius: var(--r);background: rgba(255,255,255,.92);box-shadow: var(--shadow);overflow:hidden}
-    .hd{
-      padding:12px 14px;border-bottom:1px solid var(--line);
-      display:flex;align-items:center;justify-content:space-between;gap:10px;
-      background: linear-gradient(90deg, rgba(225,29,72,.08), rgba(255,255,255,0));
-    }
-    .hd .label{font-size:14px;font-weight:1200;letter-spacing:.2px}
-    .bd{padding:14px}
-    .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
-    .btn{
-      appearance:none;border:1px solid var(--line);background:#fff;color:var(--ink);
-      padding:14px 14px;border-radius: 14px;cursor:pointer;
-      font-size:16px;font-weight:1200;letter-spacing:.2px;user-select:none;
-    }
-    .btn:active{transform:scale(.99)}
-    .btn.primary{
-      border-color: rgba(225,29,72,.28);
-      box-shadow: 0 10px 18px rgba(225,29,72,.10);
-      background: linear-gradient(135deg, rgba(225,29,72,.12), rgba(255,255,255,.0));
-    }
-    .pill{display:inline-flex;align-items:center;gap:8px;padding:8px 10px;border:1px solid var(--line);border-radius:999px;font-size:13px;color:var(--muted);background:#fff;white-space:nowrap}
-    .dot{width:10px;height:10px;border-radius:999px;background: rgba(20,19,22,.20)}
-    .pill.on .dot{ background: var(--accent); }
-
-    .videoWrap{position:relative;border-radius: var(--r);overflow:hidden;border:1px solid var(--line);background:#000}
-    video{width:100%;height:auto;display:block}
-    .overlay{pointer-events:none;position:absolute; inset:0;background: linear-gradient(180deg, rgba(0,0,0,.10), transparent 25%, transparent 75%, rgba(0,0,0,.18));}
-
-    /* Big popout */
-    .popout{
-      position:absolute;left:12px; right:12px; bottom:12px;
-      border-radius: 18px; border:1px solid rgba(225,29,72,.25);
-      background: linear-gradient(135deg, rgba(225,29,72,.22), rgba(255,255,255,.90) 60%);
-      box-shadow: 0 18px 40px rgba(20,19,22,.22);
-      backdrop-filter: blur(6px);
-      padding:14px 14px; display:none;
-    }
-    .popout.show{display:block; animation: pop .16s ease-out}
-    @keyframes pop{from{opacity:0; transform: translateY(6px)} to{opacity:1; transform: translateY(0)}}
-    .popTop{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
-    .popStatus{font-size:34px;font-weight:1400;letter-spacing:.2px;line-height:1;color: var(--accent)}
-    .popMeta{font-size:13px;color:rgba(20,19,22,.65);line-height:1.2;text-align:right;white-space:nowrap}
-    .bigA{margin-top:8px;font-size:22px;font-weight:1400;line-height:1.18}
-    .bigB{margin-top:6px;font-size:24px;font-weight:1400;color: var(--accent);letter-spacing:.2px;line-height:1.1}
-    .bigC{margin-top:6px;font-size:20px;font-weight:1350;line-height:1.18}
-    .bigD{margin-top:6px;font-size:20px;font-weight:1350;line-height:1.18}
-    .popSmall{margin-top:8px;font-size:13px;color:rgba(20,19,22,.65);font-family: var(--mono);word-break: break-all}
-
-    .hint{margin-top:10px;font-size:14px;color:var(--muted);line-height:1.35}
-    .mono{font-family:var(--mono)}
-    .em{display:inline-flex;align-items:center;padding:2px 8px;border-radius:999px;border:1px solid rgba(225,29,72,.22);background: rgba(225,29,72,.08);font-weight:1200}
-
-    /* Result */
-    .okBanner{
-      display:flex;align-items:center;justify-content:space-between;gap:10px;
-      padding:14px 14px;border:1px solid var(--line);border-radius: 16px;
-      background: linear-gradient(135deg, rgba(225,29,72,.10), rgba(255,255,255,0) 60%);
-    }
-    .okLeft{display:flex;align-items:center;gap:12px}
-    .badgeDot{width:14px;height:14px;border-radius:999px;background: rgba(20,19,22,.20)}
-    .okText{font-size:34px;font-weight:1400;letter-spacing:.2px;line-height:1}
-    .okSub{font-size:14px;color:var(--muted);margin-top:2px}
-    .rightInfo{font-size:14px;color:var(--muted)}
-
-    .R_name{margin-top:14px;font-size:26px;font-weight:1400;line-height:1.18;letter-spacing:.1px}
-    .R_price{margin-top:10px;font-size:26px;font-weight:1400;color: var(--accent);letter-spacing:.2px;line-height:1.1}
-    .R_no{margin-top:10px;font-size:22px;font-weight:1350;line-height:1.15}
-    .R_sta{margin-top:8px;font-size:22px;font-weight:1350;line-height:1.15}
-    .R_maker{margin-top:8px;font-size:16px;color:var(--muted);line-height:1.25}
-
-    .miniRow{margin-top:10px;display:flex;gap:10px;flex-wrap:wrap;align-items:center}
-    .chip{
-      display:inline-flex;align-items:center;gap:8px;
-      padding:8px 10px;border:1px solid var(--line);border-radius:999px;
-      background:#fff;color:var(--muted);font-size:13px;
-    }
-    .chip b{color:var(--ink);font-weight:1300}
+    body{margin:0;font-family:system-ui,-apple-system,"Noto Sans JP";background:#fff;color:#111}
+    .wrap{max-width:900px;margin:0 auto;padding:14px}
+    .top{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 14px;border:1px solid #eee;border-radius:14px}
+    .btn{padding:14px 14px;border-radius:14px;border:1px solid #eee;background:#fff;font-weight:800;font-size:16px}
+    .btn.primary{border-color:rgba(225,29,72,.25);background:rgba(225,29,72,.08)}
+    video{width:100%;background:#000;border-radius:14px;border:1px solid #eee}
+    .log{margin-top:10px;padding:10px 12px;border:1px solid #eee;border-radius:14px;white-space:pre-wrap;font-family:ui-monospace,Menlo,monospace;font-size:13px}
+    .row{display:flex;gap:10px;flex-wrap:wrap;margin-top:10px}
+    .pill{display:inline-flex;align-items:center;gap:8px;border:1px solid #eee;border-radius:999px;padding:8px 10px;font-size:13px;color:#666}
+    .dot{width:10px;height:10px;border-radius:999px;background:#bbb}
+    .pill.on .dot{background:#e11d48}
   </style>
 </head>
-
 <body>
   <div class="wrap">
     <div class="top">
-      <div class="title">
-        <h1>LinQ VAL Scanner</h1>
-        <div class="sub">読めた瞬間にRAWを必ず表示（辞書より先）/ ZXingがカメラ制御</div>
+      <div>
+        <div style="font-weight:900">Camera Check</div>
+        <div style="font-size:13px;color:#666">iPhone Safari カメラ診断（Start/Stopのみ）</div>
       </div>
-      <div class="build">BUILD <b id="buildLabel">v0</b></div>
+      <div style="font-size:12px;color:#666">BUILD <b id="b">v2026-01-20-cam1</b></div>
     </div>
 
-    <div class="grid">
-      <div class="card">
-        <div class="hd">
-          <div class="label">スキャン</div>
-          <div class="row">
-            <div class="pill" id="pillZxing"><span class="dot"></span><span>ZXing</span></div>
-            <div class="pill" id="pillCam"><span class="dot"></span><span>Camera</span></div>
-            <div class="pill" id="pillDict"><span class="dot"></span><span>Dict</span></div>
-          </div>
-        </div>
-
-        <div class="bd">
-          <div class="row">
-            <button class="btn primary" id="btnStart">Start</button>
-            <button class="btn" id="btnStop">Stop</button>
-          </div>
-
-          <div style="margin-top:12px" class="videoWrap">
-            <video id="video" playsinline muted></video>
-            <div class="overlay"></div>
-
-            <div class="popout" id="popout">
-              <div class="popTop">
-                <div class="popStatus" id="popStatus">READ</div>
-                <div class="popMeta" id="popMeta">—</div>
-              </div>
-              <div class="bigA" id="popRaw">—</div>
-              <div class="bigB" id="popTotal">—</div>
-              <div class="bigC" id="popProdNo">—</div>
-              <div class="bigD" id="popProdSta">—</div>
-              <div class="popSmall" id="popSmall">—</div>
-            </div>
-          </div>
-
-          <div class="hint">
-            まず「READ（rawが出る）」が出るか確認。出ない＝デコード未成立。<span class="em">同一バーコードは5秒間無視</span>
-          </div>
-        </div>
-      </div>
-
-      <div class="card">
-        <div class="hd">
-          <div class="label">結果</div>
-          <div class="row">
-            <button class="btn" id="btnNext">候補切替</button>
-            <button class="btn" id="btnClear">Clear</button>
-          </div>
-        </div>
-
-        <div class="bd">
-          <div class="okBanner">
-            <div class="okLeft">
-              <div class="badgeDot" id="dotStatus"></div>
-              <div>
-                <div class="okText" id="txtStatus">待機</div>
-                <div class="okSub" id="txtSub">Startで起動</div>
-              </div>
-            </div>
-            <div class="rightInfo">ログ <span class="mono" id="logCount">0</span> 件</div>
-          </div>
-
-          <div class="R_name" id="vName">—</div>
-          <div class="R_price" id="vTotalPrice">—</div>
-          <div class="R_no" id="vProdNo">—</div>
-          <div class="R_sta" id="vProdSta">—</div>
-          <div class="R_maker" id="vMaker">—</div>
-
-          <div class="miniRow">
-            <div class="chip">候補 <b id="candPos">0</b> / <b id="candTotal">0</b></div>
-            <div class="chip">JAN <b class="mono" id="vJan">—</b></div>
-            <div class="chip">GTIN <b class="mono" id="vGtin">—</b></div>
-          </div>
-        </div>
-      </div>
+    <div class="row">
+      <button class="btn primary" id="start">Start</button>
+      <button class="btn" id="stop">Stop</button>
+      <div class="pill" id="pCam"><span class="dot"></span><span>Camera</span></div>
     </div>
+
+    <div style="margin-top:12px">
+      <video id="v" playsinline muted></video>
+    </div>
+
+    <div class="log" id="log">Ready.</div>
   </div>
 
 <script>
-  const BUILD = "v2026-01-20-06";
-  document.getElementById("buildLabel").textContent = BUILD;
+  const $ = (id)=>document.getElementById(id);
+  const v = $("v");
+  const logEl = $("log");
+  const pCam = $("pCam");
+  let stream = null;
 
-  const $ = (id) => document.getElementById(id);
-  const el = {
-    pillZxing: $("pillZxing"),
-    pillCam: $("pillCam"),
-    pillDict: $("pillDict"),
-    video: $("video"),
-
-    popout: $("popout"),
-    popStatus: $("popStatus"),
-    popMeta: $("popMeta"),
-    popRaw: $("popRaw"),
-    popTotal: $("popTotal"),
-    popProdNo: $("popProdNo"),
-    popProdSta: $("popProdSta"),
-    popSmall: $("popSmall"),
-
-    dotStatus: $("dotStatus"),
-    txtStatus: $("txtStatus"),
-    txtSub: $("txtSub"),
-    logCount: $("logCount"),
-
-    vName: $("vName"),
-    vTotalPrice: $("vTotalPrice"),
-    vProdNo: $("vProdNo"),
-    vProdSta: $("vProdSta"),
-    vMaker: $("vMaker"),
-    vJan: $("vJan"),
-    vGtin: $("vGtin"),
-    candPos: $("candPos"),
-    candTotal: $("candTotal"),
-
-    btnStart: $("btnStart"),
-    btnStop: $("btnStop"),
-    btnNext: $("btnNext"),
-    btnClear: $("btnClear"),
-  };
-
-  function setPill(p, on){ p.classList.toggle("on", !!on); }
-  function digits(s){ return (s ?? "").toString().replace(/\D/g,""); }
-  function fmtYenInt(s){
-    const d = digits(s);
-    if (!d) return "";
-    const n = Number(d);
-    return Number.isFinite(n) ? ("¥" + n.toLocaleString("ja-JP")) : ("¥" + d);
-  }
-  function setStatus(kind, label, sub){
-    el.dotStatus.style.background =
-      kind === "ok" ? "var(--accent)" :
-      kind === "warn" ? "rgba(225,29,72,.45)" :
-      "rgba(20,19,22,.20)";
-    el.txtStatus.textContent = label;
-    el.txtSub.textContent = sub || "";
-  }
-  function showPopout({status, meta, raw, totalYen, prodNo, prodSta, small}){
-    el.popStatus.textContent = status;
-    el.popMeta.textContent = meta || "";
-    el.popRaw.textContent = raw || "—";
-    el.popTotal.textContent = totalYen || "—";
-    el.popProdNo.textContent = prodNo ? ("製品番号: " + prodNo) : "—";
-    el.popProdSta.textContent = prodSta ? ("規格: " + prodSta) : "—";
-    el.popSmall.textContent = small || "";
-    el.popout.classList.add("show");
-    clearTimeout(showPopout._t);
-    showPopout._t = setTimeout(()=>el.popout.classList.remove("show"), 2200);
+  function setPill(on){ pCam.classList.toggle("on", !!on); }
+  function log(msg){
+    logEl.textContent = msg + "\n\n" + logEl.textContent;
   }
 
-  // ===== ZXing loader =====
-  function loadScript(src){
-    return new Promise((resolve,reject)=>{
-      const s = document.createElement("script");
-      s.src = src; s.async = true;
-      s.onload = resolve;
-      s.onerror = () => reject(new Error("Failed: " + src));
-      document.head.appendChild(s);
-    });
+  async function stop(){
+    try{ v.pause(); v.srcObject = null; }catch(e){}
+    try{ if (stream){ stream.getTracks().forEach(t=>t.stop()); stream=null; } }catch(e){}
+    setPill(false);
+    log("Stopped.");
   }
-  async function ensureZXing(){
-    if (window.ZXing?.BrowserMultiFormatReader && window.ZXing?.BrowserCodeReader) return true;
-    const bust = "v=" + encodeURIComponent(BUILD) + "&t=" + Date.now();
-    const urls = [
-      "https://unpkg.com/@zxing/library@0.20.0/umd/index.min.js?" + bust,
-      "https://cdn.jsdelivr.net/npm/@zxing/library@0.20.0/umd/index.min.js?" + bust
-    ];
-    for (const u of urls){
-      try{
-        await loadScript(u);
-        if (window.ZXing?.BrowserMultiFormatReader && window.ZXing?.BrowserCodeReader) return true;
-      }catch(e){}
+
+  async function start(){
+    await stop();
+    log("Start pressed.");
+
+    if (!navigator.mediaDevices?.getUserMedia){
+      log("ERROR: navigator.mediaDevices.getUserMedia is not available.");
+      return;
     }
-    return false;
-  }
 
-  // ===== Dict (split) =====
-  const cache = new Map();
-  async function fetchText(url){
-    const res = await fetch(url, {cache:"no-store"});
-    if (!res.ok) throw new Error("HTTP " + res.status);
-    return await res.text();
-  }
-  function parseCSV(text){
-    const rows = [];
-    let i=0, field="", row=[], inQ=false;
-    while (i < text.length){
-      const c = text[i];
-      if (inQ){
-        if (c === '"'){
-          if (text[i+1] === '"'){ field += '"'; i+=2; continue; }
-          inQ=false; i++; continue;
-        }
-        field += c; i++; continue;
-      }else{
-        if (c === '"'){ inQ=true; i++; continue; }
-        if (c === ","){ row.push(field); field=""; i++; continue; }
-        if (c === "\n"){
-          row.push(field); field="";
-          if (row.length > 1 || (row.length === 1 && row[0] !== "")) rows.push(row);
-          row=[]; i++; continue;
-        }
-        if (c === "\r"){ i++; continue; }
-        field += c; i++; continue;
+    // まずは最小の制約（iOSで成功しやすい）
+    const constraints = {
+      audio:false,
+      video:{
+        facingMode: { ideal: "environment" }
       }
-    }
-    row.push(field);
-    if (row.length > 1 || (row.length === 1 && row[0] !== "")) rows.push(row);
-    return rows;
-  }
-  function toObjects(rows){
-    if (!rows.length) return [];
-    const header = rows[0].map(h => (h ?? "").trim());
-    const objs = [];
-    for (let r=1; r<rows.length; r++){
-      const arr = rows[r];
-      const o = {};
-      for (let c=0; c<header.length; c++) o[header[c]] = (arr[c] ?? "").trim();
-      objs.push(o);
-    }
-    return objs;
-  }
-  async function loadObjects(url){
-    if (cache.has(url)) return cache.get(url);
-    const t = await fetchText(url);
-    const objs = toObjects(parseCSV(t));
-    cache.set(url, objs);
-    return objs;
-  }
-  function pick3_4(d){
-    d = digits(d);
-    if (d.length < 4) return ["",""];
-    return [d.slice(0,3), d.slice(0,4)];
-  }
-  async function lookupCandidatesByJan(jan13){
-    const [jan3, jan4] = pick3_4(jan13);
-    if (!jan4) return [];
-    const rows = await loadObjects(`dict_jan/${jan3}/${jan4}.csv`);
-    return rows.filter(r => digits(r.jan13keta) === jan13);
-  }
-  async function lookupJanByGtin(gtin14){
-    const [gt3, gt4] = pick3_4(gtin14);
-    if (!gt4) return "";
-    const rows = await loadObjects(`gtin_index/${gt3}/${gt4}.csv`);
-    const hit = rows.find(r => digits(r.gtin14) === gtin14);
-    return hit ? digits(hit.jan13keta) : "";
-  }
-  function gtinMatchesCandidate(gtin14, cand){
-    const gt = digits(gtin14);
-    if (!gt) return false;
-    return gt === digits(cand.gtin14_i0) || gt === digits(cand.gtin14_i1) || gt === digits(cand.gtin14_i2);
-  }
-  function pickBestCandidate(cands, gtin14){
-    if (!cands.length) return {best:null, ordered:[]};
-    let pool = cands;
-    if (gtin14){
-      const m = cands.filter(c => gtinMatchesCandidate(gtin14, c));
-      if (m.length) pool = m;
-    }
-    const ordered = pool
-      .map((c, idx) => ({c, idx, price: Number(digits(c.total_reimbursement_price_yen||""))||0}))
-      .sort((a,b)=> b.price-a.price || a.idx-b.idx)
-      .map(x=>x.c);
-    return {best: ordered[0], ordered};
-  }
+    };
 
-  // ===== Candidate UI =====
-  let currentCandidates = [];
-  let currentIndex = 0;
-  let currentJan = "";
-  let currentGtin = "";
-
-  function renderCandidate(idx){
-    const total = currentCandidates.length;
-    el.candTotal.textContent = String(total);
-    if (!total){
-      el.candPos.textContent = "0";
-      el.vName.textContent = "—";
-      el.vTotalPrice.textContent = "—";
-      el.vProdNo.textContent = "—";
-      el.vProdSta.textContent = "—";
-      el.vMaker.textContent = "—";
-      el.vJan.textContent = currentJan || "—";
-      el.vGtin.textContent = currentGtin || "—";
-      return;
-    }
-    currentIndex = (idx + total) % total;
-    el.candPos.textContent = String(currentIndex + 1);
-
-    const c = currentCandidates[currentIndex];
-    el.vName.textContent = c.product_name || "—";
-    el.vTotalPrice.textContent = fmtYenInt(c.total_reimbursement_price_yen||"") || "—";
-    el.vProdNo.textContent = c.product_no ? ("製品番号: " + c.product_no) : "—";
-    el.vProdSta.textContent = c.product_sta ? ("規格: " + c.product_sta) : "—";
-    el.vMaker.textContent = c.manufacturer_name || "—";
-
-    el.vJan.textContent = currentJan || digits(c.jan13keta) || "—";
-    el.vGtin.textContent = currentGtin || digits(c.gtin14_i0) || digits(c.gtin14_i1) || digits(c.gtin14_i2) || "—";
-  }
-  el.btnNext.addEventListener("click", ()=>{ if (currentCandidates.length) renderCandidate(currentIndex+1); });
-
-  // ===== Scan engine (ZXing controls camera) =====
-  let reader = null;
-  const DEDUP_MS = 5000;
-  let lastRaw = "";
-  let lastAt = 0;
-  let processing = false;
-
-  async function stopScan(){
     try{
-      if (reader){ reader.reset(); reader = null; }
-    }catch(e){}
-    setPill(el.pillCam, false);
-    setStatus("idle","停止中","Startで起動");
-  }
+      stream = await navigator.mediaDevices.getUserMedia(constraints);
+      v.srcObject = stream;
 
-  async function startScan(){
-    setStatus("idle","起動中…","準備中");
-    await stopScan();
+      // iOSはplayがユーザー操作に紐づかないと落ちることがあるので、必ずawait
+      await v.play();
 
-    const ok = await ensureZXing();
-    setPill(el.pillZxing, ok);
-    if (!ok){
-      setStatus("warn","ZXing失敗","通信/CDN");
-      return;
-    }
-
-    // permission unlock (labels)
-    try{
-      const s = await navigator.mediaDevices.getUserMedia({video:true, audio:false});
-      for (const t of s.getTracks()) t.stop();
+      setPill(true);
+      const track = stream.getVideoTracks()[0];
+      const settings = track.getSettings ? track.getSettings() : {};
+      log("Camera OK. settings=" + JSON.stringify(settings));
     }catch(e){
-      setStatus("warn","カメラ許可NG","Safariの許可を確認");
-      return;
-    }
-
-    // choose back-like deviceId if possible
-    let deviceId = undefined;
-    try{
-      const devs = await window.ZXing.BrowserCodeReader.listVideoInputDevices();
-      const lower = (x)=>String(x||"").toLowerCase();
-      const backs = devs.filter(d => lower(d.label).includes("back") || lower(d.label).includes("rear"));
-      if (backs.length) deviceId = backs[0].deviceId;
-      else if (devs.length) deviceId = devs[devs.length - 1].deviceId;
-    }catch(e){
-      deviceId = undefined;
-    }
-
-    const ZX = window.ZXing;
-    const hints = new Map();
-    hints.set(ZX.DecodeHintType.POSSIBLE_FORMATS, [
-      ZX.BarcodeFormat.EAN_13,
-      ZX.BarcodeFormat.EAN_8,
-      ZX.BarcodeFormat.UPC_A,
-      ZX.BarcodeFormat.UPC_E,
-      ZX.BarcodeFormat.CODE_128
-    ]);
-    hints.set(ZX.DecodeHintType.TRY_HARDER, true);
-
-    reader = new ZX.BrowserMultiFormatReader(hints, 350);
-
-    setPill(el.pillCam, true);
-    setStatus("idle","待機","スキャンしてください");
-
-    // IMPORTANT: ZXing handles camera + video element
-    reader.decodeFromVideoDeviceContinuously(deviceId, el.video, (result, err) => {
-      if (result){
-        const text = result.getText ? result.getText() : String(result.text || result);
-        const fmt = result.getBarcodeFormat ? result.getBarcodeFormat() : (result.format || "");
-        onDecodedFast(text, fmt);
-      }
-    });
-  }
-
-  function onDecodedFast(raw, fmt){
-    const t = Date.now();
-    if (raw === lastRaw && (t - lastAt) < DEDUP_MS) return;
-    lastRaw = raw; lastAt = t;
-
-    // ✅ まず必ず「READ（raw）」を出す（辞書より先）
-    showPopout({
-      status: "READ",
-      meta: "読み取り成功",
-      raw: (raw || "").slice(0, 60),
-      totalYen: "—",
-      prodNo: "",
-      prodSta: "",
-      small: ""
-    });
-
-    if (processing) return;
-    processing = true;
-    processScan(raw, fmt).finally(()=>{ processing = false; });
-  }
-
-  function parseGS1(raw){
-    let s = (raw ?? "").trim();
-    if (s.startsWith("]C1")) s = s.slice(3);
-    const GS = String.fromCharCode(29);
-    let i=0;
-    while (i < s.length){
-      if (s[i] === GS) { i++; continue; }
-      const ai2 = s.slice(i, i+2);
-      if (ai2 === "01"){
-        const val = s.slice(i+2, i+16);
-        if (/^\d{14}$/.test(val)) return val;
-        break;
-      }
-      i++;
-    }
-    return "";
-  }
-
-  async function processScan(raw, fmt){
-    const d = digits(raw || "");
-    let jan13 = "";
-    let gtin14 = "";
-
-    // JAN優先
-    if (d.length === 13) jan13 = d;
-    if (!jan13 && raw.includes("01")) gtin14 = digits(parseGS1(raw));
-
-    if (!jan13 && gtin14){
-      try{
-        const j = await lookupJanByGtin(gtin14);
-        if (j && j.length === 13) jan13 = j;
-      }catch(e){}
-    }
-
-    currentJan = jan13 || "";
-    currentGtin = gtin14 || "";
-
-    if (!jan13 && !gtin14){
-      setStatus("warn","未検出","距離/ブレ/照明");
-      return;
-    }
-
-    setStatus("warn","照合中…","辞書照合");
-    let cands = [];
-    try{
-      if (jan13) cands = await lookupCandidatesByJan(jan13);
-      setPill(el.pillDict, true);
-    }catch(e){
-      setPill(el.pillDict, false);
-      cands = [];
-    }
-
-    const {best, ordered} = pickBestCandidate(cands, gtin14);
-    currentCandidates = ordered;
-    renderCandidate(0);
-
-    if (best){
-      setStatus("ok","OK","辞書一致");
-      const totalYen = fmtYenInt(best.total_reimbursement_price_yen||"") || "—";
-      showPopout({
-        status:"OK",
-        meta: ordered.length > 1 ? `候補${ordered.length}件` : "辞書一致",
-        raw: best.product_name || "—",
-        totalYen,
-        prodNo: best.product_no || "",
-        prodSta: best.product_sta || "",
-        small: `JAN:${jan13}${gtin14 ? "  GTIN:"+gtin14 : ""}`
-      });
-    } else {
-      setStatus("warn","WARN","辞書なし");
-      showPopout({
-        status:"WARN",
-        meta:"辞書なし",
-        raw: jan13 || gtin14,
-        totalYen:"—",
-        prodNo:"",
-        prodSta:"",
-        small: `JAN:${jan13}${gtin14 ? "  GTIN:"+gtin14 : ""}`
-      });
+      setPill(false);
+      log("getUserMedia/play FAILED:\n" + (e && (e.name + ": " + e.message) ? (e.name + ": " + e.message) : String(e)));
+      // よくあるエラー名:
+      // NotAllowedError / NotFoundError / NotReadableError / OverconstrainedError
     }
   }
 
-  // ===== log ui =====
-  const LS_KEY = "linq_val_debug_reads_v1";
-  function loadScans(){ try{ return JSON.parse(localStorage.getItem(LS_KEY) || "[]"); }catch(e){ return []; } }
-  function saveScans(arr){ localStorage.setItem(LS_KEY, JSON.stringify(arr)); }
-  function updateCount(){ el.logCount.textContent = String(loadScans().length); }
-
-  el.btnClear.addEventListener("click", ()=>{
-    if (!confirm("ログを削除しますか？")) return;
-    localStorage.removeItem(LS_KEY);
-    updateCount();
-  });
-
-  // Buttons
-  el.btnStart.addEventListener("click", async ()=>{ await startScan(); });
-  el.btnStop.addEventListener("click", async ()=>{ await stopScan(); });
-
-  // Init
-  (function init(){
-    updateCount();
-    setStatus("idle","待機","Startで起動");
-    setPill(el.pillZxing, false);
-    setPill(el.pillCam, false);
-    setPill(el.pillDict, false);
-    renderCandidate(0);
-  })();
+  $("start").addEventListener("click", ()=>start());
+  $("stop").addEventListener("click", ()=>stop());
 </script>
 </body>
 </html>
