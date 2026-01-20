@@ -123,7 +123,7 @@
     <div class="top">
       <div class="title">
         <h1>LinQ VAL Scanner</h1>
-        <div class="sub">iPhone Safari：ZXingのみ（背面 exact → 失敗時 ideal）/ 自動復旧あり</div>
+        <div class="sub">JAN-13優先：640×480 → 失敗時 1280×720 / ZXing(EAN-13優先)</div>
       </div>
       <div class="build">BUILD <b id="buildLabel">v0</b></div>
     </div>
@@ -163,7 +163,7 @@
           </div>
 
           <div class="hint">
-            コツ：バーコードを画面の大部分に／明るく／静止。<span class="em">同一バーコードは5秒間無視</span>
+            JAN-13は「近づけて、バーコードを大きく、静止」が最強。<span class="em">同一バーコードは5秒間無視</span>
           </div>
         </div>
       </div>
@@ -207,7 +207,7 @@
   </div>
 
 <script>
-  const BUILD = "v2026-01-20-04";
+  const BUILD = "v2026-01-20-05";
   document.getElementById("buildLabel").textContent = BUILD;
 
   const $ = (id) => document.getElementById(id);
@@ -278,7 +278,7 @@
   }
 
   // ===== Storage & CSV =====
-  const LS_KEY = "linq_val_medis_scans_v4";
+  const LS_KEY = "linq_val_medis_scans_v5";
   function loadScans(){ try{ return JSON.parse(localStorage.getItem(LS_KEY) || "[]"); }catch(e){ return []; } }
   function saveScans(arr){ localStorage.setItem(LS_KEY, JSON.stringify(arr)); }
   function updateCount(){ el.logCount.textContent = String(loadScans().length); }
@@ -330,7 +330,7 @@
     return false;
   }
 
-  // ===== GS1 parser (AI01 only) =====
+  // ===== GS1 parser (AI01 only, keep as fallback) =====
   function parseGS1(raw){
     let s = (raw ?? "").trim();
     if (s.startsWith("]C1")) s = s.slice(3);
@@ -483,11 +483,11 @@
   let lastRaw = "";
   let lastAt = 0;
 
-  // watchdog
+  // watchdog for resolution fallback
   let watchdog = null;
   let startAt = 0;
   let decodeHits = 0;
-  let restartedCameraOnce = false;
+  let tried720 = false;
 
   async function stopAll(){
     if (watchdog){ clearInterval(watchdog); watchdog=null; }
@@ -499,54 +499,52 @@
     setPill(el.pillCam, false);
   }
 
-  async function startCameraExactEnvironment(){
-    // Try exact environment first (stronger back-camera request on iOS)
-    const c1 = {
+  async function startCamera(res){ // res: "VGA" or "HD"
+    const isVGA = res === "VGA";
+    const constraints = {
       audio:false,
       video:{
-        facingMode:{ exact:"environment" },
-        width:{ ideal:1280 },
-        height:{ ideal:720 },
-        frameRate:{ ideal:30 }
+        facingMode:{ ideal:"environment" },
+        width:  isVGA ? { exact: 640 }  : { exact: 1280 },
+        height: isVGA ? { exact: 480 }  : { exact: 720 },
+        frameRate:{ ideal: 30 }
       }
     };
     try{
-      stream = await navigator.mediaDevices.getUserMedia(c1);
-      el.video.srcObject = stream;
-      await el.video.play();
-      return true;
+      stream = await navigator.mediaDevices.getUserMedia(constraints);
     }catch(e){
-      // fallback to ideal environment
-      const c2 = {
+      // if exact fails, fall back to ideal dims
+      const fallback = {
         audio:false,
         video:{
           facingMode:{ ideal:"environment" },
-          width:{ ideal:1280 },
-          height:{ ideal:720 },
-          frameRate:{ ideal:30 }
+          width:  isVGA ? { ideal: 640 } : { ideal: 1280 },
+          height: isVGA ? { ideal: 480 } : { ideal: 720 },
+          frameRate:{ ideal: 30 }
         }
       };
-      stream = await navigator.mediaDevices.getUserMedia(c2);
-      el.video.srcObject = stream;
-      await el.video.play();
-      return false;
+      stream = await navigator.mediaDevices.getUserMedia(fallback);
     }
+    el.video.srcObject = stream;
+    await el.video.play();
+    setPill(el.pillCam, true);
   }
 
   function startZXingLoop(){
     const ZX = window.ZXing;
     const hints = new Map();
+    // JAN優先：EAN_13 first（ただしライブラリ側の優先順は完全制御できないので formatsを絞る）
     hints.set(ZX.DecodeHintType.POSSIBLE_FORMATS, [
-      ZX.BarcodeFormat.CODE_128,
       ZX.BarcodeFormat.EAN_13,
       ZX.BarcodeFormat.EAN_8,
       ZX.BarcodeFormat.UPC_A,
-      ZX.BarcodeFormat.UPC_E
+      ZX.BarcodeFormat.UPC_E,
+      ZX.BarcodeFormat.CODE_128
     ]);
     hints.set(ZX.DecodeHintType.TRY_HARDER, true);
 
     if (reader){ try{ reader.reset(); }catch(e){} }
-    reader = new ZX.BrowserMultiFormatReader(hints, 300);
+    reader = new ZX.BrowserMultiFormatReader(hints, 350);
 
     reader.decodeFromVideoElementContinuously(el.video, (result, err)=>{
       if (result){
@@ -564,46 +562,34 @@
     if (watchdog) clearInterval(watchdog);
     watchdog = setInterval(async ()=>{
       const elapsed = Date.now() - startAt;
-      // 4秒経っても一度もdecodeが無ければデコーダ再生成
-      if (elapsed > 4000 && decodeHits === 0){
+      // 5秒でヒットなし → HDへ1回だけ切替
+      if (elapsed > 5000 && decodeHits === 0 && !tried720){
+        tried720 = true;
+        setStatus("warn","調整中…","解像度を変更します");
+        await stopAll();
+        await startCamera("HD");
         startZXingLoop();
+        setStatus("idle","待機","スキャンしてください");
       }
-      // 8秒経ってもdecodeが0なら、カメラだけ1回取り直し（ボタンなしで自動）
-      if (elapsed > 8000 && decodeHits === 0 && !restartedCameraOnce){
-        restartedCameraOnce = true;
-        try{
-          await stopAll();
-          await startCameraExactEnvironment();
-          setPill(el.pillCam, true);
-          startZXingLoop();
-        }catch(e){
-          // ignore
-        }
-      }
-    }, 800);
+    }, 700);
   }
 
-  // ===== decode -> dict =====
   async function onDecoded(raw, fmt){
     const t = Date.now();
     if (raw === lastRaw && (t - lastAt) < DEDUP_MS) return;
     lastRaw = raw; lastAt = t;
 
-    const fmtStr = String(fmt || "");
     let gtin14 = "";
     let jan13 = "";
     const d = digits(raw || "");
 
-    const looksCode128 = fmtStr.toLowerCase().includes("code_128") || fmtStr.toLowerCase().includes("code128");
-    if (looksCode128){
+    // JAN優先：13桁はJANとして扱う
+    if (d.length === 13) {
+      jan13 = d;
+    } else if (raw.includes("01")) {
+      // GS1 fallback
       const p = parseGS1(raw);
       gtin14 = digits(p.gtin14);
-    } else {
-      if (d.length === 13) jan13 = d;
-      if (!jan13 && raw.includes("01")){
-        const p = parseGS1(raw);
-        if (p.gtin14) gtin14 = digits(p.gtin14);
-      }
     }
 
     if (!jan13 && gtin14){
@@ -665,7 +651,7 @@
     scans.push({
       timestamp: new Date().toISOString(),
       raw,
-      format: fmtStr,
+      format: String(fmt || ""),
       gtin14,
       jan13keta: jan13,
       product_name: best?.product_name || "",
@@ -693,12 +679,11 @@
     }
 
     decodeHits = 0;
-    restartedCameraOnce = false;
+    tried720 = false;
     startAt = Date.now();
 
     try{
-      await startCameraExactEnvironment();
-      setPill(el.pillCam, true);
+      await startCamera("VGA"); // JAN優先はVGAから
       startZXingLoop();
       startWatchdog();
       setStatus("idle","待機","スキャンしてください");
