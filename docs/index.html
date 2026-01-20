@@ -36,10 +36,8 @@
     .title .sub{margin-top:3px;font-size:13px;color:var(--muted);line-height:1.2}
     .build{font-size:12px;color:var(--muted);padding:8px 10px;border:1px solid var(--line);border-radius:999px;background:#fff;white-space:nowrap}
     .build b{color:var(--ink)}
-
     .grid{display:grid;grid-template-columns: 1.05fr .95fr;gap:12px;margin-top:12px}
     @media (max-width: 920px){ .grid{grid-template-columns:1fr} }
-
     .card{border:1px solid var(--line);border-radius: var(--r);background: rgba(255,255,255,.92);box-shadow: var(--shadow);overflow:hidden}
     .hd{
       padding:12px 14px;border-bottom:1px solid var(--line);
@@ -49,7 +47,6 @@
     .hd .label{font-size:14px;font-weight:1200;letter-spacing:.2px}
     .bd{padding:14px}
     .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
-
     .btn{
       appearance:none;border:1px solid var(--line);background:#fff;color:var(--ink);
       padding:14px 14px;border-radius: 14px;cursor:pointer;
@@ -61,9 +58,6 @@
       box-shadow: 0 10px 18px rgba(225,29,72,.10);
       background: linear-gradient(135deg, rgba(225,29,72,.12), rgba(255,255,255,.0));
     }
-    .btn.small{padding:10px 12px;font-size:14px;border-radius:12px;font-weight:1100}
-    .btn.danger{border-color: rgba(225,29,72,.28);}
-
     .pill{display:inline-flex;align-items:center;gap:8px;padding:8px 10px;border:1px solid var(--line);border-radius:999px;font-size:13px;color:var(--muted);background:#fff;white-space:nowrap}
     .dot{width:10px;height:10px;border-radius:999px;background: rgba(20,19,22,.20)}
     .pill.on .dot{ background: var(--accent); }
@@ -72,7 +66,7 @@
     video{width:100%;height:auto;display:block}
     .overlay{pointer-events:none;position:absolute; inset:0;background: linear-gradient(180deg, rgba(0,0,0,.10), transparent 25%, transparent 75%, rgba(0,0,0,.18));}
 
-    /* BIG popout on scan screen */
+    /* BIG popout */
     .popout{
       position:absolute;left:12px; right:12px; bottom:12px;
       border-radius: 18px;
@@ -90,8 +84,8 @@
     .popMeta{font-size:13px;color:rgba(20,19,22,.65);line-height:1.2;text-align:right;white-space:nowrap}
     .bigA{margin-top:8px;font-size:22px;font-weight:1400;line-height:1.18}
     .bigB{margin-top:6px;font-size:24px;font-weight:1400;color: var(--accent);letter-spacing:.2px;line-height:1.1}
-    .bigC{margin-top:6px;font-size:20px;font-weight:1300;line-height:1.18}
-    .bigD{margin-top:6px;font-size:20px;font-weight:1300;line-height:1.18}
+    .bigC{margin-top:6px;font-size:20px;font-weight:1350;line-height:1.18}
+    .bigD{margin-top:6px;font-size:20px;font-weight:1350;line-height:1.18}
     .popSmall{margin-top:8px;font-size:13px;color:rgba(20,19,22,.65);font-family: var(--mono);word-break: break-all}
 
     .hint{margin-top:10px;font-size:14px;color:var(--muted);line-height:1.35}
@@ -123,10 +117,6 @@
       background:#fff;color:var(--muted);font-size:13px;
     }
     .chip b{color:var(--ink);font-weight:1300}
-
-    details{border-top:1px solid var(--line);margin-top:10px;padding-top:10px}
-    summary{cursor:pointer;font-size:14px;color:var(--muted);font-weight:1200;outline:none}
-    .select{border:1px solid var(--line);background:#fff;color:var(--ink);padding:10px 12px;border-radius: 12px;font-size:14px;min-width: 220px;outline:none}
   </style>
 </head>
 
@@ -135,7 +125,7 @@
     <div class="top">
       <div class="title">
         <h1>LinQ VAL Scanner</h1>
-        <div class="sub">復旧優先版：背面切替（手動）＋デコーダ再起動（手動）</div>
+        <div class="sub">BarcodeDetector優先（対応端末）/ 未対応はZXing</div>
       </div>
       <div class="build">BUILD <b id="buildLabel">v0</b></div>
     </div>
@@ -146,6 +136,7 @@
         <div class="hd">
           <div class="label">スキャン</div>
           <div class="row">
+            <div class="pill" id="pillBD"><span class="dot"></span><span>BarcodeDetector</span></div>
             <div class="pill" id="pillZxing"><span class="dot"></span><span>ZXing</span></div>
             <div class="pill" id="pillCam"><span class="dot"></span><span>Camera</span></div>
             <div class="pill" id="pillDict"><span class="dot"></span><span>Dict</span></div>
@@ -156,8 +147,6 @@
           <div class="row">
             <button class="btn primary" id="btnStart">Start</button>
             <button class="btn" id="btnStop">Stop</button>
-            <button class="btn" id="btnBack">背面へ切替</button>
-            <button class="btn danger" id="btnDecReset">デコーダ再起動</button>
           </div>
 
           <div style="margin-top:12px" class="videoWrap">
@@ -178,24 +167,8 @@
           </div>
 
           <div class="hint">
-            まず <b>Start</b> → 読めなければ <b>背面へ切替</b>。それでも無理なら <b>デコーダ再起動</b>。<span class="em">同一バーコードは5秒間無視</span>
+            コツ：バーコードを画面の大部分に／明るく／静止。<span class="em">同一バーコードは5秒間無視</span>
           </div>
-
-          <details>
-            <summary>設定</summary>
-            <div style="margin-top:10px" class="row">
-              <select class="select" id="selMode">
-                <option value="strict">推奨：CODE128 + EAN13</option>
-                <option value="all">互換：MultiFormat（全部）</option>
-              </select>
-              <select class="select" id="selCamera">
-                <option value="">カメラ（許可後に候補表示）</option>
-              </select>
-            </div>
-            <div class="hint" style="margin-top:10px">
-              候補が複数の時：GTIN一致を優先、同率なら合計償還価格最大を表示。
-            </div>
-          </details>
         </div>
       </div>
 
@@ -239,24 +212,22 @@
   </div>
 
 <script>
-  const BUILD = "v2026-01-20-02";
+  const BUILD = "v2026-01-20-03";
   document.getElementById("buildLabel").textContent = BUILD;
 
   const $ = (id) => document.getElementById(id);
   const el = {
+    pillBD: $("pillBD"),
     pillZxing: $("pillZxing"),
     pillCam: $("pillCam"),
     pillDict: $("pillDict"),
     video: $("video"),
-    selMode: $("selMode"),
-    selCamera: $("selCamera"),
 
     dotStatus: $("dotStatus"),
     txtStatus: $("txtStatus"),
     txtSub: $("txtSub"),
     logCount: $("logCount"),
 
-    // popout
     popout: $("popout"),
     popStatus: $("popStatus"),
     popMeta: $("popMeta"),
@@ -266,7 +237,6 @@
     popProdSta: $("popProdSta"),
     popSmall: $("popSmall"),
 
-    // result
     vName: $("vName"),
     vTotalPrice: $("vTotalPrice"),
     vProdNo: $("vProdNo"),
@@ -278,12 +248,10 @@
     candTotal: $("candTotal"),
 
     btnNext: $("btnNext"),
-    btnStart: $("btnStart"),
-    btnStop: $("btnStop"),
-    btnBack: $("btnBack"),
-    btnDecReset: $("btnDecReset"),
     btnExport: $("btnExport"),
     btnClear: $("btnClear"),
+    btnStart: $("btnStart"),
+    btnStop: $("btnStop"),
   };
 
   function setPill(pill, on){ pill.classList.toggle("on", !!on); }
@@ -315,7 +283,34 @@
     showPopout._t = setTimeout(()=>el.popout.classList.remove("show"), 2200);
   }
 
-  // ---------- ZXing loader ----------
+  // ===== Storage & CSV =====
+  const LS_KEY = "linq_val_medis_scans_v3";
+  function loadScans(){ try{ return JSON.parse(localStorage.getItem(LS_KEY) || "[]"); }catch(e){ return []; } }
+  function saveScans(arr){ localStorage.setItem(LS_KEY, JSON.stringify(arr)); }
+  function updateCount(){ el.logCount.textContent = String(loadScans().length); }
+
+  function escapeCSV(v){
+    if (v === null || v === undefined) return "";
+    const s = String(v);
+    if (/[",\n\r]/.test(s)) return '"' + s.replace(/"/g,'""') + '"';
+    return s;
+  }
+  function toCSV(rows, header){
+    const lines = [];
+    lines.push(header.map(escapeCSV).join(","));
+    for (const r of rows) lines.push(header.map(h => escapeCSV(r[h] ?? "")).join(","));
+    return lines.join("\n");
+  }
+  function downloadText(filename, text){
+    const blob = new Blob([text], {type:"text/csv;charset=utf-8"});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url; a.download = filename;
+    document.body.appendChild(a); a.click(); a.remove();
+    URL.revokeObjectURL(url);
+  }
+
+  // ===== ZXing loader (fallback) =====
   function loadScript(src){
     return new Promise((resolve,reject)=>{
       const s = document.createElement("script");
@@ -341,31 +336,27 @@
     return false;
   }
 
-  // ---------- GS1 parser ----------
+  // ===== GS1 parser (AI 01/10/17/21) =====
   function parseGS1(raw){
     let s = (raw ?? "").trim();
     if (s.startsWith("]C1")) s = s.slice(3);
     const GS = String.fromCharCode(29);
-    const out = { gtin14:"", lot:"", exp_yyMMdd:"", serial:"" };
-    function readVar(start, maxLen){
-      const endGS = s.indexOf(GS, start);
-      const end = (endGS !== -1) ? Math.min(endGS, start+maxLen) : Math.min(s.length, start+maxLen);
-      return s.slice(start, end);
-    }
-    let i = 0;
+    const out = { gtin14:"" };
+    let i=0;
     while (i < s.length){
       if (s[i] === GS) { i++; continue; }
       const ai2 = s.slice(i, i+2);
-      if (ai2 === "01"){ const val = s.slice(i+2, i+16); if (/^\d{14}$/.test(val)) out.gtin14 = val; i += 16; continue; }
-      if (ai2 === "17"){ const val = s.slice(i+2, i+8); if (/^\d{6}$/.test(val)) out.exp_yyMMdd = val; i += 8; continue; }
-      if (ai2 === "10"){ const val = readVar(i+2, 20); out.lot = val; i += 2 + val.length; if (s[i] === GS) i++; continue; }
-      if (ai2 === "21"){ const val = readVar(i+2, 20); out.serial = val; i += 2 + val.length; if (s[i] === GS) i++; continue; }
+      if (ai2 === "01"){
+        const val = s.slice(i+2, i+16);
+        if (/^\d{14}$/.test(val)) out.gtin14 = val;
+        break;
+      }
       i++;
     }
     return out;
   }
 
-  // ---------- Dict loading (split) ----------
+  // ===== Dict loading (split) =====
   const cache = new Map(); // url -> objects[]
   async function fetchText(url){
     const res = await fetch(url, {cache:"no-store"});
@@ -455,7 +446,7 @@
     return {best: ordered[0], ordered};
   }
 
-  // ---------- Candidates UI ----------
+  // ===== Candidate UI =====
   let currentCandidates = [];
   let currentIndex = 0;
   let currentJan = "";
@@ -490,72 +481,114 @@
   }
   el.btnNext.addEventListener("click", ()=>{ if (currentCandidates.length) renderCandidate(currentIndex+1); });
 
-  // ---------- Camera + Decode ----------
+  // ===== Camera + Scan Engine =====
   let stream = null;
-  let reader = null;
 
   const DEDUP_MS = 5000;
   let lastRaw = "";
   let lastAt = 0;
 
+  // BarcodeDetector loop
+  let bd = null;
+  let bdTimer = null;
+  let bdCanvas = null;
+  let bdCtx = null;
+
+  // ZXing fallback
+  let reader = null;
+
   async function stopAll(){
-    try{ if (reader) { try{ reader.reset(); }catch(e){} reader=null; } }catch(e){}
+    // stop loops
+    if (bdTimer){ clearInterval(bdTimer); bdTimer=null; }
+    bd = null;
+    if (reader){ try{ reader.reset(); }catch(e){} reader=null; }
+
+    // stop media
     try{
       if (el.video){ el.video.pause(); el.video.srcObject=null; }
       if (stream){ for (const t of stream.getTracks()) t.stop(); stream=null; }
     }catch(e){}
     setPill(el.pillCam, false);
+    setStatus("idle","停止中","Startで起動");
   }
 
-  async function listCameras(){
-    try{
-      const devices = await navigator.mediaDevices.enumerateDevices();
-      const cams = devices.filter(d=>d.kind==="videoinput");
-      const cur = el.selCamera.value;
-      el.selCamera.innerHTML = `<option value="">カメラ（自動/背面推奨）</option>`;
-      for (const c of cams){
-        const opt = document.createElement("option");
-        opt.value = c.deviceId;
-        opt.textContent = c.label || `Camera ${c.deviceId.slice(0,6)}`;
-        el.selCamera.appendChild(opt);
+  async function startCamera(){
+    // Lower res is often more stable for iPhone decode
+    const constraints = {
+      audio:false,
+      video:{
+        facingMode:{ ideal:"environment" },
+        width:{ ideal:1280 },
+        height:{ ideal:720 },
+        frameRate:{ ideal:30 }
       }
-      if (cur) el.selCamera.value = cur;
-      return cams;
-    }catch(e){
-      return [];
-    }
-  }
-
-  function pickBackDeviceId(cams){
-    const lower = s => String(s||"").toLowerCase();
-    const backs = cams.filter(c => lower(c.label).includes("back") || lower(c.label).includes("rear"));
-    if (backs.length) return backs[0].deviceId;
-    return cams.length ? cams[cams.length-1].deviceId : "";
-  }
-
-  async function startCamera(constraints){
+    };
     stream = await navigator.mediaDevices.getUserMedia(constraints);
     el.video.srcObject = stream;
     await el.video.play();
     setPill(el.pillCam, true);
   }
 
-  function buildReader(){
-    const ZX = window.ZXing;
-    const mode = el.selMode.value;
-    if (mode === "strict"){
-      const hints = new Map();
-      hints.set(ZX.DecodeHintType.POSSIBLE_FORMATS, [ZX.BarcodeFormat.CODE_128, ZX.BarcodeFormat.EAN_13]);
-      hints.set(ZX.DecodeHintType.TRY_HARDER, true);
-      return new ZX.BrowserMultiFormatReader(hints, 300);
-    }
-    return new ZX.BrowserMultiFormatReader(undefined, 300);
+  function startBarcodeDetector(){
+    // Use formats that matter here
+    bd = new BarcodeDetector({formats:["ean_13","code_128"]});
+    bdCanvas = bdCanvas || document.createElement("canvas");
+    bdCtx = bdCtx || bdCanvas.getContext("2d", {alpha:false, willReadFrequently:true});
+
+    // detect every 180ms (balanced)
+    bdTimer = setInterval(async ()=>{
+      try{
+        if (!el.video.videoWidth || !el.video.videoHeight) return;
+        const w = el.video.videoWidth, h = el.video.videoHeight;
+        // scale down for speed
+        const scale = 0.65;
+        bdCanvas.width = Math.floor(w*scale);
+        bdCanvas.height = Math.floor(h*scale);
+        bdCtx.drawImage(el.video, 0, 0, bdCanvas.width, bdCanvas.height);
+
+        const codes = await bd.detect(bdCanvas);
+        if (!codes || !codes.length) return;
+        const c = codes[0];
+        const raw = c.rawValue || "";
+        const fmt = c.format || "";
+        await onDecoded(raw, fmt);
+      }catch(e){
+        // ignore; keep looping
+      }
+    }, 180);
   }
 
-  function startDecode(){
+  async function ensureZXing(){
+    const ok = await ensureZXingLib();
+    setPill(el.pillZxing, ok);
+    return ok;
+  }
+  async function ensureZXingLib(){
+    if (window.ZXing?.BrowserMultiFormatReader) return true;
+    const bust = "v=" + encodeURIComponent(BUILD) + "&t=" + Date.now();
+    const urls = [
+      "https://unpkg.com/@zxing/library@0.20.0/umd/index.min.js?" + bust,
+      "https://cdn.jsdelivr.net/npm/@zxing/library@0.20.0/umd/index.min.js?" + bust
+    ];
+    for (const u of urls){
+      try{
+        await loadScript(u);
+        if (window.ZXing?.BrowserMultiFormatReader) return true;
+      }catch(e){}
+    }
+    return false;
+  }
+
+  function startZXing(){
     const ZX = window.ZXing;
-    if (reader) { try{ reader.reset(); }catch(e){} }
-    reader = buildReader();
+    if (!ZX?.BrowserMultiFormatReader) return;
+
+    const hints = new Map();
+    // include common formats to avoid “too strict”
+    hints.set(ZX.DecodeHintType.POSSIBLE_FORMATS, [ZX.BarcodeFormat.CODE_128, ZX.BarcodeFormat.EAN_13, ZX.BarcodeFormat.EAN_8, ZX.BarcodeFormat.UPC_A, ZX.BarcodeFormat.UPC_E]);
+    hints.set(ZX.DecodeHintType.TRY_HARDER, true);
+    reader = new ZX.BrowserMultiFormatReader(hints, 300);
+
     reader.decodeFromVideoElementContinuously(el.video, (result, err)=>{
       if (result){
         const text = result.getText ? result.getText() : String(result.text || result);
@@ -567,27 +600,56 @@
     });
   }
 
-  // ---------- Decode event -> dict ----------
+  async function startScan(){
+    setStatus("idle","起動中…","カメラ準備");
+    await stopAll();
+    await startCamera();
+
+    // BarcodeDetector availability
+    const bdOk = ("BarcodeDetector" in window);
+    setPill(el.pillBD, bdOk);
+
+    // Prefer BarcodeDetector if available
+    if (bdOk){
+      setStatus("idle","待機","BarcodeDetectorでスキャン中");
+      startBarcodeDetector();
+      return;
+    }
+
+    // fallback ZXing
+    const zOk = await ensureZXing();
+    if (!zOk){
+      setStatus("warn","ZXing失敗","通信/CDN確認");
+      return;
+    }
+    setStatus("idle","待機","ZXingでスキャン中");
+    startZXing();
+  }
+
+  // ===== Decoded -> dict =====
   async function onDecoded(raw, fmt){
     const t = Date.now();
     if (raw === lastRaw && (t - lastAt) < DEDUP_MS) return;
     lastRaw = raw; lastAt = t;
 
-    const fmtName = (typeof fmt === "number" && window.ZXing)
-      ? (Object.keys(window.ZXing.BarcodeFormat).find(k => window.ZXing.BarcodeFormat[k] === fmt) || String(fmt))
-      : String(fmt || "");
-
+    // detect JAN/GTIN
     let gtin14 = "";
     let jan13 = "";
-
     const d = digits(raw || "");
 
-    if (fmtName.includes("CODE_128")){
+    const fmtStr = String(fmt || "");
+    const looksCode128 = fmtStr.toLowerCase().includes("code_128") || fmtStr.toLowerCase().includes("code128") || fmtStr === "code_128";
+    const looksEAN13 = fmtStr.toLowerCase().includes("ean_13") || fmtStr.toLowerCase().includes("ean13") || fmtStr === "ean_13";
+
+    if (looksCode128){
       const p = parseGS1(raw);
       gtin14 = digits(p.gtin14);
-    } else {
+    } else if (looksEAN13){
       if (d.length === 13) jan13 = d;
-      if (!jan13 && (raw || "").includes("01")){
+    } else {
+      // fallback heuristic
+      if (d.length === 13) jan13 = d;
+      if (!jan13 && raw.includes("01")){
         const p = parseGS1(raw);
         if (p.gtin14) gtin14 = digits(p.gtin14);
       }
@@ -653,7 +715,7 @@
     scans.push({
       timestamp: new Date().toISOString(),
       raw,
-      format: fmtName,
+      format: String(fmt || ""),
       gtin14,
       jan13keta: jan13,
       product_name: best?.product_name || "",
@@ -668,113 +730,31 @@
     updateCount();
   }
 
-  // ---------- Storage ----------
-  const LS_KEY = "linq_val_medis_scans_v2";
-  function loadScans(){ try{ return JSON.parse(localStorage.getItem(LS_KEY) || "[]"); }catch(e){ return []; } }
-  function saveScans(arr){ localStorage.setItem(LS_KEY, JSON.stringify(arr)); }
-  function updateCount(){ el.logCount.textContent = String(loadScans().length); }
-
-  function escapeCSV(v){
-    if (v === null || v === undefined) return "";
-    const s = String(v);
-    if (/[",\n\r]/.test(s)) return '"' + s.replace(/"/g,'""') + '"';
-    return s;
-  }
-  function toCSV(rows, header){
-    const lines = [];
-    lines.push(header.map(escapeCSV).join(","));
-    for (const r of rows) lines.push(header.map(h => escapeCSV(r[h] ?? "")).join(","));
-    return lines.join("\n");
-  }
-  function downloadText(filename, text){
-    const blob = new Blob([text], {type:"text/csv;charset=utf-8"});
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url; a.download = filename;
-    document.body.appendChild(a); a.click(); a.remove();
-    URL.revokeObjectURL(url);
-  }
-
-  // ---------- Buttons ----------
+  // ===== Buttons =====
   el.btnStart.addEventListener("click", async ()=>{
-    setStatus("idle","起動中…","準備しています");
-    const ok = await ensureZXing();
-    setPill(el.pillZxing, ok);
-    if (!ok){ setStatus("warn","ZXing失敗","通信/CDN"); return; }
-
-    await stopAll();
-
-    // Start with selected deviceId if present; otherwise environment
-    const deviceId = el.selCamera.value;
-    const constraints = deviceId
-      ? {audio:false, video:{deviceId:{exact: deviceId}, width:{ideal:1920}, height:{ideal:1080}}}
-      : {audio:false, video:{facingMode:{ideal:"environment"}, width:{ideal:1920}, height:{ideal:1080}}};
-
-    try{
-      await startCamera(constraints);
-      const cams = await listCameras(); // labels become available after permission
-      // auto-select "back-ish" into dropdown (no auto-restart)
-      if (!el.selCamera.value && cams.length){
-        const backId = pickBackDeviceId(cams);
-        if (backId) el.selCamera.value = backId;
-      }
-      startDecode();
-      setStatus("idle","待機","スキャンしてください");
-    }catch(e){
-      setStatus("warn","カメラ起動失敗","Safariのカメラ許可を確認");
-    }
+    try{ await startScan(); }
+    catch(e){ setStatus("warn","起動失敗","Safariのカメラ許可確認"); }
   });
-
-  el.btnStop.addEventListener("click", async ()=>{
-    await stopAll();
-    setStatus("idle","停止中","Startで起動");
-  });
-
-  el.btnBack.addEventListener("click", async ()=>{
-    // user-gesture switch to back deviceId (most reliable on iOS)
-    const cams = await listCameras();
-    const backId = pickBackDeviceId(cams);
-    if (!backId){ setStatus("warn","背面なし","カメラ候補なし"); return; }
-    el.selCamera.value = backId;
-
-    try{
-      await stopAll();
-      await startCamera({audio:false, video:{deviceId:{exact: backId}, width:{ideal:1920}, height:{ideal:1080}}});
-      startDecode();
-      setStatus("idle","待機","背面に切替済み");
-    }catch(e){
-      setStatus("warn","切替失敗","許可/他アプリ使用を確認");
-    }
-  });
-
-  el.btnDecReset.addEventListener("click", async ()=>{
-    if (!stream){ setStatus("warn","未起動","Startしてください"); return; }
-    startDecode();
-    setStatus("idle","待機","デコーダ再起動しました");
-  });
-
+  el.btnStop.addEventListener("click", async ()=>{ await stopAll(); });
   el.btnExport.addEventListener("click", ()=>{
     const scans = loadScans();
     const header = ["timestamp","raw","format","gtin14","jan13keta","product_name","total_reimbursement_price_yen","product_no","product_sta","manufacturer_name","candidate_count","status"];
     downloadText(`linq_val_medis_scans_${new Date().toISOString().slice(0,10)}.csv`, toCSV(scans, header));
   });
-
   el.btnClear.addEventListener("click", ()=>{
     if (!confirm("端末内ログを削除しますか？")) return;
     localStorage.removeItem(LS_KEY);
     updateCount();
   });
 
-  // Init
+  // ===== Init =====
   (async function init(){
     updateCount();
     setStatus("idle","待機","Startで起動");
+    setPill(el.pillBD, ("BarcodeDetector" in window));
     setPill(el.pillZxing, false);
     setPill(el.pillCam, false);
     setPill(el.pillDict, false);
-
-    const ok = await ensureZXing();
-    setPill(el.pillZxing, ok);
     renderCandidate(0);
   })();
 </script>
