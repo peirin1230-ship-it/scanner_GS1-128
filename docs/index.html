@@ -60,6 +60,7 @@
     video{width:100%;height:auto;display:block}
     .overlay{pointer-events:none;position:absolute; inset:0;background: linear-gradient(180deg, rgba(0,0,0,.10), transparent 25%, transparent 75%, rgba(0,0,0,.18));}
 
+    /* popout */
     .popout{
       position:absolute;left:12px; right:12px; bottom:12px;
       border-radius: 18px; border:1px solid rgba(225,29,72,.25);
@@ -120,7 +121,7 @@
     <div class="top">
       <div class="title">
         <h1>LinQ VAL Scanner</h1>
-        <div class="sub">iPhone Safari対策：video→canvasキャプチャでZXing decode（連続APIの停止を回避）</div>
+        <div class="sub">ROI拡大 + 90度回転対応（iPhone Safari向けデコード強化）</div>
       </div>
       <div class="build">BUILD <b id="buildLabel">v0</b></div>
     </div>
@@ -160,7 +161,7 @@
           </div>
 
           <div class="hint">
-            JAN-13優先：バーコードを大きく写して静止。<span class="em">同一バーコードは5秒間無視</span>
+            JAN-13優先：バーコードを画面中央に大きく写して静止。<span class="em">同一バーコードは5秒間無視</span>
           </div>
 
           <details>
@@ -208,7 +209,7 @@
   </div>
 
 <script>
-  const BUILD = "v2026-01-20-08";
+  const BUILD = "v2026-01-20-09";
   document.getElementById("buildLabel").textContent = BUILD;
 
   const $ = (id)=>document.getElementById(id);
@@ -257,7 +258,7 @@
     showPopout._t = setTimeout(()=>el.popout.classList.remove("show"), 2200);
   }
 
-  // ===== camera (known-good constraints) =====
+  // ===== camera =====
   let stream = null;
   async function startCamera(){
     const constraints = { audio:false, video:{ facingMode:{ ideal:"environment" } } };
@@ -285,7 +286,7 @@
     });
   }
   async function ensureZXing(){
-    if (window.ZXing?.BrowserMultiFormatReader) return true;
+    if (window.ZXing?.MultiFormatReader) return true;
     const bust = "v=" + encodeURIComponent(BUILD) + "&t=" + Date.now();
     const urls = [
       "https://unpkg.com/@zxing/library@0.20.0/umd/index.min.js?" + bust,
@@ -294,7 +295,7 @@
     for (const u of urls){
       try{
         await loadScript(u);
-        if (window.ZXing?.BrowserMultiFormatReader) return true;
+        if (window.ZXing?.MultiFormatReader) return true;
       }catch(e){}
     }
     return false;
@@ -416,21 +417,25 @@
   }
   el.btnNext.addEventListener("click", ()=>{ if (currentCandidates.length) renderCandidate(currentIndex+1); });
 
-  // ===== ZXing canvas capture decode =====
-  let reader = null;
+  // ===== ZXing core decode from ImageData =====
+  let mf = null;
   let scanTimer = null;
   let busy = false;
 
-  const DEDUP_MS = 5000;
+  const DEDUP_MS=5000;
   let lastRaw="", lastAt=0;
 
-  const canvas = document.createElement("canvas");
-  const ctx = canvas.getContext("2d", {alpha:false, willReadFrequently:true});
+  // canvases
+  const base = document.createElement("canvas");
+  const bctx = base.getContext("2d", {alpha:false, willReadFrequently:true});
+  const roi = document.createElement("canvas");
+  const rctx = roi.getContext("2d", {alpha:false, willReadFrequently:true});
+  const rot = document.createElement("canvas");
+  const xctx = rot.getContext("2d", {alpha:false, willReadFrequently:true});
 
-  function buildReader(){
+  function buildDecoder(){
     const ZX = window.ZXing;
     const hints = new Map();
-    // JAN優先
     hints.set(ZX.DecodeHintType.POSSIBLE_FORMATS, [
       ZX.BarcodeFormat.EAN_13,
       ZX.BarcodeFormat.EAN_8,
@@ -439,7 +444,29 @@
       ZX.BarcodeFormat.CODE_128
     ]);
     hints.set(ZX.DecodeHintType.TRY_HARDER, true);
-    return new ZX.BrowserMultiFormatReader(hints, 0);
+
+    const r = new ZX.MultiFormatReader();
+    r.setHints(hints);
+    return r;
+  }
+
+  function decodeImageData(img){
+    const ZX = window.ZXing;
+    const lum = new ZX.RGBLuminanceSource(img.data, img.width, img.height);
+    const bin = new ZX.BinaryBitmap(new ZX.HybridBinarizer(lum));
+    return mf.decode(bin);
+  }
+
+  function rotate90(srcCanvas){
+    rot.width = srcCanvas.height;
+    rot.height = srcCanvas.width;
+    xctx.save();
+    xctx.clearRect(0,0,rot.width,rot.height);
+    xctx.translate(rot.width/2, rot.height/2);
+    xctx.rotate(Math.PI/2);
+    xctx.drawImage(srcCanvas, -srcCanvas.width/2, -srcCanvas.height/2);
+    xctx.restore();
+    return rot;
   }
 
   function parseGS1(raw){
@@ -460,80 +487,18 @@
     return "";
   }
 
-  async function scanOnce(){
-    if (!reader || busy) return;
-    if (!el.video.videoWidth || !el.video.videoHeight) return;
+  async function onDecoded(raw){
+    const t=Date.now();
+    if (raw===lastRaw && (t-lastAt)<DEDUP_MS) return;
+    lastRaw=raw; lastAt=t;
 
-    busy = true;
-    try{
-      const vw = el.video.videoWidth;
-      const vh = el.video.videoHeight;
-
-      // downscale for speed (keep aspect)
-      const maxW = 640;
-      const scale = Math.min(1, maxW / vw);
-      const tw = Math.max(1, Math.floor(vw * scale));
-      const th = Math.max(1, Math.floor(vh * scale));
-
-      canvas.width = tw;
-      canvas.height = th;
-      ctx.drawImage(el.video, 0, 0, tw, th);
-
-      const result = await reader.decodeFromCanvas(canvas);
-      if (!result) return;
-
-      const raw = result.getText ? result.getText() : String(result.text || result);
-      const fmt = result.getBarcodeFormat ? result.getBarcodeFormat() : (result.format || "");
-
-      const t = Date.now();
-      if (raw === lastRaw && (t - lastAt) < DEDUP_MS) return;
-      lastRaw = raw; lastAt = t;
-
-      await onDecoded(raw, fmt);
-    } catch(e){
-      // NotFoundException is normal
-      const ZX = window.ZXing;
-      if (ZX && e instanceof ZX.NotFoundException){
-        // ignore
-      } else {
-        // other errors: log once in a while
-        // (keep quiet; too noisy)
-      }
-    } finally {
-      busy = false;
-    }
-  }
-
-  function startScanLoop(){
-    if (scanTimer) clearInterval(scanTimer);
-    // 220ms interval (balanced)
-    scanTimer = setInterval(scanOnce, 220);
-    log("Canvas decode loop started.");
-  }
-
-  function stopScanLoop(){
-    if (scanTimer){ clearInterval(scanTimer); scanTimer=null; }
-    busy = false;
-    reader = null;
-  }
-
-  async function onDecoded(raw, fmt){
-    // immediate feedback (READ)
-    showPopout({
-      status:"READ",
-      meta:"読み取り成功",
-      name:(raw||"").slice(0,60),
-      totalYen:"—",
-      prodNo:"",
-      prodSta:"",
-      small:String(fmt||"")
-    });
+    // READ feedback
+    showPopout({status:"READ", meta:"読み取り成功", name:(raw||"").slice(0,60), totalYen:"—", prodNo:"", prodSta:"", small:""});
 
     let jan13=""; let gtin14="";
     const d=digits(raw||"");
     if (d.length===13) jan13=d;
     if (!jan13 && raw.includes("01")) gtin14=digits(parseGS1(raw));
-
     if (!jan13 && gtin14){
       try{
         const j=await lookupJanByGtin(gtin14);
@@ -586,15 +551,81 @@
       });
     }
 
-    // minimal scan log count
     const scans = loadScans();
-    scans.push({ts:new Date().toISOString(), raw, jan13keta:jan13, gtin14});
-    saveScans(scans);
-    updateCount();
+    scans.push({ts:new Date().toISOString(), raw});
+    saveScans(scans); updateCount();
+  }
+
+  async function scanOnce(){
+    if (!mf || busy) return;
+    if (!el.video.videoWidth || !el.video.videoHeight) return;
+
+    busy = true;
+    try{
+      const vw = el.video.videoWidth;
+      const vh = el.video.videoHeight;
+
+      // base frame (smallish)
+      const maxW = 640;
+      const scale = Math.min(1, maxW / vw);
+      const bw = Math.max(1, Math.floor(vw * scale));
+      const bh = Math.max(1, Math.floor(vh * scale));
+      base.width = bw; base.height = bh;
+      bctx.drawImage(el.video, 0, 0, bw, bh);
+
+      // ROI zoom (center 70% -> 720px square-ish)
+      const cx = bw * 0.15;
+      const cy = bh * 0.15;
+      const cw = bw * 0.70;
+      const ch = bh * 0.70;
+      const target = 720;
+      roi.width = target;
+      roi.height = Math.floor(target * (ch / cw));
+      rctx.drawImage(base, cx, cy, cw, ch, 0, 0, roi.width, roi.height);
+
+      // Try decode ROI (0°)
+      let img = rctx.getImageData(0,0,roi.width,roi.height);
+      try{
+        const res = decodeImageData(img);
+        if (res){ await onDecoded(res.getText()); return; }
+      }catch(e){ /* ignore */ }
+
+      // Try decode ROI (90°)
+      const rotCanvas = rotate90(roi);
+      const rx = rotCanvas.getContext("2d", {alpha:false, willReadFrequently:true});
+      img = rx.getImageData(0,0,rotCanvas.width, rotCanvas.height);
+      try{
+        const res = decodeImageData(img);
+        if (res){ await onDecoded(res.getText()); return; }
+      }catch(e){ /* ignore */ }
+
+      // Try full frame (0°)
+      const bimg = bctx.getImageData(0,0,base.width, base.height);
+      try{
+        const res = decodeImageData(bimg);
+        if (res){ await onDecoded(res.getText()); return; }
+      }catch(e){ /* ignore */ }
+
+    } finally {
+      // reset reader internal state each time (some iOS cases improve)
+      try{ mf.reset(); }catch(e){}
+      busy = false;
+    }
+  }
+
+  function startLoop(){
+    if (scanTimer) clearInterval(scanTimer);
+    scanTimer = setInterval(scanOnce, 240);
+    log("ROI/rotate decode loop started.");
+  }
+  function stopLoop(){
+    if (scanTimer){ clearInterval(scanTimer); scanTimer=null; }
+    mf = null;
+    busy = false;
   }
 
   // ===== tiny scan count =====
-  const LS_KEY = "linq_val_scan_count_v1";
+  const LS_KEY = "linq_val_scan_count_v2";
   function loadScans(){ try{ return JSON.parse(localStorage.getItem(LS_KEY) || "[]"); }catch(e){ return []; } }
   function saveScans(arr){ localStorage.setItem(LS_KEY, JSON.stringify(arr)); }
   function updateCount(){ el.logCount.textContent = String(loadScans().length); }
@@ -606,9 +637,8 @@
     log("Logs cleared.");
   });
 
-  // ===== start/stop =====
   async function stopAll(){
-    stopScanLoop();
+    stopLoop();
     await stopCamera();
     setStatus("idle","停止中","Startで起動");
   }
@@ -625,9 +655,9 @@
     }
 
     try{
-      await startCamera(); // known-good
-      reader = buildReader();
-      startScanLoop();
+      await startCamera();
+      mf = buildDecoder();
+      startLoop();
       setStatus("idle","待機","スキャンしてください");
     }catch(e){
       setStatus("warn","起動失敗", e?.name ? (e.name+": "+e.message) : "カメラ/再生失敗");
