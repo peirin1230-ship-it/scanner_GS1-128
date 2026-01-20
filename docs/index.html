@@ -73,7 +73,7 @@
     }
     .overlay{pointer-events:none;position:absolute; inset:0;background: linear-gradient(180deg, rgba(0,0,0,.10), transparent 25%, transparent 75%, rgba(0,0,0,.18));}
 
-    /* POPUP fixed to viewport (no scroll needed) */
+    /* POPUP fixed to viewport */
     .popout{
       position:fixed;
       left:12px; right:12px; bottom:12px;
@@ -141,7 +141,7 @@
     <div class="top">
       <div class="title">
         <h1>LinQ VAL Scanner</h1>
-        <div class="sub">JAN(EAN-13) + GTIN14(GS1-128/Code128) / Popは画面固定 / CSV出力</div>
+        <div class="sub">JAN(EAN-13) + GTIN14(GS1-128) / Pop固定 / 結果＋償還名称 / CSV</div>
       </div>
       <div class="build">BUILD <b id="buildLabel">v0</b></div>
     </div>
@@ -168,7 +168,7 @@
           </div>
 
           <div class="hint">
-            優先：JAN(EAN-13)。GS1-128はAI(01)からGTIN14を抽出します。<span class="em">同一コードは5秒間無視</span>
+            優先：JAN(EAN-13)。GS1-128はAI(01)からGTIN14抽出→gtin_indexでJAN化→照合。<span class="em">同一コードは5秒間無視</span>
           </div>
 
           <details>
@@ -205,6 +205,7 @@
           <div class="R_no" id="vProdNo">—</div>
           <div class="R_sta" id="vProdSta">—</div>
           <div class="R_maker" id="vMaker">—</div>
+          <div class="R_maker" id="vTokutei">—</div>
 
           <div class="miniRow">
             <div class="chip">候補 <b id="candPos">0</b> / <b id="candTotal">0</b></div>
@@ -216,7 +217,7 @@
     </div>
   </div>
 
-  <!-- Fixed popup (viewport) -->
+  <!-- Fixed popup -->
   <div class="popout" id="popout">
     <div class="popTop">
       <div class="popStatus" id="popStatus">OK</div>
@@ -230,7 +231,7 @@
   </div>
 
 <script>
-  const BUILD = "v2026-01-20-11";
+  const BUILD = "v2026-01-21-01";
   document.getElementById("buildLabel").textContent = BUILD;
 
   const $ = (id)=>document.getElementById(id);
@@ -245,7 +246,7 @@
     dotStatus: $("dotStatus"), txtStatus: $("txtStatus"), txtSub: $("txtSub"), logCount: $("logCount"),
 
     vName: $("vName"), vTotalPrice: $("vTotalPrice"), vProdNo: $("vProdNo"),
-    vProdSta: $("vProdSta"), vMaker: $("vMaker"),
+    vProdSta: $("vProdSta"), vMaker: $("vMaker"), vTokutei: $("vTokutei"),
     vJan: $("vJan"), vGtin: $("vGtin"), candPos: $("candPos"), candTotal: $("candTotal"),
 
     btnStart: $("btnStart"), btnStop: $("btnStop"),
@@ -277,10 +278,11 @@
     el.popSmall.textContent = small || "";
     el.popout.classList.add("show");
     clearTimeout(showPopout._t);
-    showPopout._t = setTimeout(()=>el.popout.classList.remove("show"), 2400);
+    // ✅ 3秒長く（2.4秒→5.4秒）
+    showPopout._t = setTimeout(()=>el.popout.classList.remove("show"), 5400);
   }
 
-  // ---- robust field picking (old/new headers) ----
+  // ---- robust field picking ----
   function pick(obj, keys){
     for (const k of keys){
       if (obj && Object.prototype.hasOwnProperty.call(obj, k)){
@@ -295,7 +297,15 @@
   function f_prodno(o){ return pick(o, ["product_no","製品番号"]); }
   function f_prodsta(o){ return pick(o, ["product_sta","規格"]); }
   function f_maker(o){ return pick(o, ["manufacturer_name","製造販売業者：企業略称名","製造販売業者"]); }
-  function f_jan(o){ return digits(pick(o, ["jan13keta","ＪＡＮコード","JAN","jan13"])); }
+  function f_tokutei(o){
+    return pick(o, [
+      "tokutei_name",
+      "（医科）特定保険医療材料名称０１の医事名称",
+      "（医科）特定保険医療材料名称01の医事名称",
+      "特定保険医療材料名称０１の医事名称",
+      "特定保険医療材料名称01の医事名称"
+    ]);
+  }
 
   // ---- Quagga2 loader ----
   function loadScript(src){
@@ -378,19 +388,39 @@
     if (d.length<4) return ["",""];
     return [d.slice(0,3), d.slice(0,4)];
   }
+
+  function readJanFromRow(r){
+    // 対応：英語/日本語/別名
+    const v = r?.jan13keta ?? r?.["ＪＡＮコード"] ?? r?.["JAN"] ?? r?.["jan13"] ?? r?.["jan13keta"] ?? "";
+    return digits(v);
+  }
+
   async function lookupCandidatesByJan(jan13){
     const [jan3, jan4]=pick3_4(jan13);
-    if (!jan4) return [];
-    const rows=await loadObjects(`dict_jan/${jan3}/${jan4}.csv`);
-    return rows.filter(r => digits(r.jan13keta || r["ＪＡＮコード"] || r["JAN"] || "") === jan13);
+    if (!jan4) return {cands:[], file:"", error:null};
+    const file = `dict_jan/${jan3}/${jan4}.csv`;
+    try{
+      const rows = await loadObjects(file);
+      const cands = rows.filter(r => readJanFromRow(r) === jan13);
+      return {cands, file, error:null};
+    }catch(e){
+      return {cands:[], file, error:e};
+    }
   }
+
   async function lookupJanByGtin(gtin14){
     const [gt3, gt4]=pick3_4(gtin14);
-    if (!gt4) return "";
-    const rows=await loadObjects(`gtin_index/${gt3}/${gt4}.csv`);
-    const hit = rows.find(r => digits(r.gtin14) === gtin14);
-    return hit ? digits(hit.jan13keta) : "";
+    if (!gt4) return {jan:"", file:"", error:null};
+    const file = `gtin_index/${gt3}/${gt4}.csv`;
+    try{
+      const rows=await loadObjects(file);
+      const hit = rows.find(r => digits(r.gtin14) === gtin14);
+      return {jan: hit ? digits(hit.jan13keta) : "", file, error:null};
+    }catch(e){
+      return {jan:"", file, error:e};
+    }
   }
+
   function pickBestCandidate(cands){
     if (!cands.length) return {best:null, ordered:[]};
     const ordered = cands
@@ -409,7 +439,7 @@
       el.candPos.textContent="0";
       el.vName.textContent="—"; el.vTotalPrice.textContent="—";
       el.vProdNo.textContent="—"; el.vProdSta.textContent="—";
-      el.vMaker.textContent="—";
+      el.vMaker.textContent="—"; el.vTokutei.textContent="—";
       el.vJan.textContent=currentJan||"—";
       el.vGtin.textContent=currentGtin||"—";
       return;
@@ -423,8 +453,9 @@
     el.vProdNo.textContent = f_prodno(c) ? ("製品番号: " + f_prodno(c)) : "—";
     el.vProdSta.textContent = f_prodsta(c) ? ("規格: " + f_prodsta(c)) : "—";
     el.vMaker.textContent = f_maker(c) || "—";
+    el.vTokutei.textContent = f_tokutei(c) ? ("償還名称: " + f_tokutei(c)) : "—";
 
-    el.vJan.textContent = currentJan || f_jan(c) || "—";
+    el.vJan.textContent = currentJan || readJanFromRow(c) || "—";
     el.vGtin.textContent = currentGtin || "—";
   }
   el.btnNext.addEventListener("click", ()=>{ if (currentCandidates.length) renderCandidate(currentIndex+1); });
@@ -434,12 +465,11 @@
   let lastKey = "";
   let lastAt = 0;
 
-  // ---- parse GTIN14 from GS1-128 raw ----
+  // ---- GTIN14 from GS1-128 raw ----
   function parseGS1AI01(raw){
     let s = (raw ?? "").toString();
     if (s.startsWith("]C1")) s = s.slice(3);
     const GS = String.fromCharCode(29);
-    // look for "01" then 14 digits
     for (let i=0; i<s.length-16; i++){
       if (s[i] === GS) continue;
       if (s[i] === "0" && s[i+1] === "1"){
@@ -447,14 +477,13 @@
         if (/^\d{14}$/.test(val)) return val;
       }
     }
-    // sometimes digits only
     const d = digits(s);
     if (d.length === 14) return d;
     return "";
   }
 
   // ---- scan log + CSV export ----
-  const LS_KEY = "linq_val_scanlog_v1";
+  const LS_KEY = "linq_val_scanlog_v2";
   function loadLogs(){ try{ return JSON.parse(localStorage.getItem(LS_KEY) || "[]"); }catch(e){ return []; } }
   function saveLogs(arr){ localStorage.setItem(LS_KEY, JSON.stringify(arr)); }
   function updateCount(){ el.logCount.textContent = String(loadLogs().length); }
@@ -484,8 +513,8 @@
     const logs = loadLogs();
     const header = [
       "timestamp","raw","format","jan13keta","gtin14",
-      "product_name","total_reimbursement_price_yen","product_no","product_sta","manufacturer_name",
-      "candidate_count","status"
+      "product_name","total_reimbursement_price_yen","product_no","product_sta","manufacturer_name","tokutei_name",
+      "candidate_count","status","dict_file","gtin_file"
     ];
     downloadText(`linq_val_scans_${new Date().toISOString().slice(0,10)}.csv`, toCSV(logs, header));
   });
@@ -523,7 +552,6 @@
       return;
     }
 
-    // Clear injected nodes
     Array.from(el.scanner.querySelectorAll("video,canvas")).forEach(n=>n.remove());
 
     const config = {
@@ -531,25 +559,13 @@
         name: "Live",
         type: "LiveStream",
         target: el.scanner,
-        constraints: {
-          facingMode: "environment",
-          width: { ideal: 1280 },
-          height: { ideal: 720 }
-        }
+        constraints: { facingMode: "environment", width: { ideal: 1280 }, height: { ideal: 720 } }
       },
       locator: { halfSample: true, patchSize: "medium" },
-      numOfWorkers: 0,   // iOS Safari safe
+      numOfWorkers: 0,
       frequency: 10,
       locate: true,
-      decoder: {
-        readers: [
-          "ean_reader",
-          "ean_8_reader",
-          "upc_reader",
-          "upc_e_reader",
-          "code_128_reader"     // ✅ GTIN14(GS1-128)用
-        ]
-      }
+      decoder: { readers: ["ean_reader","ean_8_reader","upc_reader","upc_e_reader","code_128_reader"] }
     };
 
     log("Quagga init...");
@@ -572,7 +588,6 @@
       const fmt = result?.codeResult?.format || "";
       const t = Date.now();
 
-      // identify JAN / GTIN
       let jan13 = "";
       let gtin14 = "";
 
@@ -580,14 +595,14 @@
       if (d.length === 13){
         jan13 = d;
       } else {
-        // try GTIN14 from GS1-128/Code128
         gtin14 = parseGS1AI01(raw);
         if (gtin14){
-          // resolve JAN by gtin_index
-          try{
-            const j = await lookupJanByGtin(gtin14);
-            if (j && j.length === 13) jan13 = j;
-          }catch(e){}
+          const r = await lookupJanByGtin(gtin14);
+          if (r.error){
+            log(`[gtin_index ERROR] ${r.file} | ${r.error}`);
+          }
+          if (r.jan && r.jan.length === 13) jan13 = r.jan;
+          currentGtin = gtin14;
         }
       }
 
@@ -598,14 +613,11 @@
       currentJan = jan13 || "";
       currentGtin = gtin14 || "";
 
-      // READ feedback first
       showPopout({
         status:"READ",
         meta: jan13 ? "JAN検出" : (gtin14 ? "GTIN検出" : "検出"),
         name: jan13 || gtin14 || raw,
-        totalYen:"—",
-        prodNo:"",
-        prodSta:"",
+        totalYen:"—", prodNo:"", prodSta:"",
         small: fmt ? ("format:" + fmt) : ""
       });
 
@@ -616,18 +628,45 @@
 
       setStatus("warn","照合中…","辞書照合");
 
-      let cands = [];
-      try{
-        if (jan13) cands = await lookupCandidatesByJan(jan13);
-        setPill(el.pillDict, true);
-      }catch(e){
+      let dictFile = "";
+      let dictErr = null;
+
+      const r = jan13 ? await lookupCandidatesByJan(jan13) : {cands:[], file:"", error:null};
+      dictFile = r.file || "";
+      dictErr = r.error;
+
+      if (dictErr){
+        // ファイルが無い/読めない（404など）
         setPill(el.pillDict, false);
-        cands = [];
+        setStatus("warn","WARN","辞書ファイル未取得");
+        log(`[dict ERROR] ${dictFile} | ${dictErr}`);
+        showPopout({
+          status:"WARN",
+          meta:"辞書ファイル未取得",
+          name: jan13 || gtin14 || raw,
+          totalYen:"—", prodNo:"", prodSta:"",
+          small: dictFile ? (`dict:${dictFile}`) : ""
+        });
+
+        const logs = loadLogs();
+        logs.push({
+          timestamp: new Date().toISOString(),
+          raw, format: fmt, jan13keta: jan13, gtin14,
+          product_name:"", total_reimbursement_price_yen:"", product_no:"", product_sta:"", manufacturer_name:"", tokutei_name:"",
+          candidate_count: 0, status: "dict_fetch_error", dict_file: dictFile, gtin_file: ""
+        });
+        saveLogs(logs); updateCount();
+        renderCandidate(0);
+        return;
       }
 
-      const {best, ordered} = pickBestCandidate(cands);
+      setPill(el.pillDict, true);
+
+      const {best, ordered} = pickBestCandidate(r.cands);
       currentCandidates = ordered;
       renderCandidate(0);
+
+      const gtinFile = gtin14 ? (`gtin_index/${gtin14.slice(0,3)}/${gtin14.slice(0,4)}.csv`) : "";
 
       if (best){
         setStatus("ok","OK","辞書一致");
@@ -642,53 +681,43 @@
           small: `JAN:${jan13 || ""}${gtin14 ? "  GTIN:"+gtin14 : ""}`
         });
 
-        // log save
         const logs = loadLogs();
         logs.push({
           timestamp: new Date().toISOString(),
-          raw,
-          format: fmt,
-          jan13keta: jan13,
-          gtin14: gtin14,
+          raw, format: fmt, jan13keta: jan13, gtin14,
           product_name: f_product_name(best),
           total_reimbursement_price_yen: f_total(best),
           product_no: f_prodno(best),
           product_sta: f_prodsta(best),
           manufacturer_name: f_maker(best),
-          candidate_count: ordered.length,
-          status: "ok"
+          tokutei_name: f_tokutei(best),
+          candidate_count: ordered.length, status: "ok",
+          dict_file: dictFile, gtin_file: gtinFile
         });
         saveLogs(logs); updateCount();
 
       } else {
-        setStatus("warn","WARN","辞書なし");
+        // 0件（ファイルは取れている）
+        setStatus("warn","WARN","辞書0件");
         showPopout({
           status:"WARN",
-          meta:"辞書なし",
+          meta:"辞書0件",
           name: jan13 || gtin14 || raw,
-          totalYen:"—",
-          prodNo:"",
-          prodSta:"",
-          small:`JAN:${jan13 || ""}${gtin14 ? "  GTIN:"+gtin14 : ""}`
+          totalYen:"—", prodNo:"", prodSta:"",
+          small: dictFile ? (`dict:${dictFile}`) : ""
         });
 
         const logs = loadLogs();
         logs.push({
           timestamp: new Date().toISOString(),
-          raw,
-          format: fmt,
-          jan13keta: jan13,
-          gtin14: gtin14,
-          product_name: "",
-          total_reimbursement_price_yen: "",
-          product_no: "",
-          product_sta: "",
-          manufacturer_name: "",
-          candidate_count: 0,
-          status: "warn"
+          raw, format: fmt, jan13keta: jan13, gtin14,
+          product_name:"", total_reimbursement_price_yen:"", product_no:"", product_sta:"", manufacturer_name:"", tokutei_name:"",
+          candidate_count: 0, status: "no_match",
+          dict_file: dictFile, gtin_file: gtinFile
         });
         saveLogs(logs); updateCount();
       }
+
     } catch(e){
       // ignore
     }
