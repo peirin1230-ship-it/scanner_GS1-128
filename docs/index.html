@@ -56,11 +56,23 @@
     .dot{width:10px;height:10px;border-radius:999px;background: rgba(20,19,22,.20)}
     .pill.on .dot{ background: var(--accent); }
 
-    .videoWrap{position:relative;border-radius: var(--r);overflow:hidden;border:1px solid var(--line);background:#000}
-    video{width:100%;height:auto;display:block}
+    /* scanner area */
+    #scanner{
+      position:relative;
+      border-radius: var(--r);
+      overflow:hidden;
+      border:1px solid var(--line);
+      background:#000;
+      min-height: 260px;
+    }
+    /* Quagga injects video/canvas inside target; make it full */
+    #scanner video, #scanner canvas{
+      width:100% !important;
+      height:auto !important;
+      display:block;
+    }
     .overlay{pointer-events:none;position:absolute; inset:0;background: linear-gradient(180deg, rgba(0,0,0,.10), transparent 25%, transparent 75%, rgba(0,0,0,.18));}
 
-    /* popout */
     .popout{
       position:absolute;left:12px; right:12px; bottom:12px;
       border-radius: 18px; border:1px solid rgba(225,29,72,.25);
@@ -121,7 +133,7 @@
     <div class="top">
       <div class="title">
         <h1>LinQ VAL Scanner</h1>
-        <div class="sub">ROI拡大 + 90度回転対応（iPhone Safari向けデコード強化）</div>
+        <div class="sub">JAN(EAN-13)優先：Quagga2（iPhone Safariで読みやすい）</div>
       </div>
       <div class="build">BUILD <b id="buildLabel">v0</b></div>
     </div>
@@ -131,7 +143,7 @@
         <div class="hd">
           <div class="label">スキャン</div>
           <div class="row">
-            <div class="pill" id="pillZxing"><span class="dot"></span><span>ZXing</span></div>
+            <div class="pill" id="pillQ"><span class="dot"></span><span>Quagga</span></div>
             <div class="pill" id="pillCam"><span class="dot"></span><span>Camera</span></div>
             <div class="pill" id="pillDict"><span class="dot"></span><span>Dict</span></div>
           </div>
@@ -143,8 +155,7 @@
             <button class="btn" id="btnStop">Stop</button>
           </div>
 
-          <div style="margin-top:12px" class="videoWrap">
-            <video id="video" playsinline muted></video>
+          <div style="margin-top:12px" id="scanner">
             <div class="overlay"></div>
 
             <div class="popout" id="popout">
@@ -161,7 +172,7 @@
           </div>
 
           <div class="hint">
-            JAN-13優先：バーコードを画面中央に大きく写して静止。<span class="em">同一バーコードは5秒間無視</span>
+            JAN-13は「バーコードを画面の半分以上に大きく・静止」。<span class="em">同一バーコードは5秒間無視</span>
           </div>
 
           <details>
@@ -201,7 +212,6 @@
           <div class="miniRow">
             <div class="chip">候補 <b id="candPos">0</b> / <b id="candTotal">0</b></div>
             <div class="chip">JAN <b class="mono" id="vJan">—</b></div>
-            <div class="chip">GTIN <b class="mono" id="vGtin">—</b></div>
           </div>
         </div>
       </div>
@@ -209,13 +219,13 @@
   </div>
 
 <script>
-  const BUILD = "v2026-01-20-09";
+  const BUILD = "v2026-01-20-10";
   document.getElementById("buildLabel").textContent = BUILD;
 
   const $ = (id)=>document.getElementById(id);
   const el = {
-    pillZxing: $("pillZxing"), pillCam: $("pillCam"), pillDict: $("pillDict"),
-    video: $("video"), log: $("log"),
+    pillQ: $("pillQ"), pillCam: $("pillCam"), pillDict: $("pillDict"),
+    scanner: $("scanner"), log: $("log"),
 
     popout: $("popout"), popStatus: $("popStatus"), popMeta: $("popMeta"),
     popName: $("popName"), popTotal: $("popTotal"),
@@ -225,7 +235,7 @@
 
     vName: $("vName"), vTotalPrice: $("vTotalPrice"), vProdNo: $("vProdNo"),
     vProdSta: $("vProdSta"), vMaker: $("vMaker"),
-    vJan: $("vJan"), vGtin: $("vGtin"), candPos: $("candPos"), candTotal: $("candTotal"),
+    vJan: $("vJan"), candPos: $("candPos"), candTotal: $("candTotal"),
 
     btnStart: $("btnStart"), btnStop: $("btnStop"), btnNext: $("btnNext"), btnClear: $("btnClear")
   };
@@ -258,25 +268,7 @@
     showPopout._t = setTimeout(()=>el.popout.classList.remove("show"), 2200);
   }
 
-  // ===== camera =====
-  let stream = null;
-  async function startCamera(){
-    const constraints = { audio:false, video:{ facingMode:{ ideal:"environment" } } };
-    stream = await navigator.mediaDevices.getUserMedia(constraints);
-    el.video.srcObject = stream;
-    await el.video.play();
-    setPill(el.pillCam, true);
-    const track = stream.getVideoTracks()[0];
-    const s = track.getSettings ? track.getSettings() : {};
-    log("Camera OK. settings=" + JSON.stringify(s));
-  }
-  async function stopCamera(){
-    try{ el.video.pause(); el.video.srcObject=null; }catch(e){}
-    try{ if (stream){ stream.getTracks().forEach(t=>t.stop()); stream=null; } }catch(e){}
-    setPill(el.pillCam, false);
-  }
-
-  // ===== ZXing loader =====
+  // ===== Quagga2 loader =====
   function loadScript(src){
     return new Promise((resolve,reject)=>{
       const s = document.createElement("script");
@@ -285,17 +277,17 @@
       document.head.appendChild(s);
     });
   }
-  async function ensureZXing(){
-    if (window.ZXing?.MultiFormatReader) return true;
+  async function ensureQuagga(){
+    if (window.Quagga) return true;
     const bust = "v=" + encodeURIComponent(BUILD) + "&t=" + Date.now();
     const urls = [
-      "https://unpkg.com/@zxing/library@0.20.0/umd/index.min.js?" + bust,
-      "https://cdn.jsdelivr.net/npm/@zxing/library@0.20.0/umd/index.min.js?" + bust
+      "https://unpkg.com/@ericblade/quagga2@1.2.6/dist/quagga.min.js?" + bust,
+      "https://cdn.jsdelivr.net/npm/@ericblade/quagga2@1.2.6/dist/quagga.min.js?" + bust
     ];
     for (const u of urls){
       try{
         await loadScript(u);
-        if (window.ZXing?.MultiFormatReader) return true;
+        if (window.Quagga) return true;
       }catch(e){}
     }
     return false;
@@ -363,26 +355,9 @@
     const rows=await loadObjects(`dict_jan/${jan3}/${jan4}.csv`);
     return rows.filter(r=>digits(r.jan13keta)===jan13);
   }
-  async function lookupJanByGtin(gtin14){
-    const [gt3, gt4]=pick3_4(gtin14);
-    if (!gt4) return "";
-    const rows=await loadObjects(`gtin_index/${gt3}/${gt4}.csv`);
-    const hit=rows.find(r=>digits(r.gtin14)===gtin14);
-    return hit ? digits(hit.jan13keta) : "";
-  }
-  function gtinMatchesCandidate(gtin14, cand){
-    const gt=digits(gtin14);
-    if (!gt) return false;
-    return gt===digits(cand.gtin14_i0)||gt===digits(cand.gtin14_i1)||gt===digits(cand.gtin14_i2);
-  }
-  function pickBestCandidate(cands, gtin14){
+  function pickBestCandidate(cands){
     if (!cands.length) return {best:null, ordered:[]};
-    let pool=cands;
-    if (gtin14){
-      const m=cands.filter(c=>gtinMatchesCandidate(gtin14,c));
-      if (m.length) pool=m;
-    }
-    const ordered=pool
+    const ordered = cands
       .map((c,idx)=>({c,idx,price:Number(digits(c.total_reimbursement_price_yen||""))||0}))
       .sort((a,b)=>b.price-a.price||a.idx-b.idx)
       .map(x=>x.c);
@@ -390,7 +365,7 @@
   }
 
   // ===== candidate UI =====
-  let currentCandidates=[], currentIndex=0, currentJan="", currentGtin="";
+  let currentCandidates=[], currentIndex=0, currentJan="";
   function renderCandidate(idx){
     const total=currentCandidates.length;
     el.candTotal.textContent=String(total);
@@ -399,7 +374,7 @@
       el.vName.textContent="—"; el.vTotalPrice.textContent="—";
       el.vProdNo.textContent="—"; el.vProdSta.textContent="—";
       el.vMaker.textContent="—";
-      el.vJan.textContent=currentJan||"—"; el.vGtin.textContent=currentGtin||"—";
+      el.vJan.textContent=currentJan||"—";
       return;
     }
     currentIndex=(idx+total)%total;
@@ -411,221 +386,156 @@
     el.vProdNo.textContent=c.product_no?("製品番号: "+c.product_no):"—";
     el.vProdSta.textContent=c.product_sta?("規格: "+c.product_sta):"—";
     el.vMaker.textContent=c.manufacturer_name||"—";
-
     el.vJan.textContent=currentJan||digits(c.jan13keta)||"—";
-    el.vGtin.textContent=currentGtin||digits(c.gtin14_i0)||digits(c.gtin14_i1)||digits(c.gtin14_i2)||"—";
   }
   el.btnNext.addEventListener("click", ()=>{ if (currentCandidates.length) renderCandidate(currentIndex+1); });
 
-  // ===== ZXing core decode from ImageData =====
-  let mf = null;
-  let scanTimer = null;
-  let busy = false;
+  // ===== dedup =====
+  const DEDUP_MS = 5000;
+  let lastJan = "";
+  let lastAt = 0;
 
-  const DEDUP_MS=5000;
-  let lastRaw="", lastAt=0;
+  // ===== start/stop quagga =====
+  let running = false;
 
-  // canvases
-  const base = document.createElement("canvas");
-  const bctx = base.getContext("2d", {alpha:false, willReadFrequently:true});
-  const roi = document.createElement("canvas");
-  const rctx = roi.getContext("2d", {alpha:false, willReadFrequently:true});
-  const rot = document.createElement("canvas");
-  const xctx = rot.getContext("2d", {alpha:false, willReadFrequently:true});
-
-  function buildDecoder(){
-    const ZX = window.ZXing;
-    const hints = new Map();
-    hints.set(ZX.DecodeHintType.POSSIBLE_FORMATS, [
-      ZX.BarcodeFormat.EAN_13,
-      ZX.BarcodeFormat.EAN_8,
-      ZX.BarcodeFormat.UPC_A,
-      ZX.BarcodeFormat.UPC_E,
-      ZX.BarcodeFormat.CODE_128
-    ]);
-    hints.set(ZX.DecodeHintType.TRY_HARDER, true);
-
-    const r = new ZX.MultiFormatReader();
-    r.setHints(hints);
-    return r;
-  }
-
-  function decodeImageData(img){
-    const ZX = window.ZXing;
-    const lum = new ZX.RGBLuminanceSource(img.data, img.width, img.height);
-    const bin = new ZX.BinaryBitmap(new ZX.HybridBinarizer(lum));
-    return mf.decode(bin);
-  }
-
-  function rotate90(srcCanvas){
-    rot.width = srcCanvas.height;
-    rot.height = srcCanvas.width;
-    xctx.save();
-    xctx.clearRect(0,0,rot.width,rot.height);
-    xctx.translate(rot.width/2, rot.height/2);
-    xctx.rotate(Math.PI/2);
-    xctx.drawImage(srcCanvas, -srcCanvas.width/2, -srcCanvas.height/2);
-    xctx.restore();
-    return rot;
-  }
-
-  function parseGS1(raw){
-    let s=(raw??"").trim();
-    if (s.startsWith("]C1")) s=s.slice(3);
-    const GS=String.fromCharCode(29);
-    let i=0;
-    while (i<s.length){
-      if (s[i]===GS){ i++; continue; }
-      const ai2=s.slice(i,i+2);
-      if (ai2==="01"){
-        const val=s.slice(i+2,i+16);
-        if (/^\d{14}$/.test(val)) return val;
-        break;
+  async function stopAll(){
+    try{
+      if (running && window.Quagga){
+        await new Promise((res)=>{ try{ Quagga.stop(); }catch(e){} res(); });
       }
-      i++;
-    }
-    return "";
+    }catch(e){}
+    running = false;
+    setPill(el.pillCam, false);
+    setStatus("idle","停止中","Startで起動");
   }
 
-  async function onDecoded(raw){
-    const t=Date.now();
-    if (raw===lastRaw && (t-lastAt)<DEDUP_MS) return;
-    lastRaw=raw; lastAt=t;
+  async function startAll(){
+    await stopAll();
+    setStatus("idle","起動中…","準備中");
 
-    // READ feedback
-    showPopout({status:"READ", meta:"読み取り成功", name:(raw||"").slice(0,60), totalYen:"—", prodNo:"", prodSta:"", small:""});
-
-    let jan13=""; let gtin14="";
-    const d=digits(raw||"");
-    if (d.length===13) jan13=d;
-    if (!jan13 && raw.includes("01")) gtin14=digits(parseGS1(raw));
-    if (!jan13 && gtin14){
-      try{
-        const j=await lookupJanByGtin(gtin14);
-        if (j && j.length===13) jan13=j;
-      }catch(e){}
-    }
-
-    currentJan=jan13||""; currentGtin=gtin14||"";
-    if (!jan13 && !gtin14){
-      setStatus("warn","未検出","距離/ブレ/照明");
+    const ok = await ensureQuagga();
+    setPill(el.pillQ, ok);
+    if (!ok){
+      setStatus("warn","Quagga失敗","通信/CDN");
       return;
     }
 
-    setStatus("warn","照合中…","辞書照合");
-    let cands=[];
-    try{
-      if (jan13) cands=await lookupCandidatesByJan(jan13);
-      setPill(el.pillDict, true);
-    }catch(e){
-      setPill(el.pillDict, false);
-      cands=[];
-    }
+    // Clear previous injected nodes
+    // (Quagga sometimes leaves canvases on iOS)
+    Array.from(el.scanner.querySelectorAll("video,canvas")).forEach(n=>n.remove());
 
-    const {best, ordered}=pickBestCandidate(cands, gtin14);
-    currentCandidates=ordered;
-    renderCandidate(0);
+    const config = {
+      inputStream: {
+        name: "Live",
+        type: "LiveStream",
+        target: el.scanner,
+        constraints: {
+          facingMode: "environment",
+          width: { ideal: 1280 },
+          height: { ideal: 720 }
+        }
+      },
+      locator: {
+        halfSample: true,
+        patchSize: "medium"
+      },
+      numOfWorkers: 0,   // iOS Safari safe
+      frequency: 10,     // scan frequency
+      locate: true,
+      decoder: {
+        readers: [
+          "ean_reader",      // JAN-13
+          "ean_8_reader",
+          "upc_reader",
+          "upc_e_reader"
+        ]
+      }
+    };
 
-    if (best){
-      setStatus("ok","OK","辞書一致");
-      const totalYen=fmtYenInt(best.total_reimbursement_price_yen||"")||"—";
-      showPopout({
-        status:"OK",
-        meta: ordered.length>1 ? `候補${ordered.length}件` : "辞書一致",
-        name: best.product_name || "—",
-        totalYen,
-        prodNo: best.product_no || "",
-        prodSta: best.product_sta || "",
-        small: `JAN:${jan13}${gtin14 ? "  GTIN:"+gtin14 : ""}`
+    log("Quagga init...");
+
+    await new Promise((resolve, reject)=>{
+      Quagga.init(config, (err)=>{
+        if (err) return reject(err);
+        resolve();
       });
-    }else{
-      setStatus("warn","WARN","辞書なし");
-      showPopout({
-        status:"WARN",
-        meta:"辞書なし",
-        name: jan13 || gtin14,
-        totalYen:"—",
-        prodNo:"",
-        prodSta:"",
-        small: `JAN:${jan13}${gtin14 ? "  GTIN:"+gtin14 : ""}`
-      });
-    }
+    });
 
-    const scans = loadScans();
-    scans.push({ts:new Date().toISOString(), raw});
-    saveScans(scans); updateCount();
+    Quagga.onDetected(onDetected);
+    Quagga.start();
+    running = true;
+
+    setPill(el.pillCam, true);
+    setStatus("idle","待機","スキャンしてください");
+    log("Quagga started.");
   }
 
-  async function scanOnce(){
-    if (!mf || busy) return;
-    if (!el.video.videoWidth || !el.video.videoHeight) return;
-
-    busy = true;
+  async function onDetected(result){
     try{
-      const vw = el.video.videoWidth;
-      const vh = el.video.videoHeight;
+      const code = result?.codeResult?.code || "";
+      const jan13 = digits(code);
+      if (jan13.length !== 13) return;
 
-      // base frame (smallish)
-      const maxW = 640;
-      const scale = Math.min(1, maxW / vw);
-      const bw = Math.max(1, Math.floor(vw * scale));
-      const bh = Math.max(1, Math.floor(vh * scale));
-      base.width = bw; base.height = bh;
-      bctx.drawImage(el.video, 0, 0, bw, bh);
+      const t = Date.now();
+      if (jan13 === lastJan && (t - lastAt) < DEDUP_MS) return;
+      lastJan = jan13; lastAt = t;
 
-      // ROI zoom (center 70% -> 720px square-ish)
-      const cx = bw * 0.15;
-      const cy = bh * 0.15;
-      const cw = bw * 0.70;
-      const ch = bh * 0.70;
-      const target = 720;
-      roi.width = target;
-      roi.height = Math.floor(target * (ch / cw));
-      rctx.drawImage(base, cx, cy, cw, ch, 0, 0, roi.width, roi.height);
+      // READ feedback first
+      showPopout({status:"READ", meta:"JAN検出", name: jan13, totalYen:"—", prodNo:"", prodSta:"", small:""});
 
-      // Try decode ROI (0°)
-      let img = rctx.getImageData(0,0,roi.width,roi.height);
+      currentJan = jan13;
+      setStatus("warn","照合中…","辞書照合");
+
+      let cands = [];
       try{
-        const res = decodeImageData(img);
-        if (res){ await onDecoded(res.getText()); return; }
-      }catch(e){ /* ignore */ }
+        cands = await lookupCandidatesByJan(jan13);
+        setPill(el.pillDict, true);
+      }catch(e){
+        setPill(el.pillDict, false);
+        cands = [];
+      }
 
-      // Try decode ROI (90°)
-      const rotCanvas = rotate90(roi);
-      const rx = rotCanvas.getContext("2d", {alpha:false, willReadFrequently:true});
-      img = rx.getImageData(0,0,rotCanvas.width, rotCanvas.height);
-      try{
-        const res = decodeImageData(img);
-        if (res){ await onDecoded(res.getText()); return; }
-      }catch(e){ /* ignore */ }
+      const {best, ordered} = pickBestCandidate(cands);
+      currentCandidates = ordered;
+      renderCandidate(0);
 
-      // Try full frame (0°)
-      const bimg = bctx.getImageData(0,0,base.width, base.height);
-      try{
-        const res = decodeImageData(bimg);
-        if (res){ await onDecoded(res.getText()); return; }
-      }catch(e){ /* ignore */ }
+      if (best){
+        setStatus("ok","OK","辞書一致");
+        const totalYen = fmtYenInt(best.total_reimbursement_price_yen||"") || "—";
+        showPopout({
+          status:"OK",
+          meta: ordered.length > 1 ? `候補${ordered.length}件` : "辞書一致",
+          name: best.product_name || "—",
+          totalYen,
+          prodNo: best.product_no || "",
+          prodSta: best.product_sta || "",
+          small: `JAN:${jan13}`
+        });
+      } else {
+        setStatus("warn","WARN","辞書なし");
+        showPopout({
+          status:"WARN",
+          meta:"辞書なし",
+          name: jan13,
+          totalYen:"—",
+          prodNo:"",
+          prodSta:"",
+          small:`JAN:${jan13}`
+        });
+      }
 
-    } finally {
-      // reset reader internal state each time (some iOS cases improve)
-      try{ mf.reset(); }catch(e){}
-      busy = false;
+      // count log (minimal)
+      const scans = loadScans();
+      scans.push({ts:new Date().toISOString(), jan13keta: jan13});
+      saveScans(scans); updateCount();
+
+    } catch(e){
+      // ignore
     }
-  }
-
-  function startLoop(){
-    if (scanTimer) clearInterval(scanTimer);
-    scanTimer = setInterval(scanOnce, 240);
-    log("ROI/rotate decode loop started.");
-  }
-  function stopLoop(){
-    if (scanTimer){ clearInterval(scanTimer); scanTimer=null; }
-    mf = null;
-    busy = false;
   }
 
   // ===== tiny scan count =====
-  const LS_KEY = "linq_val_scan_count_v2";
+  const LS_KEY = "linq_val_quagga_count_v1";
   function loadScans(){ try{ return JSON.parse(localStorage.getItem(LS_KEY) || "[]"); }catch(e){ return []; } }
   function saveScans(arr){ localStorage.setItem(LS_KEY, JSON.stringify(arr)); }
   function updateCount(){ el.logCount.textContent = String(loadScans().length); }
@@ -637,41 +547,22 @@
     log("Logs cleared.");
   });
 
-  async function stopAll(){
-    stopLoop();
-    await stopCamera();
-    setStatus("idle","停止中","Startで起動");
-  }
-
+  // ===== buttons =====
   el.btnStart.addEventListener("click", async ()=>{
-    setStatus("idle","起動中…","準備中");
-    await stopAll();
-
-    const ok = await ensureZXing();
-    setPill(el.pillZxing, ok);
-    if (!ok){
-      setStatus("warn","ZXing失敗","通信/CDN");
-      return;
-    }
-
     try{
-      await startCamera();
-      mf = buildDecoder();
-      startLoop();
-      setStatus("idle","待機","スキャンしてください");
+      await startAll();
     }catch(e){
-      setStatus("warn","起動失敗", e?.name ? (e.name+": "+e.message) : "カメラ/再生失敗");
       log("Start FAILED: " + (e?.name ? (e.name+": "+e.message) : String(e)));
+      setStatus("warn","起動失敗","カメラ許可/他アプリ占有を確認");
     }
   });
-
   el.btnStop.addEventListener("click", async ()=>{ await stopAll(); });
 
   // init
   (function init(){
     updateCount();
     setStatus("idle","待機","Startで起動");
-    setPill(el.pillZxing, false);
+    setPill(el.pillQ, false);
     setPill(el.pillCam, false);
     setPill(el.pillDict, false);
     renderCandidate(0);
