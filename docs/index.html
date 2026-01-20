@@ -108,7 +108,9 @@
     }
     .chip b{color:var(--ink);font-weight:1300}
 
-    .log{margin-top:10px;padding:10px 12px;border:1px solid var(--line);border-radius:14px;background:#fff;color:#666;
+    details{margin-top:10px}
+    summary{cursor:pointer;color:var(--muted);font-weight:1100}
+    .log{margin-top:8px;padding:10px 12px;border:1px solid var(--line);border-radius:14px;background:#fff;color:#666;
       white-space:pre-wrap;font-family:var(--mono);font-size:12px}
   </style>
 </head>
@@ -118,7 +120,7 @@
     <div class="top">
       <div class="title">
         <h1>LinQ VAL Scanner</h1>
-        <div class="sub">カメラは getUserMedia で確実に起動 → ZXingはその映像だけを読む（iPhone安定）</div>
+        <div class="sub">iPhone Safari対策：video→canvasキャプチャでZXing decode（連続APIの停止を回避）</div>
       </div>
       <div class="build">BUILD <b id="buildLabel">v0</b></div>
     </div>
@@ -161,7 +163,10 @@
             JAN-13優先：バーコードを大きく写して静止。<span class="em">同一バーコードは5秒間無視</span>
           </div>
 
-          <div class="log" id="log">Ready.</div>
+          <details>
+            <summary>ログ</summary>
+            <div class="log" id="log">Ready.</div>
+          </details>
         </div>
       </div>
 
@@ -203,7 +208,7 @@
   </div>
 
 <script>
-  const BUILD = "v2026-01-20-07";
+  const BUILD = "v2026-01-20-08";
   document.getElementById("buildLabel").textContent = BUILD;
 
   const $ = (id)=>document.getElementById(id);
@@ -212,16 +217,16 @@
     video: $("video"), log: $("log"),
 
     popout: $("popout"), popStatus: $("popStatus"), popMeta: $("popMeta"),
-    popName: $("popName"), popTotal: $("popTotal"), popProdNo: $("popProdNo"),
-    popProdSta: $("popProdSta"), popSmall: $("popSmall"),
+    popName: $("popName"), popTotal: $("popTotal"),
+    popProdNo: $("popProdNo"), popProdSta: $("popProdSta"), popSmall: $("popSmall"),
 
     dotStatus: $("dotStatus"), txtStatus: $("txtStatus"), txtSub: $("txtSub"), logCount: $("logCount"),
 
     vName: $("vName"), vTotalPrice: $("vTotalPrice"), vProdNo: $("vProdNo"),
-    vProdSta: $("vProdSta"), vMaker: $("vMaker"), vJan: $("vJan"), vGtin: $("vGtin"),
-    candPos: $("candPos"), candTotal: $("candTotal"),
+    vProdSta: $("vProdSta"), vMaker: $("vMaker"),
+    vJan: $("vJan"), vGtin: $("vGtin"), candPos: $("candPos"), candTotal: $("candTotal"),
 
-    btnStart: $("btnStart"), btnStop: $("btnStop"), btnNext: $("btnNext"), btnClear: $("btnClear"),
+    btnStart: $("btnStart"), btnStop: $("btnStop"), btnNext: $("btnNext"), btnClear: $("btnClear")
   };
 
   function log(msg){ el.log.textContent = msg + "\n\n" + el.log.textContent; }
@@ -255,10 +260,7 @@
   // ===== camera (known-good constraints) =====
   let stream = null;
   async function startCamera(){
-    const constraints = {
-      audio:false,
-      video:{ facingMode:{ ideal:"environment" } } // ←診断で成功した形
-    };
+    const constraints = { audio:false, video:{ facingMode:{ ideal:"environment" } } };
     stream = await navigator.mediaDevices.getUserMedia(constraints);
     el.video.srcObject = stream;
     await el.video.play();
@@ -402,25 +404,33 @@
     currentIndex=(idx+total)%total;
     el.candPos.textContent=String(currentIndex+1);
     const c=currentCandidates[currentIndex];
+
     el.vName.textContent=c.product_name||"—";
     el.vTotalPrice.textContent=fmtYenInt(c.total_reimbursement_price_yen||"")||"—";
     el.vProdNo.textContent=c.product_no?("製品番号: "+c.product_no):"—";
     el.vProdSta.textContent=c.product_sta?("規格: "+c.product_sta):"—";
     el.vMaker.textContent=c.manufacturer_name||"—";
+
     el.vJan.textContent=currentJan||digits(c.jan13keta)||"—";
     el.vGtin.textContent=currentGtin||digits(c.gtin14_i0)||digits(c.gtin14_i1)||digits(c.gtin14_i2)||"—";
   }
   el.btnNext.addEventListener("click", ()=>{ if (currentCandidates.length) renderCandidate(currentIndex+1); });
 
-  // ===== scan (ZXing reads frames from video element) =====
-  let reader=null;
-  const DEDUP_MS=5000;
+  // ===== ZXing canvas capture decode =====
+  let reader = null;
+  let scanTimer = null;
+  let busy = false;
+
+  const DEDUP_MS = 5000;
   let lastRaw="", lastAt=0;
-  let ticks=0;
+
+  const canvas = document.createElement("canvas");
+  const ctx = canvas.getContext("2d", {alpha:false, willReadFrequently:true});
 
   function buildReader(){
-    const ZX=window.ZXing;
-    const hints=new Map();
+    const ZX = window.ZXing;
+    const hints = new Map();
+    // JAN優先
     hints.set(ZX.DecodeHintType.POSSIBLE_FORMATS, [
       ZX.BarcodeFormat.EAN_13,
       ZX.BarcodeFormat.EAN_8,
@@ -429,44 +439,7 @@
       ZX.BarcodeFormat.CODE_128
     ]);
     hints.set(ZX.DecodeHintType.TRY_HARDER, true);
-    return new ZX.BrowserMultiFormatReader(hints, 350);
-  }
-
-  function startDecode(){
-    const ZX=window.ZXing;
-    if (reader){ try{ reader.reset(); }catch(e){} }
-    reader = buildReader();
-    ticks = 0;
-
-    reader.decodeFromVideoElementContinuously(el.video, (result, err)=>{
-      if (result){
-        ticks++;
-        const text=result.getText ? result.getText() : String(result.text||result);
-        const fmt=result.getBarcodeFormat ? result.getBarcodeFormat() : (result.format||"");
-        onDecoded(text, fmt);
-      }else if (err){
-        if (err instanceof ZX.NotFoundException){
-          ticks++; // loop is alive
-          return;
-        }
-      }
-    });
-
-    // watchdog: if loop not alive, restart decoder once
-    setTimeout(()=>{
-      if (ticks === 0){
-        log("Decoder seems stalled. Restarting decoder...");
-        try{ reader.reset(); }catch(e){}
-        reader = buildReader();
-        reader.decodeFromVideoElementContinuously(el.video, (result, err)=>{
-          if (result){
-            const text=result.getText ? result.getText() : String(result.text||result);
-            const fmt=result.getBarcodeFormat ? result.getBarcodeFormat() : (result.format||"");
-            onDecoded(text, fmt);
-          }
-        });
-      }
-    }, 1500);
+    return new ZX.BrowserMultiFormatReader(hints, 0);
   }
 
   function parseGS1(raw){
@@ -487,18 +460,80 @@
     return "";
   }
 
-  async function onDecoded(raw, fmt){
-    const t=Date.now();
-    if (raw===lastRaw && (t-lastAt)<DEDUP_MS) return;
-    lastRaw=raw; lastAt=t;
+  async function scanOnce(){
+    if (!reader || busy) return;
+    if (!el.video.videoWidth || !el.video.videoHeight) return;
 
-    // show immediate feedback
-    showPopout({status:"READ", meta:"読み取り成功", name:(raw||"").slice(0,60), totalYen:"—", prodNo:"", prodSta:"", small:String(fmt||"")});
+    busy = true;
+    try{
+      const vw = el.video.videoWidth;
+      const vh = el.video.videoHeight;
+
+      // downscale for speed (keep aspect)
+      const maxW = 640;
+      const scale = Math.min(1, maxW / vw);
+      const tw = Math.max(1, Math.floor(vw * scale));
+      const th = Math.max(1, Math.floor(vh * scale));
+
+      canvas.width = tw;
+      canvas.height = th;
+      ctx.drawImage(el.video, 0, 0, tw, th);
+
+      const result = await reader.decodeFromCanvas(canvas);
+      if (!result) return;
+
+      const raw = result.getText ? result.getText() : String(result.text || result);
+      const fmt = result.getBarcodeFormat ? result.getBarcodeFormat() : (result.format || "");
+
+      const t = Date.now();
+      if (raw === lastRaw && (t - lastAt) < DEDUP_MS) return;
+      lastRaw = raw; lastAt = t;
+
+      await onDecoded(raw, fmt);
+    } catch(e){
+      // NotFoundException is normal
+      const ZX = window.ZXing;
+      if (ZX && e instanceof ZX.NotFoundException){
+        // ignore
+      } else {
+        // other errors: log once in a while
+        // (keep quiet; too noisy)
+      }
+    } finally {
+      busy = false;
+    }
+  }
+
+  function startScanLoop(){
+    if (scanTimer) clearInterval(scanTimer);
+    // 220ms interval (balanced)
+    scanTimer = setInterval(scanOnce, 220);
+    log("Canvas decode loop started.");
+  }
+
+  function stopScanLoop(){
+    if (scanTimer){ clearInterval(scanTimer); scanTimer=null; }
+    busy = false;
+    reader = null;
+  }
+
+  async function onDecoded(raw, fmt){
+    // immediate feedback (READ)
+    showPopout({
+      status:"READ",
+      meta:"読み取り成功",
+      name:(raw||"").slice(0,60),
+      totalYen:"—",
+      prodNo:"",
+      prodSta:"",
+      small:String(fmt||"")
+    });
 
     let jan13=""; let gtin14="";
     const d=digits(raw||"");
     if (d.length===13) jan13=d;
     if (!jan13 && raw.includes("01")) gtin14=digits(parseGS1(raw));
+
     if (!jan13 && gtin14){
       try{
         const j=await lookupJanByGtin(gtin14);
@@ -550,11 +585,30 @@
         small: `JAN:${jan13}${gtin14 ? "  GTIN:"+gtin14 : ""}`
       });
     }
+
+    // minimal scan log count
+    const scans = loadScans();
+    scans.push({ts:new Date().toISOString(), raw, jan13keta:jan13, gtin14});
+    saveScans(scans);
+    updateCount();
   }
 
-  // ===== UI + buttons =====
+  // ===== tiny scan count =====
+  const LS_KEY = "linq_val_scan_count_v1";
+  function loadScans(){ try{ return JSON.parse(localStorage.getItem(LS_KEY) || "[]"); }catch(e){ return []; } }
+  function saveScans(arr){ localStorage.setItem(LS_KEY, JSON.stringify(arr)); }
+  function updateCount(){ el.logCount.textContent = String(loadScans().length); }
+
+  el.btnClear.addEventListener("click", ()=>{
+    if (!confirm("ログを削除しますか？")) return;
+    localStorage.removeItem(LS_KEY);
+    updateCount();
+    log("Logs cleared.");
+  });
+
+  // ===== start/stop =====
   async function stopAll(){
-    try{ if (reader){ reader.reset(); reader=null; } }catch(e){}
+    stopScanLoop();
     await stopCamera();
     setStatus("idle","停止中","Startで起動");
   }
@@ -572,7 +626,8 @@
 
     try{
       await startCamera(); // known-good
-      startDecode();
+      reader = buildReader();
+      startScanLoop();
       setStatus("idle","待機","スキャンしてください");
     }catch(e){
       setStatus("warn","起動失敗", e?.name ? (e.name+": "+e.message) : "カメラ/再生失敗");
@@ -582,13 +637,9 @@
 
   el.btnStop.addEventListener("click", async ()=>{ await stopAll(); });
 
-  el.btnClear.addEventListener("click", ()=>{
-    if (!confirm("ログを削除しますか？")) return;
-    el.log.textContent = "Cleared.";
-  });
-
   // init
   (function init(){
+    updateCount();
     setStatus("idle","待機","Startで起動");
     setPill(el.pillZxing, false);
     setPill(el.pillCam, false);
