@@ -1,0 +1,9 @@
+{
+  "base": ["pr1", "pr2", "pr3"],
+  "byTokuteiName": {
+    "冠動脈ステント": ["pr3", "pr1"]
+  },
+  "byProductName": {
+    "（ダミー）ステント": ["pr3", "pr1"]
+  }
+}
