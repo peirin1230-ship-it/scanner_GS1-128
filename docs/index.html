@@ -12,7 +12,6 @@
 
   <style>
     :root{
-      --bg:#ffffff;
       --pink:#ffe6ef;
       --pink2:#fff3f7;
       --red:#ff3b6b;
@@ -30,6 +29,7 @@
       margin:0;background:linear-gradient(180deg,var(--pink2),#fff);
       color:var(--text);
       font-family:"M PLUS Rounded 1c", system-ui, -apple-system, "Segoe UI", sans-serif;
+      -webkit-tap-highlight-color: transparent;
     }
     .top{
       position:sticky; top:0; z-index:10;
@@ -78,6 +78,7 @@
       cursor:pointer;
       width:100%;
       box-shadow: 0 10px 20px rgba(0,0,0,.04);
+      touch-action: manipulation;
     }
     .btn.small{height:46px; font-size:16px; border-radius:16px; width:auto;}
     .btn.primary{
@@ -87,8 +88,6 @@
     }
     .btn.ghost{background:var(--pink);}
     .btn:disabled{opacity:.55; cursor:not-allowed;}
-    .two{display:grid; gap:10px; grid-template-columns:1fr;}
-    @media (min-width:820px){ .two{grid-template-columns:1fr 1fr;} .btn{width:auto;} }
     .input, .select{
       width:100%;
       height:54px;
@@ -98,6 +97,7 @@
       font-size:18px;
       outline:none;
       background:#fff;
+      touch-action: manipulation;
     }
     .select{appearance:none;}
     .listItem{
@@ -134,10 +134,12 @@
       width:26px; height:26px;
       accent-color: var(--red);
       transform: scale(1.25);
+      touch-action: manipulation;
     }
     .divider{height:1px; background:#f2d2dd; margin:10px 0;}
 
-    /* Big toast (fixed bottom) */
+    /* Big toast: product name is main, price is secondary.
+       IMPORTANT: pointer-events:none to avoid blocking taps */
     .toast{
       position:fixed;
       left:12px; right:12px; bottom:14px;
@@ -148,11 +150,24 @@
       padding:14px 14px;
       box-shadow: 0 16px 40px rgba(255,59,107,.22);
       display:none;
+      pointer-events:none;
     }
     .toast.show{display:block;}
-    .toast .t{font-size:18px; font-weight:900;}
-    .toast .price{font-size:22px; font-weight:900; color:var(--red); margin-top:6px;}
-    .toast .s{font-size:15px; color:var(--muted); margin-top:4px; line-height:1.3;}
+    .toast .t{font-size:22px; font-weight:900;}
+    .toast .price{font-size:16px; font-weight:900; color:var(--red); margin-top:6px;}
+    .toast .s{font-size:14px; color:var(--muted); margin-top:4px; line-height:1.3;}
+
+    /* Billing tri-column row */
+    .triRow{
+      display:grid;
+      grid-template-columns: 1.2fr 1fr .7fr;
+      gap:8px;
+      align-items:center;
+      width:100%;
+    }
+    .triRow .c1 b{font-size:15px;}
+    .triRow .c2{font-size:14px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+    .triRow .c3{justify-self:end;font-size:14px;font-weight:900;color:var(--text);}
     .mono{font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;}
   </style>
 
