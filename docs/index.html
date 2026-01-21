@@ -12,6 +12,7 @@
 
   <style>
     :root{
+      --bg:#ffffff;
       --pink:#ffe6ef;
       --pink2:#fff3f7;
       --red:#ff3b6b;
@@ -26,7 +27,8 @@
     }
     *{box-sizing:border-box}
     body{
-      margin:0;background:linear-gradient(180deg,var(--pink2),#fff);
+      margin:0;
+      background:linear-gradient(180deg,var(--pink2),#fff);
       color:var(--text);
       font-family:"M PLUS Rounded 1c", system-ui, -apple-system, "Segoe UI", sans-serif;
       -webkit-tap-highlight-color: transparent;
@@ -62,7 +64,7 @@
       padding:14px;
       box-shadow: var(--shadow);
     }
-    .h1{margin:0 0 6px; font-size:20px; font-weight:900;}
+    .h1{margin:0 0 6px; font-size:22px; font-weight:900;}
     .h2{margin:0 0 8px; font-size:16px; font-weight:900;}
     .muted{color:var(--muted); font-size:14px; line-height:1.35;}
     .row{display:flex; gap:10px; align-items:center; flex-wrap:wrap;}
@@ -89,7 +91,7 @@
     }
     .btn.ghost{background:var(--pink);}
     .btn:disabled{opacity:.55; cursor:not-allowed;}
-    .input, .select{
+    .input, .select, .textarea{
       width:100%;
       height:54px;
       border-radius:16px;
@@ -101,6 +103,14 @@
       touch-action: manipulation;
     }
     .select{appearance:none;}
+    .textarea{
+      height:auto;
+      padding:12px;
+      font-size:16px;
+      line-height:1.35;
+      resize:vertical;
+      min-height:110px;
+    }
     .listItem{
       display:flex; justify-content:space-between; align-items:flex-start;
       gap:10px;
@@ -119,6 +129,26 @@
       color:var(--muted);
       white-space:nowrap;
     }
+    .divider{height:1px; background:#f2d2dd; margin:10px 0;}
+
+    /* Chips（患者/手技/入力者を分かりやすく） */
+    .chip{
+      display:inline-flex; align-items:center; gap:6px;
+      padding:8px 12px;
+      border-radius:999px;
+      font-weight:900;
+      font-size:14px;
+      border:1px solid #f2d2dd;
+      background: var(--pink2);
+      color: var(--text);
+      white-space:nowrap;
+    }
+    .chip.patient{ background:#fff7fb; border-color:#f2d2dd; }
+    .chip.proc{ background:var(--pink); border-color:#f1c6d4; }
+    .chip.op{ background:#fff; border-color:#f2d2dd; }
+    .chip.mat{ background:#fff; border-color: rgba(255,59,107,.45); color: var(--red); }
+
+    /* Camera */
     .videoBox{
       width:100%;
       aspect-ratio: 3 / 4;
@@ -137,9 +167,8 @@
       transform: scale(1.25);
       touch-action: manipulation;
     }
-    .divider{height:1px; background:#f2d2dd; margin:10px 0;}
 
-    /* Billing row: 商品名｜医事名称｜billing_mapコード */
+    /* Billing tri-column row */
     .triRow{
       display:grid;
       grid-template-columns: 1.25fr 1fr .75fr;
@@ -150,18 +179,11 @@
     }
     .triRow .c1 b{font-size:15px;}
     .triRow .c2{
-      font-size:14px;
-      color:var(--muted);
-      overflow:hidden;
-      text-overflow:ellipsis;
-      white-space:nowrap;
-      min-width:0;
+      font-size:14px;color:var(--muted);
+      overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0;
     }
     .triRow .c3{
-      justify-self:end;
-      font-size:14px;
-      font-weight:900;
-      color:var(--text);
+      justify-self:end;font-size:14px;font-weight:900;color:var(--text);
       white-space:nowrap;
     }
 
