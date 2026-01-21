@@ -40,7 +40,11 @@ export class Scanner {
         name: "Live",
         type: "LiveStream",
         target: this.targetEl,
-        constraints: { facingMode: "environment" },
+        constraints: {
+          facingMode: "environment",
+          width: { ideal: 1280 },
+          height:{ ideal: 720 }
+        },
         area: { top:"22%", right:"14%", left:"14%", bottom:"22%" }
       },
       locate: false,
@@ -58,7 +62,7 @@ export class Scanner {
         const code = r?.codeResult?.code;
         if (!code) return;
         const now = Date.now();
-        if (now - this._last < 150) return;
+        if (now - this._last < 120) return;
         this._last = now;
         this.onDetected?.(code);
       };
