@@ -3,7 +3,7 @@ import { Scanner, parseGS1ForGTIN14, normalizeJan13 } from "./scan.js";
 /* =========================
    Tuning
 ========================= */
-const LS = { role:"linqval_role_v1", state:"linqval_state_v9" };
+const LS = { role:"linqval_role_v1", state:"linqval_state_v10", last:"#/role" };
 const TOAST_MS = 5400;
 
 const ANY_SCAN_COOLDOWN_MS = 4500;  // 4.5秒
@@ -59,6 +59,33 @@ let state = safeParse(localStorage.getItem(LS.state), null) || defaultState();
 function save(){
   localStorage.setItem(LS.role, role);
   localStorage.setItem(LS.state, JSON.stringify(state));
+}
+
+/* =========================
+   "必ず職種選択へ戻れる" 制御
+========================= */
+function storeLastHash(){
+  // role画面自体は保存しない（戻るでループしないように）
+  if (location.hash && !location.hash.includes("#/role")) {
+    localStorage.setItem(LS.last, location.hash);
+  }
+}
+function gotoRole(){
+  // どの状態でも確実に戻る
+  storeLastHash();
+  try { scannerInst?.stop?.(); } catch {}
+  role = "";
+  save();
+  location.hash = "#/role";
+  render(); // hashchange待たずに即描画
+}
+function goBackFromRole(){
+  const last = localStorage.getItem(LS.last) || "#/";
+  // role未選択のままだと戻ってもまたroleに来るので、戻るは「roleだけ閉じる」用途
+  // ここでは role は未選択のまま（＝戻っても再度roleになる）ため、使わない運用推奨
+  // ただしユーザー要望で「戻る」ボタンは出す
+  location.hash = last;
+  render();
 }
 
 /* =========================
@@ -144,7 +171,6 @@ function mapDictRow(row){
     const price = pr ? Number(pr.replace(/[^\d]/g,"")) : 0;
     if (name || price) tokutei_details.push({ idx: nn, name, price });
   }
-
   return { product_name, total_reimbursement_price_yen: total, tokutei01_name, tokutei_details };
 }
 
@@ -220,6 +246,8 @@ function ensureDocsPatient(pid){
    Screens
 ========================= */
 function screenRole(){
+  const last = localStorage.getItem(LS.last);
+  const canBack = !!last && last !== "#/role";
   return `
     <div class="grid"><div class="card">
       <div class="h1">職種</div><div class="divider"></div>
@@ -227,6 +255,10 @@ function screenRole(){
         ${btn("👨‍⚕️ 医師","role_doctor","primary")}
         ${btn("📷 実施入力","role_field","primary")}
         ${btn("🧾 医事","role_billing","primary")}
+      </div>
+      <div class="divider"></div>
+      <div class="row">
+        ${btn("⬅ 戻る","role_back","ghost")}
       </div>
     </div></div>`;
 }
@@ -238,6 +270,7 @@ function screenDoctorHome(){
     <div class="grid">
       ${btn("✅ 承認","go_doc_approve","primary")}
       ${btn("📝 Docs","go_doc_docs","primary")}
+      ${btn("🔁 職種","go_role_any","ghost")}
     </div>
   </div></div>`;
 }
@@ -275,6 +308,7 @@ function screenDoctorApprovals(){
       <div class="row">
         ${btn("✅ 一括承認","bulk_approve","primary")}
         ${btn("⬅ 戻る","back_doc_home","ghost")}
+        ${btn("🔁 職種","go_role_any2","ghost")}
       </div>
     </div>
     <div class="card" id="approveDetail" style="display:none;"></div>
@@ -305,6 +339,7 @@ function renderApprovalDetail(item){
     <div class="row">
       <button class="btn primary" id="approve_with_comment">✅ 承認</button>
       <button class="btn ghost" id="close_detail">✖ 閉じる</button>
+      <button class="btn ghost" id="go_role_any3">🔁 職種</button>
     </div>
   `;
 }
@@ -322,6 +357,7 @@ function screenDoctorDocs(){
         ${btn("✉️ 返書","docs_reply","primary")}
         ${btn("📎 その他","docs_other","primary")}
         ${btn("⬅ 戻る","back_doc_home2","ghost")}
+        ${btn("🔁 職種","go_role_any4","ghost")}
       </div>
     </div>
     <div class="card" id="docsList" style="display:none;"></div>
@@ -337,6 +373,7 @@ function screenFieldHome(){
       ${btn("📷 スキャン","go_field_scan","primary")}
       ${btn("🗂 下書き","go_field_drafts","primary")}
       ${btn("📅 実施済み","go_field_done","primary")}
+      ${btn("🔁 職種","go_role_any5","ghost")}
     </div>
   </div></div>`;
 }
@@ -354,7 +391,11 @@ function screenDrafts(){
   return `<div class="grid"><div class="card">
     <div class="h1">下書き</div><div class="divider"></div>
     <div class="grid">${list}</div>
-    <div class="divider"></div>${btn("⬅ 戻る","back_field_home","ghost")}
+    <div class="divider"></div>
+    <div class="row">
+      ${btn("⬅ 戻る","back_field_home","ghost")}
+      ${btn("🔁 職種","go_role_any6","ghost")}
+    </div>
   </div></div>`;
 }
 
@@ -372,7 +413,11 @@ function screenDone(){
   return `<div class="grid"><div class="card">
     <div class="h1">実施済み</div><div class="divider"></div>
     <div class="grid">${list}</div>
-    <div class="divider"></div>${btn("⬅ 戻る","back_field_home2","ghost")}
+    <div class="divider"></div>
+    <div class="row">
+      ${btn("⬅ 戻る","back_field_home2","ghost")}
+      ${btn("🔁 職種","go_role_any7","ghost")}
+    </div>
   </div></div>`;
 }
 
@@ -382,13 +427,14 @@ function screenFieldStep(step){
   const saveBar = `<div class="row">
     <button class="btn ghost" id="save_draft_any">💾 下書き</button>
     <button class="btn ghost" id="cancel_flow">✖ 中止</button>
+    <button class="btn ghost" id="go_role_any8">🔁 職種</button>
   </div>`;
 
   if (step===1){
     return `<div class="grid"><div class="card">
       <div class="h1">入力者</div><div class="divider"></div>
       <select class="select" id="op_select">
-        <option value="">選択</option>${OPERATORS.map(o=>`<option value="${o.id}">${o.label}</option>`).join("")}
+        <option value="">選択</option>${OPERATORS.map(o=>`<option value="${o.id}" ${scanCtx.operatorId===o.id?"selected":""}>${o.label}</option>`).join("")}
       </select>
       <div class="divider"></div>${btn("➡ 次へ","to_step2","primary")}
       <div class="divider"></div>${saveBar}
@@ -398,24 +444,17 @@ function screenFieldStep(step){
     return `<div class="grid"><div class="card">
       <div class="h1">患者</div><div class="divider"></div>
       <select class="select" id="pt_select">
-        <option value="">選択</option>${PATIENTS.map(p=>`<option value="${p.id}">${p.label}</option>`).join("")}
+        <option value="">選択</option>${PATIENTS.map(p=>`<option value="${p.id}" ${scanCtx.patientId===p.id?"selected":""}>${p.label}</option>`).join("")}
       </select>
       <div class="divider"></div>${btn("➡ 次へ","to_step3","primary")}
       <div class="divider"></div>${saveBar}
     </div></div>`;
   }
   if (step===3){
-    const sugIds = (PROC_SUG.base || []).slice(0,6);
-    const sugBtns = sugIds.map(id=>{
-      const p = PROCEDURES.find(x=>x.id===id);
-      return p ? `<button class="btn small ghost" data-sug="${p.id}">${p.label}</button>` : "";
-    }).join("");
     return `<div class="grid"><div class="card">
       <div class="h1">手技</div><div class="divider"></div>
-      <div class="row">${sugBtns || `<span class="muted">候補なし</span>`}</div>
-      <div class="divider"></div>
       <select class="select" id="proc_select">
-        <option value="">選択</option>${PROCEDURES.map(p=>`<option value="${p.id}">${p.label}</option>`).join("")}
+        <option value="">選択</option>${PROCEDURES.map(p=>`<option value="${p.id}" ${scanCtx.procedureId===p.id?"selected":""}>${p.label}</option>`).join("")}
       </select>
       <div class="divider"></div>${btn("➡ 次へ","to_step4","primary")}
       <div class="divider"></div>${saveBar}
@@ -438,14 +477,37 @@ function screenFieldStep(step){
     </div></div>`;
   }
 
+  // ★確定画面で「入力者/患者/手技」を編集できる
   return `<div class="grid"><div class="card">
-    <div class="h1">確定</div><div class="divider"></div>
+    <div class="h1">確定</div>
+    <div class="divider"></div>
+
+    <div class="h2">入力者</div>
+    <select class="select" id="op_select2">
+      <option value="">選択</option>${OPERATORS.map(o=>`<option value="${o.id}" ${scanCtx.operatorId===o.id?"selected":""}>${o.label}</option>`).join("")}
+    </select>
+
+    <div class="divider"></div>
+    <div class="h2">患者</div>
+    <select class="select" id="pt_select2">
+      <option value="">選択</option>${PATIENTS.map(p=>`<option value="${p.id}" ${scanCtx.patientId===p.id?"selected":""}>${p.label}</option>`).join("")}
+    </select>
+
+    <div class="divider"></div>
+    <div class="h2">手技</div>
+    <select class="select" id="proc_select2">
+      <option value="">選択</option>${PROCEDURES.map(p=>`<option value="${p.id}" ${scanCtx.procedureId===p.id?"selected":""}>${p.label}</option>`).join("")}
+    </select>
+
+    <div class="divider"></div>
     <div class="grid" id="confirmList"></div>
+
     <div class="divider"></div>
     <div class="row">
       ${btn("✅ 実施済み","confirm_done","primary")}
       ${btn("⬅ 戻る","back_step4","ghost")}
       ${btn("💾 下書き","save_draft_any2","ghost")}
+      ${btn("🔁 職種","go_role_any9","ghost")}
     </div>
   </div></div>`;
 }
@@ -478,7 +540,7 @@ function screenBillingHome(){
     <div class="grid">
       ${btn("📄 実施入力済み","go_bill_done","primary")}
       ${btn("⏳ 承認待ち","go_bill_pending","primary")}
-      ${btn("⬅ 戻る","back_bill_home","ghost")}
+      ${btn("🔁 職種","go_role_any10","ghost")}
     </div>
   </div></div>`;
 }
@@ -503,7 +565,10 @@ function screenBillingList(kind){
       <div class="divider"></div>
       <div class="grid">${list}</div>
       <div class="divider"></div>
-      ${btn("⬅ 戻る","back_billing_home","ghost")}
+      <div class="row">
+        ${btn("⬅ 戻る","back_billing_home","ghost")}
+        ${btn("🔁 職種","go_role_any11","ghost")}
+      </div>
     </div>
     <div class="card" id="billDetail" style="display:none;"></div>
   </div>`;
@@ -528,7 +593,10 @@ function renderBillingDetail(item){
     <div class="h2">材料</div>
     <div class="grid">${mats}</div>
     <div class="divider"></div>
-    ${btn("✖ 閉じる","close_bill_detail","ghost")}
+    <div class="row">
+      ${btn("✖ 閉じる","close_bill_detail","ghost")}
+      ${btn("🔁 職種","go_role_any12","ghost")}
+    </div>
   `;
 }
 
@@ -564,24 +632,13 @@ function paintConfirmList(){
   const box = $("#confirmList");
   if (!box) return;
 
-  const op = OPERATORS.find(o=>o.id===scanCtx.operatorId)?.label || "未選択";
-  const pt = PATIENTS.find(p=>p.id===scanCtx.patientId)?.label || "未選択";
-  const pr = PROCEDURES.find(p=>p.id===scanCtx.procedureId)?.label || "未選択";
-
-  const header = `
-    ${listItem(`<b>入力者</b><div class="muted">${op}</div>`)}
-    ${listItem(`<b>患者</b><div class="muted">${pt}</div>`)}
-    ${listItem(`<b>手技</b><div class="muted">${pr}</div>`)}
-    <div class="divider"></div>
-  `;
-
   const mats = (scanCtx.materials||[]).map(m=>{
     const left = `<b>${m.product_name||"(不明)"}</b><div class="muted">${m.tokutei01_name||""}</div>`;
     const right = `<button class="btn small ghost" data-delmat2="${m.id}">🗑</button>`;
     return listItem(left, right);
   }).join("") || `<div class="muted">材料なし</div>`;
 
-  box.innerHTML = header + mats;
+  box.innerHTML = mats;
 
   box.querySelectorAll("[data-delmat2]").forEach(b=>{
     b.onclick = ()=>{
@@ -596,38 +653,50 @@ function paintConfirmList(){
 /* =========================
    Render + bind
 ========================= */
+function bindGoRoleButtons(){
+  document.querySelectorAll("[id^='go_role_any']").forEach(el=>{
+    el.onclick = gotoRole;
+  });
+}
+
 function render(){
   setRolePill(role);
   const v = view();
   const app = $("#app");
 
-  // ヘッダの職種変更は常に効く
-  $("#btnRole").onclick = ()=>{ role=""; save(); setView("/role"); render(); };
+  // 常に「職種変更」ボタンは効く
+  $("#btnRole").onclick = gotoRole;
+  $("#rolePill").onclick = gotoRole; // pillタップでも戻れる（保険）
 
   // scan以外でカメラ停止
-  if (!v.startsWith("/field/scan/step/4") && scannerInst?.isRunning?.()) scannerInst.stop();
+  if (!v.startsWith("/field/scan/step/4")) {
+    try { scannerInst?.stop?.(); } catch {}
+  }
 
-  // ★ role未選択なら必ずrole画面を描画（戻れない問題の解消）
+  // role未選択 or role画面は常にrole画面を描画
   if (!role || v === "/role"){
     app.innerHTML = screenRole();
-    $("#role_doctor").onclick=()=>{ role="doctor"; save(); setView("/"); render(); };
-    $("#role_field").onclick =()=>{ role="field";  save(); setView("/"); render(); };
-    $("#role_billing").onclick=()=>{ role="billing";save(); setView("/"); render(); };
+    $("#role_doctor").onclick=()=>{ role="doctor"; save(); location.hash="#/"; render(); };
+    $("#role_field").onclick =()=>{ role="field";  save(); location.hash="#/"; render(); };
+    $("#role_billing").onclick=()=>{ role="billing";save(); location.hash="#/"; render(); };
+    $("#role_back").onclick = ()=> goBackFromRole();
     return;
   }
 
-  /* ---------- Doctor routes ---------- */
+  /* ---------- Doctor ---------- */
   if (role==="doctor"){
     if (v === "/" || v === ""){
       app.innerHTML = screenDoctorHome();
-      $("#go_doc_approve").onclick=()=>{ setView("/doctor/approvals"); render(); };
-      $("#go_doc_docs").onclick=()=>{ setView("/doctor/docs"); render(); };
+      $("#go_doc_approve").onclick=()=>{ storeLastHash(); setView("/doctor/approvals"); render(); };
+      $("#go_doc_docs").onclick=()=>{ storeLastHash(); setView("/doctor/docs"); render(); };
+      bindGoRoleButtons();
       return;
     }
 
     if (v === "/doctor/approvals"){
       app.innerHTML = screenDoctorApprovals();
       $("#back_doc_home").onclick=()=>{ setView("/"); render(); };
+      $("#go_role_any2").onclick = gotoRole;
 
       $("#bulk_approve").onclick=()=>{
         const bulkText = $("#bulk_comment").value || "";
@@ -645,11 +714,8 @@ function render(){
           if (!it) return;
           it.status="approved";
           it.approved_at = iso();
-          // 既存コメントがあれば追記
           if (bulkText.trim()){
-            it.doctor_comment = it.doctor_comment
-              ? `${it.doctor_comment}\n---\n${bulkText}` 
-              : bulkText;
+            it.doctor_comment = it.doctor_comment ? `${it.doctor_comment}\n---\n${bulkText}` : bulkText;
           }
         });
 
@@ -668,8 +734,8 @@ function render(){
           box.style.display="block";
 
           $("#doctor_comment").value = item.doctor_comment || "";
-
           $("#close_detail").onclick=()=>{ box.style.display="none"; };
+          $("#go_role_any3").onclick = gotoRole;
 
           $("#approve_with_comment").onclick=()=>{
             item.status="approved";
@@ -689,6 +755,7 @@ function render(){
     if (v === "/doctor/docs"){
       app.innerHTML = screenDoctorDocs();
       $("#back_doc_home2").onclick=()=>{ setView("/"); render(); };
+      $("#go_role_any4").onclick = gotoRole;
 
       const docsList=$("#docsList");
       const editor=$("#docsEditor");
@@ -746,8 +813,10 @@ function render(){
           <div class="row">
             <button class="btn primary" id="doc_save">💾 保存</button>
             <button class="btn ghost" id="doc_back">⬅ 戻る</button>
+            <button class="btn ghost" id="go_role_anyX">🔁 職種</button>
           </div>
         `;
+        $("#go_role_anyX").onclick = gotoRole;
         $("#doc_text").value = draft.text||"";
 
         $("#doc_save").onclick=()=>{
@@ -777,19 +846,21 @@ function render(){
     setView("/"); render(); return;
   }
 
-  /* ---------- Field routes ---------- */
+  /* ---------- Field ---------- */
   if (role==="field"){
     if (v === "/" || v === ""){
       app.innerHTML = screenFieldHome();
-      $("#go_field_scan").onclick=()=>{ scanCtx=null; lastScan={anyTs:0,raw:"",sameTs:0}; setView("/field/scan/step/1"); render(); };
-      $("#go_field_drafts").onclick=()=>{ setView("/field/drafts"); render(); };
-      $("#go_field_done").onclick=()=>{ setView("/field/done"); render(); };
+      $("#go_field_scan").onclick=()=>{ scanCtx=null; lastScan={anyTs:0,raw:"",sameTs:0}; storeLastHash(); setView("/field/scan/step/1"); render(); };
+      $("#go_field_drafts").onclick=()=>{ storeLastHash(); setView("/field/drafts"); render(); };
+      $("#go_field_done").onclick=()=>{ storeLastHash(); setView("/field/done"); render(); };
+      bindGoRoleButtons();
       return;
     }
 
     if (v === "/field/drafts"){
       app.innerHTML = screenDrafts();
       $("#back_field_home").onclick=()=>{ setView("/"); render(); };
+      bindGoRoleButtons();
       document.querySelectorAll("[data-resume]").forEach(b=>{
         b.onclick=()=>{
           const id=b.getAttribute("data-resume");
@@ -806,22 +877,24 @@ function render(){
     if (v === "/field/done"){
       app.innerHTML = screenDone();
       $("#back_field_home2").onclick=()=>{ setView("/"); render(); };
+      bindGoRoleButtons();
       return;
     }
 
     if (v.startsWith("/field/scan/step/")){
       const step = Number(v.split("/").pop());
       app.innerHTML = screenFieldStep(step);
+      bindGoRoleButtons();
 
       const saveDraftExit = ()=>{
         upsertDraft();
-        if (scannerInst?.isRunning?.()) scannerInst.stop();
+        try { scannerInst?.stop?.(); } catch {}
         toastShow({title:"下書き", sub:"保存"});
         scanCtx=null;
         setView("/field/drafts"); render();
       };
       const cancel = ()=>{
-        if (scannerInst?.isRunning?.()) scannerInst.stop();
+        try { scannerInst?.stop?.(); } catch {}
         scanCtx=null;
         setView("/"); render();
       };
@@ -848,9 +921,11 @@ function render(){
         return;
       }
       if (step===3){
-        document.querySelectorAll("[data-sug]").forEach(b=>{
-          b.onclick=()=>{ scanCtx.procedureId=b.getAttribute("data-sug"); $("#proc_select").value=scanCtx.procedureId; };
-        });
+        $("#proc_select").onchange = ()=>{
+          ensureScanCtx();
+          scanCtx.procedureId = $("#proc_select").value || "";
+          upsertDraft();
+        };
         $("#to_step4").onclick=()=>{
           ensureScanCtx();
           scanCtx.procedureId=$("#proc_select").value||scanCtx.procedureId||"";
@@ -867,7 +942,6 @@ function render(){
         const startBtn=$("#scan_start"), stopBtn=$("#scan_stop"), target=$("#scannerTarget");
         const setBtns=(run)=>{ startBtn.disabled=!!run; stopBtn.disabled=!run; };
 
-        // 不明は保存しない
         const isSupported = (raw)=>{
           const jan13 = normalizeJan13(raw);
           if (jan13) return { kind:"jan13", jan13 };
@@ -927,20 +1001,31 @@ function render(){
         stopBtn.onclick=()=>{ scannerInst.stop(); setBtns(false); };
 
         $("#to_confirm").onclick=()=>{
-          if (scannerInst?.isRunning?.()) scannerInst.stop();
+          scannerInst?.stop?.();
           upsertDraft();
           setView("/field/scan/step/5"); render();
         };
         return;
       }
 
-      // step5 confirm
+      // step5 confirm + editable selects
       ensureScanCtx();
       paintConfirmList();
 
-      $("#back_step4").onclick=()=>{ setView("/field/scan/step/4"); render(); };
-      $("#save_draft_any2").onclick=saveDraftExit;
+      $("#op_select2").onchange = ()=>{
+        scanCtx.operatorId = $("#op_select2").value || "";
+        upsertDraft();
+      };
+      $("#pt_select2").onchange = ()=>{
+        scanCtx.patientId = $("#pt_select2").value || "";
+        upsertDraft();
+      };
+      $("#proc_select2").onchange = ()=>{
+        scanCtx.procedureId = $("#proc_select2").value || "";
+        upsertDraft();
+      };
 
+      $("#back_step4").onclick=()=>{ setView("/field/scan/step/4"); render(); };
       $("#confirm_done").onclick=()=>{
         ensureScanCtx();
         if (!scanCtx.operatorId){ toastShow({title:"未選択", sub:"入力者"}); return; }
@@ -969,26 +1054,26 @@ function render(){
         toastShow({title:"確定", sub:"承認待ちへ"});
         setView("/field/done"); render();
       };
+
       return;
     }
 
     setView("/"); render(); return;
   }
 
-  /* ---------- Billing routes ---------- */
+  /* ---------- Billing ---------- */
   if (role==="billing"){
     if (v === "/" || v === ""){
       app.innerHTML = screenBillingHome();
       $("#go_bill_done").onclick=()=>{ setView("/billing/done"); render(); };
       $("#go_bill_pending").onclick=()=>{ setView("/billing/pending"); render(); };
-      $("#back_bill_home").onclick=()=>{ role=""; save(); setView("/role"); render(); };
+      bindGoRoleButtons();
       return;
     }
-
     if (v === "/billing/done" || v === "/billing/pending"){
       app.innerHTML = screenBillingList(v.endsWith("pending")?"pending":"done");
       $("#back_billing_home").onclick=()=>{ setView("/"); render(); };
-
+      bindGoRoleButtons();
       document.querySelectorAll("[data-openbill]").forEach(el=>{
         el.onclick=()=>{
           const id = el.getAttribute("data-openbill");
@@ -998,15 +1083,14 @@ function render(){
           box.innerHTML = renderBillingDetail(item);
           box.style.display="block";
           $("#close_bill_detail").onclick=()=>{ box.style.display="none"; };
+          bindGoRoleButtons();
         };
       });
       return;
     }
-
     setView("/"); render(); return;
   }
 
-  // fallback
   setView("/role"); render();
 }
 
@@ -1016,7 +1100,6 @@ function render(){
 (async function(){
   await bootData();
   window.addEventListener("hashchange", render);
-
   if (!location.hash) location.hash="#/role";
   setRolePill(role);
   save();
