@@ -1,18 +1,18 @@
 import { Scanner, parseGS1ForGTIN14, normalizeJan13 } from "./scan.js";
 
-/* ---------------------------
+/* =========================
    Tuning
----------------------------- */
-const LS = { role:"linqval_role_v1", state:"linqval_state_v6" };
+========================= */
+const LS = { role:"linqval_role_v1", state:"linqval_state_v7" };
 const TOAST_MS = 5400;
 
-// A) 1回読んだら必ず2〜3秒は次を読まない ＋2秒 → 4.5秒
+// A) 2〜3秒 +2秒 => 4.5秒
 const ANY_SCAN_COOLDOWN_MS = 4500;
 const SAME_CODE_COOLDOWN_MS = 8000;
 
-/* ---------------------------
+/* =========================
    Helpers
----------------------------- */
+========================= */
 const $ = (s)=>document.querySelector(s);
 const iso = ()=>new Date().toISOString();
 const jpy = (n)=> (Number(n||0)).toLocaleString("ja-JP");
@@ -20,8 +20,7 @@ function safeParse(s, fb){ try { return JSON.parse(s); } catch { return fb; } }
 function uid(prefix="ID"){ return `${prefix}-${Math.random().toString(16).slice(2,10)}-${Date.now().toString(36)}`; }
 
 function toastShow({ title, price, sub }){
-  // 商品名を主役に
-  $("#toastTitle").textContent = title || "OK";
+  $("#toastTitle").textContent = title || "OK"; // 商品名が主役
   $("#toastPrice").textContent = price ? `${jpy(price)}円` : "";
   $("#toastSub").textContent = sub || "";
   $("#toast").classList.add("show");
@@ -46,9 +45,9 @@ function listItem(htmlLeft, htmlRight=""){
   return `<div class="listItem"><div style="flex:1;">${htmlLeft}</div><div>${htmlRight}</div></div>`;
 }
 
-/* ---------------------------
+/* =========================
    State
----------------------------- */
+========================= */
 function defaultState(){
   return { drafts:[], done:[], docsDrafts:{} };
 }
@@ -59,9 +58,9 @@ function save(){
   localStorage.setItem(LS.state, JSON.stringify(state));
 }
 
-/* ---------------------------
-   Fallback data (候補0件を防ぐ)
----------------------------- */
+/* =========================
+   Fallback data (候補0件防止)
+========================= */
 const FALLBACK_OPERATORS = [
   { id:"op1", label:"看護師A" },{ id:"op2", label:"看護師B" },{ id:"op3", label:"臨床工学C" }
 ];
@@ -92,9 +91,9 @@ async function bootData(){
   if (!Array.isArray(PROCEDURES)||!PROCEDURES.length) PROCEDURES=FALLBACK_PROCEDURES;
 }
 
-/* ---------------------------
-   Dict CSV helpers (あなたのヘッダ対応)
----------------------------- */
+/* =========================
+   Dict CSV helpers
+========================= */
 function parseCsvLine(line){
   const out=[]; let cur=""; let q=false;
   for (let i=0;i<line.length;i++){
@@ -130,15 +129,10 @@ function buildGtinPath(gtin14){ return `./gtin_index/${gtin14.slice(0,3)}/${gtin
 
 function mapDictRow(row){
   const product_name = (row["product_name"]||"").trim() || "(名称不明)";
-  const manufacturer_name = (row["manufacturer_name"]||"").trim();
-  const product_no = (row["product_no"]||"").trim();
-  const product_sta = (row["product_sta"]||"").trim();
   const totalRaw = (row["total_reimbursement_price_yen"]||"").toString();
   const total = totalRaw ? Number(totalRaw.replace(/[^\d]/g,"")) : 0;
-
   const tokutei01_name = (row["tokutei01_name"]||"").trim();
 
-  // 内訳（医事画面だけで表示）
   const tokutei_details = [];
   for (let i=1;i<=10;i++){
     const nn = String(i).padStart(2,"0");
@@ -147,12 +141,8 @@ function mapDictRow(row){
     const price = pr ? Number(pr.replace(/[^\d]/g,"")) : 0;
     if (name || price) tokutei_details.push({ idx: nn, name, price });
   }
-
   return {
     product_name,
-    manufacturer_name,
-    product_no,
-    product_sta,
     total_reimbursement_price_yen: total,
     tokutei01_name,
     tokutei_details
@@ -171,7 +161,6 @@ async function lookupByJan13(jan13){
     return { status:"dict_fetch_error", error:e.message };
   }
 }
-
 async function lookupJanFromGtin14(gtin14){
   try{
     const csv = await fetchText(buildGtinPath(gtin14));
@@ -188,18 +177,18 @@ async function lookupJanFromGtin14(gtin14){
   }
 }
 
-/* ---------------------------
-   Billing map code (医事側はこれを表示)
----------------------------- */
+/* =========================
+   Billing map code (医事側で表示)
+========================= */
 function billingMapCode(material){
   const t = material?.tokutei01_name || "";
   const p = material?.product_name || "";
   return BILLMAP.byTokuteiName?.[t] || BILLMAP.byProductName?.[p] || "—";
 }
 
-/* ---------------------------
+/* =========================
    Procedure suggest
----------------------------- */
+========================= */
 function suggestProcedureIds(materials){
   const base = PROC_SUG.base || [];
   const extra=[];
@@ -216,17 +205,22 @@ function suggestProcedureIds(materials){
   return out.slice(0,6);
 }
 
-/* ---------------------------
+/* =========================
    Routing + flow ctx
----------------------------- */
+========================= */
 let scannerInst=null;
 let scanCtx=null; // {draftId, step, operatorId, patientId, procedureId, place, materials[]}
 let lastScan = { anyTs:0, raw:"", sameTs:0 };
 
 function setView(hash){ location.hash = `#${hash}`; }
 function view(){ return (location.hash || "#/").slice(1); }
-function ensureRole(){ if (!role){ setView("/role"); return false; } return true; }
-
+function ensureRole(){
+  if (!role){
+    if (view() !== "/role") setView("/role");
+    return false;
+  }
+  return true;
+}
 function ensureScanCtx(){
   if (!scanCtx){
     scanCtx = { draftId:uid("DRAFT"), step:1, operatorId:"", patientId:"", procedureId:"", place:"未設定", materials:[], createdAt:iso(), updatedAt:iso() };
@@ -240,9 +234,9 @@ function upsertDraft(){
   save();
 }
 
-/* ---------------------------
+/* =========================
    Screens
----------------------------- */
+========================= */
 function screenRole(){
   return `
     <div class="grid"><div class="card">
@@ -255,7 +249,6 @@ function screenRole(){
     </div></div>`;
 }
 
-/* ---- Doctor ---- */
 function screenDoctorHome(){
   return `<div class="grid"><div class="card">
     <div class="h1">医師</div>
@@ -266,79 +259,6 @@ function screenDoctorHome(){
   </div></div>`;
 }
 
-function screenDoctorApprovals(){
-  const pending = state.done.filter(x=>x.status==="pending");
-  const list = pending.length ? pending.map(x=>{
-    const patient = PATIENTS.find(p=>p.id===x.patientId)?.label || x.patientId;
-    const operator= OPERATORS.find(o=>o.id===x.operatorId)?.label || x.operatorId;
-    return `
-      <div class="listItem">
-        <div style="display:flex;gap:12px;align-items:center;">
-          <input class="check" type="checkbox" data-chk="${x.id}">
-          <div><b>${patient}</b><div class="muted">${operator} / ${x.place||"未設定"}</div></div>
-        </div>
-        <button class="btn small" data-open="${x.id}">詳細</button>
-      </div>`;
-  }).join("") : `<div class="muted">承認待ちなし</div>`;
-
-  return `<div class="grid">
-    <div class="card">
-      <div class="h1">承認</div><div class="divider"></div>
-      <div class="grid">${list}</div><div class="divider"></div>
-      <div class="row">${btn("✅ 一括承認","bulk_approve","primary")}${btn("⬅ 戻る","back_doc_home","ghost")}</div>
-    </div>
-    <div class="card" id="approveDetail" style="display:none;"></div>
-  </div>`;
-}
-
-// 医師側はコードを見せない（要望）
-function renderApprovalDetail(item){
-  const patient = PATIENTS.find(p=>p.id===item.patientId)?.label || item.patientId;
-  const proc = PROCEDURES.find(p=>p.id===item.procedureId)?.label || "未選択";
-  const mats = (item.materials||[]).map(m=>{
-    const left = `<b>${m.product_name||"(不明)"}</b><div class="muted">${m.tokutei01_name||""}</div>`;
-    return listItem(left, "");
-  }).join("") || `<div class="muted">材料なし</div>`;
-
-  return `
-    <div class="h2">詳細</div>
-    ${listItem(`<b>患者</b><div class="muted">${patient}</div>`)}
-    ${listItem(`<b>手技</b><div class="muted">${proc}</div>`)}
-    <div class="divider"></div>
-    <div class="grid">${mats}</div>
-    <div class="divider"></div>
-    <div class="row">
-      <button class="btn primary" id="approve_one" data-id="${item.id}">✅ 承認</button>
-      <button class="btn ghost" id="close_detail">✖ 閉じる</button>
-    </div>`;
-}
-
-/* Docs（複数下書き） */
-function ensureDocsPatient(pid){
-  state.docsDrafts[pid] = state.docsDrafts[pid] || { symptom:[], reply:[], other:[] };
-  return state.docsDrafts[pid];
-}
-function screenDoctorDocs(){
-  return `<div class="grid">
-    <div class="card">
-      <div class="h1">Docs</div><div class="divider"></div>
-      <select class="select" id="docs_patient">
-        ${PATIENTS.map(p=>`<option value="${p.id}">${p.label}</option>`).join("")}
-      </select>
-      <div class="divider"></div>
-      <div class="grid">
-        ${btn("🩺 症状詳記","docs_symptom","primary")}
-        ${btn("✉️ 返書","docs_reply","primary")}
-        ${btn("📎 その他","docs_other","primary")}
-        ${btn("⬅ 戻る","back_doc_home2","ghost")}
-      </div>
-    </div>
-    <div class="card" id="docsList" style="display:none;"></div>
-    <div class="card" id="docsEditor" style="display:none;"></div>
-  </div>`;
-}
-
-/* ---- Field ---- */
 function screenFieldHome(){
   return `<div class="grid"><div class="card">
     <div class="h1">実施入力</div>
@@ -350,8 +270,47 @@ function screenFieldHome(){
   </div></div>`;
 }
 
+function screenDrafts(){
+  const list = state.drafts.length ? state.drafts.map(d=>{
+    const pt = PATIENTS.find(p=>p.id===d.patientId)?.label || "患者未選択";
+    const op = OPERATORS.find(o=>o.id===d.operatorId)?.label || "入力者未選択";
+    return `<div class="listItem">
+      <div><b>${pt}</b><div class="muted">${op} / ${(d.materials||[]).length}点</div></div>
+      <button class="btn small" data-resume="${d.id}">続き</button>
+    </div>`;
+  }).join("") : `<div class="muted">下書きなし</div>`;
+
+  return `<div class="grid"><div class="card">
+    <div class="h1">下書き</div><div class="divider"></div>
+    <div class="grid">${list}</div>
+    <div class="divider"></div>${btn("⬅ 戻る","back_field_home","ghost")}
+  </div></div>`;
+}
+
+function screenDone(){
+  const today = new Date().toISOString().slice(0,10);
+  const items = state.done.filter(x=>x.date===today);
+  const list = items.length ? items.map(x=>{
+    const pt = PATIENTS.find(p=>p.id===x.patientId)?.label || x.patientId;
+    const op = OPERATORS.find(o=>o.id===x.operatorId)?.label || x.operatorId;
+    const st = x.status==="pending" ? "承認待ち" : "承認済";
+    return listItem(`<b>${pt}</b><div class="muted">${op} / ${st}</div>`, `<span class="tag">${(x.materials||[]).length}点</span>`);
+  }).join("") : `<div class="muted">当日データなし</div>`;
+
+  return `<div class="grid"><div class="card">
+    <div class="h1">実施済み</div><div class="divider"></div>
+    <div class="grid">${list}</div>
+    <div class="divider"></div>${btn("⬅ 戻る","back_field_home2","ghost")}
+  </div></div>`;
+}
+
 function screenFieldStep(step){
   ensureScanCtx(); scanCtx.step=step;
+
+  const opLabel = OPERATORS.find(o=>o.id===scanCtx.operatorId)?.label || "未選択";
+  const ptLabel = PATIENTS.find(p=>p.id===scanCtx.patientId)?.label || "未選択";
+  const prLabel = PROCEDURES.find(p=>p.id===scanCtx.procedureId)?.label || "未選択";
+
   const saveBar = `<div class="row">
     <button class="btn ghost" id="save_draft_any">💾 下書き</button>
     <button class="btn ghost" id="cancel_flow">✖ 中止</button>
@@ -395,30 +354,23 @@ function screenFieldStep(step){
     </div></div>`;
   }
 
-   if (step===4){
-    const op = OPERATORS.find(o=>o.id===scanCtx.operatorId)?.label || "未選択";
-    const pt = PATIENTS.find(p=>p.id===scanCtx.patientId)?.label || "未選択";
-    const pr = PROCEDURES.find(p=>p.id===scanCtx.procedureId)?.label || "未選択";
-
+  if (step===4){
     const mats = (scanCtx.materials||[]).slice(0,8).map(m=>{
-      const left = `
-        <span class="chip mat">材料</span>
+      const left = `<span class="chip mat">材料</span>
         <div style="margin-top:6px;"><b>${m.product_name||"(不明)"}</b></div>
-        <div class="muted">${m.tokutei01_name||""}</div>
-      `;
-      const right = `<span class="tag">${m.dict_status}</span>`;
-      return listItem(left,right);
+        <div class="muted">${m.tokutei01_name||""}</div>`;
+      return listItem(left, `<span class="tag">${m.dict_status}</span>`);
     }).join("") || `<div class="muted">材料なし</div>`;
 
     return `<div class="grid"><div class="card">
       <div class="h1">材料</div>
 
       <div class="row" style="margin-top:8px;">
-        <span class="chip patient">患者</span><span style="font-weight:900;">${pt}</span>
-        <span class="chip proc">手技</span><span style="font-weight:900;">${pr}</span>
+        <span class="chip patient">患者</span><span style="font-weight:900;">${ptLabel}</span>
+        <span class="chip proc">手技</span><span style="font-weight:900;">${prLabel}</span>
       </div>
       <div class="row" style="margin-top:6px;">
-        <span class="chip" style="background:#fff;border-color:#f2d2dd;">入力者</span><span style="font-weight:900;">${op}</span>
+        <span class="chip" style="background:#fff;border-color:#f2d2dd;">入力者</span><span style="font-weight:900;">${opLabel}</span>
       </div>
 
       <div class="divider"></div>
@@ -434,44 +386,25 @@ function screenFieldStep(step){
       <div class="divider"></div>
       <div class="grid" id="matList">${mats}</div>
 
-      <div class="divider"></div>
-      <div class="row">
-        <button class="btn ghost" id="save_draft_any">💾 下書き</button>
-        <button class="btn ghost" id="cancel_flow">✖ 中止</button>
-      </div>
+      <div class="divider"></div>${saveBar}
     </div></div>`;
   }
 
-  // confirm（患者/手技/材料を色分けして“まとまり”を出す）
-  const op = OPERATORS.find(o=>o.id===scanCtx.operatorId)?.label || "未選択";
-  const pt = PATIENTS.find(p=>p.id===scanCtx.patientId)?.label || "未選択";
-  const pr = PROCEDURES.find(p=>p.id===scanCtx.procedureId)?.label || "未選択";
-
+  // confirm（コードは出さない）
   const mats = (scanCtx.materials||[]).map(m=>{
-    const left = `
-      <span class="chip mat">材料</span>
+    const left = `<span class="chip mat">材料</span>
       <div style="margin-top:6px;"><b>${m.product_name||"(不明)"}</b></div>
-      <div class="muted">${m.tokutei01_name||""}</div>
-    `;
+      <div class="muted">${m.tokutei01_name||""}</div>`;
     return listItem(left,"");
   }).join("") || `<div class="muted">材料なし</div>`;
 
   return `<div class="grid"><div class="card">
     <div class="h1">確定</div>
-
-    <div class="row" style="margin-top:8px;">
-      <span class="chip patient">患者</span><span style="font-weight:900;">${pt}</span>
-    </div>
-    <div class="row" style="margin-top:6px;">
-      <span class="chip proc">手技</span><span style="font-weight:900;">${pr}</span>
-    </div>
-    <div class="row" style="margin-top:6px;">
-      <span class="chip" style="background:#fff;border-color:#f2d2dd;">入力者</span><span style="font-weight:900;">${op}</span>
-    </div>
-
+    <div class="row" style="margin-top:8px;"><span class="chip patient">患者</span><span style="font-weight:900;">${ptLabel}</span></div>
+    <div class="row" style="margin-top:6px;"><span class="chip proc">手技</span><span style="font-weight:900;">${prLabel}</span></div>
+    <div class="row" style="margin-top:6px;"><span class="chip" style="background:#fff;border-color:#f2d2dd;">入力者</span><span style="font-weight:900;">${opLabel}</span></div>
     <div class="divider"></div>
     <div class="grid">${mats}</div>
-
     <div class="divider"></div>
     <div class="row">
       ${btn("✅ 実施済み","confirm_done","primary")}
@@ -479,47 +412,9 @@ function screenFieldStep(step){
       ${btn("💾 下書き","save_draft_any2","ghost")}
     </div>
   </div></div>`;
-
-
-function screenDrafts(){
-  const list = state.drafts.length ? state.drafts.map(d=>{
-    const pt = PATIENTS.find(p=>p.id===d.patientId)?.label || "患者未選択";
-    const op = OPERATORS.find(o=>o.id===d.operatorId)?.label || "入力者未選択";
-    return `<div class="listItem">
-      <div><b>${pt}</b><div class="muted">${op} / ${(d.materials||[]).length}点</div></div>
-      <button class="btn small" data-resume="${d.id}">続き</button>
-    </div>`;
-  }).join("") : `<div class="muted">下書きなし</div>`;
-
-  return `<div class="grid"><div class="card">
-    <div class="h1">下書き</div><div class="divider"></div>
-    <div class="grid">${list}</div>
-    <div class="divider"></div>${btn("⬅ 戻る","back_field_home","ghost")}
-  </div></div>`;
 }
 
-function screenDone(){
-  const today = new Date().toISOString().slice(0,10);
-  const items = state.done.filter(x=>x.date===today);
-  const list = items.length ? items.map(x=>{
-    const pt = PATIENTS.find(p=>p.id===x.patientId)?.label || x.patientId;
-    const op = OPERATORS.find(o=>o.id===x.operatorId)?.label || x.operatorId;
-    const st = x.status==="pending" ? "承認待ち" : "承認済";
-    return listItem(`<b>${pt}</b><div class="muted">${op} / ${st}</div>`, `<span class="tag">${(x.materials||[]).length}点</span>`);
-  }).join("") : `<div class="muted">当日データなし</div>`;
-
-  return `<div class="grid"><div class="card">
-    <div class="h1">実施済み</div><div class="divider"></div>
-    <div class="grid">${list}</div>
-    <div class="divider"></div>${btn("⬅ 戻る","back_field_home2","ghost")}
-  </div></div>`;
-}
-
-/* ---------------------------
-   Billing screens
-   - 医事側は billing_map のコードを表示
-   - 商品名 / 医事名称 / billingmapコード を横並び（CSS .triRow を使用）
----------------------------- */
+/* Billing */
 function triRow(product, ijiName, code, price){
   return `
     <div class="listItem" style="align-items:center;">
@@ -532,7 +427,15 @@ function triRow(product, ijiName, code, price){
     ${price ? `<div class="muted" style="margin:6px 6px 14px;">${jpy(price)}円</div>` : `<div style="height:10px;"></div>`}
   `;
 }
-
+function renderTokuteiDetails(details){
+  if (!details?.length) return `<div class="muted">内訳なし</div>`;
+  return `<div class="grid" style="gap:8px;margin-top:10px;">${
+    details.map(t=>{
+      const pr = t.price ? `${jpy(t.price)}円` : "";
+      return listItem(`<b>${t.name||"(名称なし)"}</b><div class="muted">${pr}</div>`);
+    }).join("")
+  }</div>`;
+}
 
 function screenBillingHome(){
   return `<div class="grid"><div class="card">
@@ -544,7 +447,6 @@ function screenBillingHome(){
     </div>
   </div></div>`;
 }
-
 function screenBillingList(kind){
   const isPending = kind==="pending";
   const today = new Date().toISOString().slice(0,10);
@@ -570,35 +472,16 @@ function screenBillingList(kind){
     <div class="card" id="billDetail" style="display:none;"></div>
   </div>`;
 }
-
-function renderTokuteiDetails(details){
-  if (!details?.length) return `<div class="muted">内訳なし</div>`;
-  return `<div class="grid" style="gap:8px;margin-top:10px;">${
-    details.map(t=>{
-      const pr = t.price ? `${jpy(t.price)}円` : "";
-      return listItem(`<b>${t.name||"(名称なし)"}</b><div class="muted">${pr}</div>`);
-    }).join("")
-  }</div>`;
-}
-
 function renderBillingDetail(item){
-  const pt = PATIENTS.find(p=>p.id===item.patientId)?.label || item.patientId;
-  const proc = item.procedureId ? (PROCEDURES.find(p=>p.id===item.procedureId)?.label || "未選択") : "未選択";
-
   const mats = (item.materials||[]).map(m=>{
-    const product = m.product_name || "(不明)";
-    const ijiName = m.tokutei01_name || "";
-    const code = billingMapCode(m); // ★billing_map のコードを表示
-    const price = m.total_reimbursement_price_yen || 0;
-    const top = triRow(product, ijiName, code, price);
-    const detail = renderTokuteiDetails(m.tokutei_details || []); // ★内訳は医事側のみ
+    const code = billingMapCode(m); // billing_mapのコード
+    const top = triRow(m.product_name, m.tokutei01_name, code, m.total_reimbursement_price_yen||0);
+    const detail = renderTokuteiDetails(m.tokutei_details||[]);
     return `${top}${detail}`;
   }).join("") || `<div class="muted">材料なし</div>`;
 
   return `
     <div class="h2">詳細</div>
-    ${listItem(`<b>患者</b><div class="muted">${pt}</div>`)}
-    ${listItem(`<b>手技</b><div class="muted">${proc}</div>`)}
     <div class="divider"></div>
     <div class="h2">材料</div>
     <div class="grid">${mats}</div>
@@ -607,18 +490,23 @@ function renderBillingDetail(item){
   `;
 }
 
-/* ---------------------------
+/* =========================
    Render + bind
----------------------------- */
+========================= */
 function render(){
   setRolePill(role);
+
   const v = view();
   const app = $("#app");
 
   // scan以外でカメラ停止
   if (!v.startsWith("/field/scan/step/4") && scannerInst?.isRunning?.()) scannerInst.stop();
 
+  // role未選択なら role画面へ（ここで止める。hashchangeで再描画）
   if (v !== "/role" && !ensureRole()) return;
+
+  // ヘッダの職種変更
+  $("#btnRole").onclick = ()=>{ role=""; save(); setView("/role"); render(); };
 
   if (v === "/role"){
     app.innerHTML = screenRole();
@@ -628,135 +516,42 @@ function render(){
     return;
   }
 
-  // top role reset
-  $("#btnRole").onclick = ()=>{ role=""; save(); setView("/role"); render(); };
-
-  // Doctor
+  /* ------- Doctor minimal (home only for now) ------- */
   if (role==="doctor"){
-    if (v==="/"){
-      app.innerHTML = screenDoctorHome();
-      $("#go_doc_approve").onclick=()=>{ setView("/doctor/approvals"); render(); };
-      $("#go_doc_docs").onclick=()=>{ setView("/doctor/docs"); render(); };
+    app.innerHTML = screenDoctorHome();
+    // 必要ならここに承認/Docsを戻せます（今は画面遷移の安定を優先）
+    return;
+  }
+
+  /* ------- Field ------- */
+  if (role==="field"){
+    if (v === "/"){
+      app.innerHTML = screenFieldHome();
+      $("#go_field_scan").onclick=()=>{ scanCtx=null; lastScan={anyTs:0,raw:"",sameTs:0}; setView("/field/scan/step/1"); render(); };
+      $("#go_field_drafts").onclick=()=>{ setView("/field/drafts"); render(); };
+      $("#go_field_done").onclick=()=>{ setView("/field/done"); render(); };
       return;
     }
-    if (v==="/doctor/approvals"){
-      app.innerHTML = screenDoctorApprovals();
-      $("#back_doc_home").onclick=()=>{ setView("/"); render(); };
 
-      $("#bulk_approve").onclick=()=>{
-        const checked = Array.from(document.querySelectorAll("[data-chk]"))
-          .filter(x=>x.checked).map(x=>x.getAttribute("data-chk"));
-        if (!checked.length){ toastShow({title:"選択なし", sub:"チェックしてください"}); return; }
-        checked.forEach(id=>{ const it=state.done.find(x=>x.id===id); if(it) it.status="approved"; });
-        save(); toastShow({title:"承認", sub:`${checked.length}件`}); render();
-      };
-
-      document.querySelectorAll("[data-open]").forEach(b=>{
+    if (v === "/field/drafts"){
+      app.innerHTML = screenDrafts();
+      $("#back_field_home").onclick=()=>{ setView("/"); render(); };
+      document.querySelectorAll("[data-resume]").forEach(b=>{
         b.onclick=()=>{
-          const id=b.getAttribute("data-open");
-          const item=state.done.find(x=>x.id===id);
-          if(!item) return;
-          const box=$("#approveDetail");
-          box.innerHTML = renderApprovalDetail(item);
-          box.style.display="block";
-          $("#close_detail").onclick=()=>{ box.style.display="none"; };
-          $("#approve_one").onclick=()=>{
-            const tid=$("#approve_one").getAttribute("data-id");
-            const it=state.done.find(x=>x.id===tid);
-            if(it){ it.status="approved"; save(); toastShow({title:"承認", sub:"完了"}); }
-            box.style.display="none"; render();
-          };
+          const id=b.getAttribute("data-resume");
+          const d=state.drafts.find(x=>x.id===id);
+          if(!d) return;
+          scanCtx={ draftId:d.id, step:d.step||1, operatorId:d.operatorId||"", patientId:d.patientId||"", procedureId:d.procedureId||"", place:d.place||"未設定", materials:d.materials||[], createdAt:d.createdAt||iso(), updatedAt:d.updatedAt||iso() };
+          lastScan={anyTs:0,raw:"",sameTs:0};
+          setView(`/field/scan/step/${scanCtx.step}`); render();
         };
       });
       return;
     }
 
-    if (v==="/doctor/docs"){
-      app.innerHTML = screenDoctorDocs();
-      $("#back_doc_home2").onclick=()=>{ setView("/"); render(); };
-      const docsList=$("#docsList"), editor=$("#docsEditor"), patientSel=$("#docs_patient");
-
-      const openKindList = (kind)=>{
-        const pid = patientSel.value || PATIENTS[0]?.id;
-        const doc = ensureDocsPatient(pid);
-        const items = doc[kind] || [];
-        docsList.style.display="block"; editor.style.display="none";
-        const label = kind==="symptom"?"症状詳記":kind==="reply"?"返書":"その他";
-
-        docsList.innerHTML = `
-          <div class="h2">${label}（下書き）</div><div class="divider"></div>
-          <div class="grid">
-            ${items.length ? items.map(d=>`
-              <div class="listItem">
-                <div><b>${d.title||label}</b><div class="muted">${new Date(d.updatedAt).toLocaleString("ja-JP")}</div></div>
-                <button class="btn small" data-edit="${d.id}">編集</button>
-              </div>`).join("") : `<div class="muted">下書きなし</div>`}
-          </div>
-          <div class="divider"></div>
-          <div class="row">
-            <button class="btn primary" id="new_doc">＋ 新規</button>
-            <button class="btn ghost" id="close_list">✖ 閉じる</button>
-          </div>
-        `;
-        $("#close_list").onclick=()=>{ docsList.style.display="none"; };
-        $("#new_doc").onclick=()=> openEditor(kind, null);
-
-        docsList.querySelectorAll("[data-edit]").forEach(b=>{
-          b.onclick=()=> openEditor(kind, b.getAttribute("data-edit"));
-        });
-      };
-
-      const openEditor = (kind, editId)=>{
-        const pid = patientSel.value || PATIENTS[0]?.id;
-        const doc = ensureDocsPatient(pid);
-        const label = kind==="symptom"?"症状詳記":kind==="reply"?"返書":"その他";
-        let draft = editId ? (doc[kind]||[]).find(x=>x.id===editId) : null;
-        if(!draft) draft={ id:uid("DOC"), title:label, text:"", updatedAt:iso() };
-
-        editor.style.display="block"; docsList.style.display="none";
-        editor.innerHTML = `
-          <div class="h2">${label}</div><div class="divider"></div>
-          <input class="input" id="doc_title" value="${draft.title||""}">
-          <div class="divider"></div>
-          <textarea id="doc_text" style="width:100%;height:220px;border-radius:16px;border:1px solid #f2d2dd;padding:12px;font-size:16px;outline:none;"></textarea>
-          <div class="divider"></div>
-          <div class="row">
-            <button class="btn primary" id="doc_save">💾 保存</button>
-            <button class="btn ghost" id="doc_back">⬅ 戻る</button>
-          </div>
-        `;
-        $("#doc_text").value = draft.text||"";
-        $("#doc_save").onclick=()=>{
-          draft.title = ($("#doc_title").value.trim()||label);
-          draft.text = $("#doc_text").value;
-          draft.updatedAt = iso();
-          const arr = doc[kind]||[];
-          const idx = arr.findIndex(x=>x.id===draft.id);
-          if(idx>=0) arr[idx]=draft; else arr.unshift(draft);
-          doc[kind]=arr; state.docsDrafts[pid]=doc; save();
-          toastShow({title:"保存", sub:label});
-          openKindList(kind);
-        };
-        $("#doc_back").onclick=()=> openKindList(kind);
-      };
-
-      $("#docs_symptom").onclick=()=> openKindList("symptom");
-      $("#docs_reply").onclick  =()=> openKindList("reply");
-      $("#docs_other").onclick  =()=> openKindList("other");
-      patientSel.onchange=()=>{ docsList.style.display="none"; editor.style.display="none"; };
-      return;
-    }
-
-    setView("/"); render(); return;
-  }
-
-  // Field
-  if (role==="field"){
-    if (v==="/"){
-      app.innerHTML = screenFieldHome();
-      $("#go_field_scan").onclick=()=>{ scanCtx=null; lastScan={anyTs:0,raw:"",sameTs:0}; setView("/field/scan/step/1"); render(); };
-      $("#go_field_drafts").onclick=()=>{ setView("/field/drafts"); render(); };
-      $("#go_field_done").onclick=()=>{ setView("/field/done"); render(); };
+    if (v === "/field/done"){
+      app.innerHTML = screenDone();
+      $("#back_field_home2").onclick=()=>{ setView("/"); render(); };
       return;
     }
 
@@ -776,6 +571,7 @@ function render(){
         scanCtx=null;
         setView("/"); render();
       };
+
       $("#save_draft_any") && ($("#save_draft_any").onclick=saveDraftExit);
       $("#save_draft_any2") && ($("#save_draft_any2").onclick=saveDraftExit);
       $("#cancel_flow") && ($("#cancel_flow").onclick=cancel);
@@ -816,9 +612,10 @@ function render(){
 
         const paintMats=()=>{
           const mats=(scanCtx.materials||[]).slice(0,8).map(m=>{
-            const left = `<b>${m.product_name||"(不明)"}</b><div class="muted">${m.tokutei01_name||""}</div>`;
-            const right = `<span class="tag">${m.dict_status}</span>`;
-            return listItem(left,right);
+            const left = `<span class="chip mat">材料</span>
+              <div style="margin-top:6px;"><b>${m.product_name||"(不明)"}</b></div>
+              <div class="muted">${m.tokutei01_name||""}</div>`;
+            return listItem(left, `<span class="tag">${m.dict_status}</span>`);
           }).join("") || `<div class="muted">材料なし</div>`;
           matList.innerHTML=mats;
         };
@@ -826,8 +623,6 @@ function render(){
 
         const onDetected = async (raw)=>{
           const t = Date.now();
-
-          // 連続読み取り抑制（強め）
           if (t - lastScan.anyTs < ANY_SCAN_COOLDOWN_MS) return;
           if (raw === lastScan.raw && (t - lastScan.sameTs) < SAME_CODE_COOLDOWN_MS) return;
 
@@ -846,9 +641,6 @@ function render(){
             gtin14:gtin14||null,
             dict_status:"unknown",
             product_name:"",
-            manufacturer_name:"",
-            product_no:"",
-            product_sta:"",
             total_reimbursement_price_yen:0,
             tokutei01_name:"",
             tokutei_details:[]
@@ -907,14 +699,11 @@ function render(){
           upsertDraft();
           setView("/field/scan/step/5"); render();
         };
-
         return;
       }
 
       // confirm
       $("#back_step4").onclick=()=>{ setView("/field/scan/step/4"); render(); };
-      $("#save_draft_any2") && ($("#save_draft_any2").onclick=()=>{ upsertDraft(); setView("/field/drafts"); render(); });
-
       $("#confirm_done").onclick=()=>{
         ensureScanCtx();
         if (!scanCtx.operatorId){ toastShow({title:"未選択", sub:"入力者"}); return; }
@@ -944,38 +733,17 @@ function render(){
       return;
     }
 
-    if (v==="/field/drafts"){
-      app.innerHTML = screenDrafts();
-      $("#back_field_home").onclick=()=>{ setView("/"); render(); };
-      document.querySelectorAll("[data-resume]").forEach(b=>{
-        b.onclick=()=>{
-          const id=b.getAttribute("data-resume");
-          const d=state.drafts.find(x=>x.id===id);
-          if(!d) return;
-          scanCtx={ draftId:d.id, step:d.step||1, operatorId:d.operatorId||"", patientId:d.patientId||"", procedureId:d.procedureId||"", place:d.place||"未設定", materials:d.materials||[], createdAt:d.createdAt||iso(), updatedAt:d.updatedAt||iso() };
-          lastScan={anyTs:0,raw:"",sameTs:0};
-          setView(`/field/scan/step/${scanCtx.step}`); render();
-        };
-      });
-      return;
-    }
-
-    if (v==="/field/done"){
-      app.innerHTML = screenDone();
-      $("#back_field_home2").onclick=()=>{ setView("/"); render(); };
-      return;
-    }
-
+    // fallback
     setView("/"); render(); return;
   }
 
-  // Billing
+  /* ------- Billing ------- */
   if (role==="billing"){
     if (v==="/"){
       app.innerHTML = screenBillingHome();
       $("#go_bill_done").onclick=()=>{ setView("/billing/done"); render(); };
       $("#go_bill_pending").onclick=()=>{ setView("/billing/pending"); render(); };
-      $("#back_bill_home").onclick=()=>{ setView("/role"); render(); };
+      $("#back_bill_home").onclick=()=>{ role=""; save(); setView("/role"); render(); };
       return;
     }
     if (v==="/billing/done" || v==="/billing/pending"){
@@ -999,12 +767,17 @@ function render(){
   }
 }
 
-/* Boot */
+/* =========================
+   Boot (★ここが今回の肝：先にhashchange登録)
+========================= */
 (async function(){
   await bootData();
+
+  // ★先に登録（これで “#/role に変えたのに描画されない” が消えます）
+  window.addEventListener("hashchange", render);
+
   if (!location.hash) location.hash="#/";
   setRolePill(role);
   save();
   render();
-  window.addEventListener("hashchange", render);
 })();
