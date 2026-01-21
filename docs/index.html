@@ -51,6 +51,7 @@
       border-radius:999px;
       max-width: 70vw;
       overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+      cursor:pointer;
     }
     .wrap{max-width:980px; margin:0 auto; padding:14px 14px 120px;}
     .grid{display:grid; gap:12px;}
@@ -138,23 +139,7 @@
     }
     .divider{height:1px; background:#f2d2dd; margin:10px 0;}
 
-    /* 色分けチップ（白/赤/ピンクの範囲で差を出す） */
-    .chip{
-      display:inline-flex; align-items:center; gap:6px;
-      padding:8px 12px;
-      border-radius:999px;
-      font-weight:900;
-      font-size:14px;
-      border:1px solid #f2d2dd;
-      background: var(--pink2);
-      color: var(--text);
-      white-space:nowrap;
-    }
-    .chip.patient{ background: #fff7fb; border-color:#f2d2dd; }
-    .chip.proc{ background: var(--pink); border-color:#f1c6d4; }
-    .chip.mat{ background:#fff; border-color: rgba(255,59,107,.40); color: var(--red); }
-
-    /* 医事：横並び（商品名｜医事名称｜billing_mapコード） */
+    /* Billing row: 商品名｜医事名称｜billing_mapコード */
     .triRow{
       display:grid;
       grid-template-columns: 1.25fr 1fr .75fr;
@@ -180,7 +165,7 @@
       white-space:nowrap;
     }
 
-    /* Big toast: product name main, price secondary. pointer-events none so it won't block buttons */
+    /* Toast: tapを邪魔しない */
     .toast{
       position:fixed;
       left:12px; right:12px; bottom:14px;
