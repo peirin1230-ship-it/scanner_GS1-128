@@ -3,764 +3,188 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-  <meta name="theme-color" content="#ffffff" />
-  <title>LinQ VAL Scanner</title>
+  <meta name="theme-color" content="#ff3b6b" />
+  <title>LinQ VAL</title>
+
+  <!-- 優しい丸ゴシック（任意。読み込めない環境でもfallback） -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@400;700;900&display=swap" rel="stylesheet">
+
   <style>
     :root{
-      --ink:#141316; --muted:rgba(20,19,22,.62); --line:rgba(20,19,22,.10);
-      --accent:#e11d48; --shadow: 0 10px 28px rgba(20,19,22,.10);
-      --r:18px; --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono","Courier New", monospace;
-      --sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans JP","Hiragino Kaku Gothic ProN","Yu Gothic", Arial;
+      --bg:#ffffff;
+      --pink:#ffe6ef;
+      --pink2:#fff3f7;
+      --red:#ff3b6b;
+      --red2:#ff6b8d;
+      --text:#1f2937;
+      --muted:#6b7280;
+      --line:#f1c6d4;
+      --card:#ffffff;
+      --shadow: 0 10px 30px rgba(255,59,107,.15);
+      --radius:18px;
+      --btnH:56px;
     }
     *{box-sizing:border-box}
     body{
-      margin:0; font-family:var(--sans); color:var(--ink);
-      background:
-        radial-gradient(900px 480px at 15% -10%, rgba(225,29,72,.10), transparent 60%),
-        radial-gradient(700px 420px at 100% 0%, rgba(225,29,72,.08), transparent 55%),
-        linear-gradient(180deg, #ffffff 0%, #fff6f8 100%);
+      margin:0;background:linear-gradient(180deg,var(--pink2),#fff);
+      color:var(--text);
+      font-family:"M PLUS Rounded 1c", system-ui, -apple-system, "Segoe UI", sans-serif;
     }
-    .wrap{max-width:980px;margin:0 auto;padding:14px 12px 26px}
     .top{
-      display:flex;align-items:center;justify-content:space-between;gap:10px;
-      padding:12px 14px;border:1px solid var(--line);border-radius: var(--r);
-      background: rgba(255,255,255,.90);box-shadow: var(--shadow);backdrop-filter: blur(6px);
+      position:sticky; top:0; z-index:10;
+      background:rgba(255,255,255,.92);
+      backdrop-filter: blur(10px);
+      border-bottom:1px solid #f2d2dd;
+      padding:10px 14px;
+      display:flex; align-items:center; justify-content:space-between;
+      gap:10px;
     }
-    .title h1{margin:0;font-size:18px;font-weight:1200;letter-spacing:.2px;line-height:1.1}
-    .title .sub{margin-top:3px;font-size:13px;color:var(--muted);line-height:1.2}
-    .build{font-size:12px;color:var(--muted);padding:8px 10px;border:1px solid var(--line);border-radius:999px;background:#fff;white-space:nowrap}
-    .build b{color:var(--ink)}
-    .grid{display:grid;grid-template-columns: 1.05fr .95fr;gap:12px;margin-top:12px}
-    @media (max-width: 920px){ .grid{grid-template-columns:1fr} }
-    .card{border:1px solid var(--line);border-radius: var(--r);background: rgba(255,255,255,.92);box-shadow: var(--shadow);overflow:hidden}
-    .hd{
-      padding:12px 14px;border-bottom:1px solid var(--line);
-      display:flex;align-items:center;justify-content:space-between;gap:10px;
-      background: linear-gradient(90deg, rgba(225,29,72,.08), rgba(255,255,255,0));
+    .brand{
+      display:flex; flex-direction:column; gap:2px;
     }
-    .hd .label{font-size:14px;font-weight:1200;letter-spacing:.2px}
-    .bd{padding:14px}
-    .row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
-    .btn{
-      appearance:none;border:1px solid var(--line);background:#fff;color:var(--ink);
-      padding:14px 14px;border-radius: 14px;cursor:pointer;
-      font-size:16px;font-weight:1200;letter-spacing:.2px;user-select:none;
-    }
-    .btn:active{transform:scale(.99)}
-    .btn.primary{
-      border-color: rgba(225,29,72,.28);
-      box-shadow: 0 10px 18px rgba(225,29,72,.10);
-      background: linear-gradient(135deg, rgba(225,29,72,.12), rgba(255,255,255,.0));
-    }
-    .btn.small{padding:10px 12px;font-size:14px;border-radius:12px}
-    .btn:disabled{opacity:.6; cursor:not-allowed}
-    .pill{display:inline-flex;align-items:center;gap:8px;padding:8px 10px;border:1px solid var(--line);border-radius:999px;font-size:13px;color:var(--muted);background:#fff;white-space:nowrap}
-    .dot{width:10px;height:10px;border-radius:999px;background: rgba(20,19,22,.20)}
-    .pill.on .dot{ background: var(--accent); }
-
-    /* scanner */
-    #scanner{
-      position:relative;
-      border-radius: var(--r);
-      overflow:hidden;
+    .brand b{font-size:18px; font-weight:900; letter-spacing:.2px;}
+    .pill{
+      display:inline-flex; align-items:center; gap:8px;
+      font-size:13px; color:var(--muted);
+      background:var(--pink);
       border:1px solid var(--line);
+      padding:6px 10px;
+      border-radius:999px;
+      max-width: 70vw;
+      overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+    }
+    .wrap{max-width:980px; margin:0 auto; padding:14px 14px 120px;}
+    .grid{display:grid; gap:12px;}
+    .card{
+      background:var(--card);
+      border:1px solid #f2d2dd;
+      border-radius:var(--radius);
+      padding:14px;
+      box-shadow: var(--shadow);
+    }
+    .h1{margin:0 0 6px; font-size:20px; font-weight:900;}
+    .h2{margin:0 0 8px; font-size:16px; font-weight:900;}
+    .muted{color:var(--muted); font-size:14px; line-height:1.35;}
+    .row{display:flex; gap:10px; align-items:center; flex-wrap:wrap;}
+    .btn{
+      height:var(--btnH);
+      padding:0 16px;
+      border-radius:18px;
+      border:1px solid #f2d2dd;
+      background:#fff;
+      color:var(--text);
+      font-size:18px;
+      font-weight:900;
+      letter-spacing:.2px;
+      cursor:pointer;
+      width:100%;
+      box-shadow: 0 10px 20px rgba(0,0,0,.04);
+    }
+    .btn.small{height:46px; font-size:16px; border-radius:16px; width:auto;}
+    .btn.primary{
+      background:linear-gradient(180deg,var(--red),var(--red2));
+      color:#fff; border-color:rgba(255,59,107,.3);
+      box-shadow: 0 12px 28px rgba(255,59,107,.25);
+    }
+    .btn.ghost{
+      background:var(--pink);
+    }
+    .btn:disabled{opacity:.55; cursor:not-allowed;}
+    .two{display:grid; gap:10px; grid-template-columns:1fr;}
+    @media (min-width:820px){ .two{grid-template-columns:1fr 1fr;} .btn{width:auto;} }
+    .input, .select{
+      width:100%;
+      height:54px;
+      border-radius:16px;
+      border:1px solid #f2d2dd;
+      padding:0 14px;
+      font-size:18px;
+      outline:none;
+      background:#fff;
+    }
+    .select{appearance:none;}
+    .listItem{
+      display:flex; justify-content:space-between; align-items:center;
+      gap:10px;
+      padding:12px;
+      border-radius:16px;
+      border:1px solid #f2d2dd;
+      background:linear-gradient(180deg,#fff, #fff7fa);
+    }
+    .listItem b{font-size:16px;}
+    .tag{
+      font-size:13px;
+      padding:6px 10px;
+      border-radius:999px;
+      border:1px solid #f2d2dd;
+      background:var(--pink);
+      color:var(--muted);
+    }
+
+    /* Scan area */
+    .videoBox{
+      width:100%;
+      aspect-ratio: 3 / 4;
+      max-height: 64vh;
+      border-radius:22px;
+      overflow:hidden;
+      border:2px solid rgba(255,59,107,.25);
       background:#000;
-      min-height: 260px;
+      box-shadow: 0 12px 30px rgba(255,59,107,.18);
+      position:relative;
     }
-    #scanner video, #scanner canvas{
-      width:100% !important;
-      height:auto !important;
-      display:block;
-    }
-    .overlay{pointer-events:none;position:absolute; inset:0;background: linear-gradient(180deg, rgba(0,0,0,.10), transparent 25%, transparent 75%, rgba(0,0,0,.18));}
+    #scannerTarget video{width:100%; height:100%; object-fit:cover;}
+    .hint{font-size:13px; color:var(--muted); line-height:1.35;}
 
-    /* POPUP fixed */
-    .popout{
+    /* Big toast */
+    .toast{
       position:fixed;
-      left:12px; right:12px; bottom:12px;
-      max-width:980px; margin:0 auto;
-      border-radius: 18px;
-      border:1px solid rgba(225,29,72,.25);
-      background: linear-gradient(135deg, rgba(225,29,72,.22), rgba(255,255,255,.92) 60%);
-      box-shadow: 0 18px 40px rgba(20,19,22,.22);
-      backdrop-filter: blur(6px);
+      left:12px; right:12px; bottom:14px;
+      z-index:50;
+      background:linear-gradient(180deg,#fff, #fff4f8);
+      border:2px solid rgba(255,59,107,.22);
+      border-radius:22px;
       padding:14px 14px;
+      box-shadow: 0 16px 40px rgba(255,59,107,.22);
       display:none;
-      z-index: 9999;
     }
-    .popout.show{display:block; animation: pop .16s ease-out}
-    @keyframes pop{from{opacity:0; transform: translateY(6px)} to{opacity:1; transform: translateY(0)}}
-    .popTop{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
-    .popStatus{font-size:34px;font-weight:1400;letter-spacing:.2px;line-height:1;color: var(--accent)}
-    .popMeta{font-size:13px;color:rgba(20,19,22,.65);line-height:1.2;text-align:right;white-space:nowrap}
-    .bigA{margin-top:8px;font-size:22px;font-weight:1400;line-height:1.18}
-    .bigB{margin-top:6px;font-size:24px;font-weight:1400;color: var(--accent);letter-spacing:.2px;line-height:1.1}
-    .bigC{margin-top:6px;font-size:20px;font-weight:1350;line-height:1.18}
-    .bigD{margin-top:6px;font-size:20px;font-weight:1350;line-height:1.18}
-    .popSmall{margin-top:8px;font-size:13px;color:rgba(20,19,22,.65);font-family: var(--mono);word-break: break-all}
-
-    .hint{margin-top:10px;font-size:14px;color:var(--muted);line-height:1.35}
-    .mono{font-family:var(--mono)}
-    .em{display:inline-flex;align-items:center;padding:2px 8px;border-radius:999px;border:1px solid rgba(225,29,72,.22);background: rgba(225,29,72,.08);font-weight:1200}
-
-    /* results */
-    .okBanner{
-      display:flex;align-items:center;justify-content:space-between;gap:10px;
-      padding:14px 14px;border:1px solid var(--line);border-radius: 16px;
-      background: linear-gradient(135deg, rgba(225,29,72,.10), rgba(255,255,255,0) 60%);
+    .toast.show{display:block;}
+    .toast .t{font-size:18px; font-weight:900;}
+    .toast .s{font-size:15px; color:var(--muted); margin-top:4px; line-height:1.3;}
+    .toast .price{font-size:22px; font-weight:900; color:var(--red); margin-top:6px;}
+    .mono{font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;}
+    .check{
+      width:26px; height:26px;
+      accent-color: var(--red);
+      transform: scale(1.25);
     }
-    .okLeft{display:flex;align-items:center;gap:12px}
-    .badgeDot{width:14px;height:14px;border-radius:999px;background: rgba(20,19,22,.20)}
-    .okText{font-size:34px;font-weight:1400;letter-spacing:.2px;line-height:1}
-    .okSub{font-size:14px;color:var(--muted);margin-top:2px}
-    .rightInfo{font-size:14px;color:var(--muted)}
-
-    .R_name{margin-top:14px;font-size:26px;font-weight:1400;line-height:1.18;letter-spacing:.1px}
-    .R_price{margin-top:10px;font-size:26px;font-weight:1400;color: var(--accent);letter-spacing:.2px;line-height:1.1}
-    .R_no{margin-top:10px;font-size:22px;font-weight:1350;line-height:1.15}
-    .R_sta{margin-top:8px;font-size:22px;font-weight:1350;line-height:1.15}
-    .R_maker{margin-top:8px;font-size:16px;color:var(--muted);line-height:1.25}
-
-    .miniRow{margin-top:10px;display:flex;gap:10px;flex-wrap:wrap;align-items:center}
-    .chip{
-      display:inline-flex;align-items:center;gap:8px;
-      padding:8px 10px;border:1px solid var(--line);border-radius:999px;
-      background:#fff;color:var(--muted);font-size:13px;
-    }
-    .chip b{color:var(--ink);font-weight:1300}
-
-    details{margin-top:10px}
-    summary{cursor:pointer;color:var(--muted);font-weight:1100}
-    .log{margin-top:8px;padding:10px 12px;border:1px solid var(--line);border-radius:14px;background:#fff;color:#666;
-      white-space:pre-wrap;font-family:var(--mono);font-size:12px}
+    .divider{height:1px; background:#f2d2dd; margin:10px 0;}
   </style>
+
+  <!-- Quagga2 -->
+  <script src="https://unpkg.com/@ericblade/quagga2@1.12.1/dist/quagga.min.js"></script>
 </head>
-
 <body>
+  <div class="top">
+    <div class="brand">
+      <b>LinQ VAL</b>
+      <div class="pill" id="rolePill">職種：未選択</div>
+    </div>
+    <button class="btn small ghost" id="btnRole">職種変更</button>
+  </div>
+
   <div class="wrap">
-    <div class="top">
-      <div class="title">
-        <h1>LinQ VAL Scanner</h1>
-        <div class="sub">安定版：Start多重防止 + locate無効化 / JAN+GTIN14 / 償還名称 / CSV</div>
-      </div>
-      <div class="build">BUILD <b id="buildLabel">v0</b></div>
-    </div>
-
-    <div class="grid">
-      <div class="card">
-        <div class="hd">
-          <div class="label">スキャン</div>
-          <div class="row">
-            <div class="pill" id="pillQ"><span class="dot"></span><span>Quagga</span></div>
-            <div class="pill" id="pillCam"><span class="dot"></span><span>Camera</span></div>
-            <div class="pill" id="pillDict"><span class="dot"></span><span>Dict</span></div>
-          </div>
-        </div>
-
-        <div class="bd">
-          <div class="row">
-            <button class="btn primary" id="btnStart">Start</button>
-            <button class="btn" id="btnStop">Stop</button>
-          </div>
-
-          <div style="margin-top:12px" id="scanner">
-            <div class="overlay"></div>
-          </div>
-
-          <div class="hint">
-            優先：JAN(EAN-13)。GS1-128はAI(01)→GTIN14→gtin_indexでJAN化。<span class="em">同一コードは5秒間無視</span>
-          </div>
-
-          <details>
-            <summary>ログ</summary>
-            <div class="log" id="log">Ready.</div>
-          </details>
-        </div>
-      </div>
-
-      <div class="card">
-        <div class="hd">
-          <div class="label">結果</div>
-          <div class="row">
-            <button class="btn small" id="btnNext">候補切替</button>
-            <button class="btn small" id="btnExport">CSV</button>
-            <button class="btn small" id="btnClear">Clear</button>
-          </div>
-        </div>
-
-        <div class="bd">
-          <div class="okBanner">
-            <div class="okLeft">
-              <div class="badgeDot" id="dotStatus"></div>
-              <div>
-                <div class="okText" id="txtStatus">待機</div>
-                <div class="okSub" id="txtSub">Startで起動</div>
-              </div>
-            </div>
-            <div class="rightInfo">ログ <span class="mono" id="logCount">0</span> 件</div>
-          </div>
-
-          <div class="R_name" id="vName">—</div>
-          <div class="R_price" id="vTotalPrice">—</div>
-          <div class="R_no" id="vProdNo">—</div>
-          <div class="R_sta" id="vProdSta">—</div>
-          <div class="R_maker" id="vMaker">—</div>
-          <div class="R_maker" id="vTokutei">—</div>
-
-          <div class="miniRow">
-            <div class="chip">候補 <b id="candPos">0</b> / <b id="candTotal">0</b></div>
-            <div class="chip">JAN <b class="mono" id="vJan">—</b></div>
-            <div class="chip">GTIN <b class="mono" id="vGtin">—</b></div>
-          </div>
-        </div>
-      </div>
-    </div>
+    <div id="app"></div>
   </div>
 
-  <div class="popout" id="popout">
-    <div class="popTop">
-      <div class="popStatus" id="popStatus">OK</div>
-      <div class="popMeta" id="popMeta">—</div>
-    </div>
-    <div class="bigA" id="popName">—</div>
-    <div class="bigB" id="popTotal">—</div>
-    <div class="bigC" id="popProdNo">—</div>
-    <div class="bigD" id="popProdSta">—</div>
-    <div class="popSmall" id="popSmall">—</div>
+  <div class="toast" id="toast">
+    <div class="t" id="toastTitle">OK</div>
+    <div class="price" id="toastPrice"></div>
+    <div class="s" id="toastSub"></div>
   </div>
 
-<script>
-  const BUILD = "v2026-01-21-02";
-  document.getElementById("buildLabel").textContent = BUILD;
-
-  const $ = (id)=>document.getElementById(id);
-  const el = {
-    pillQ: $("pillQ"), pillCam: $("pillCam"), pillDict: $("pillDict"),
-    scanner: $("scanner"), log: $("log"),
-
-    popout: $("popout"), popStatus: $("popStatus"), popMeta: $("popMeta"),
-    popName: $("popName"), popTotal: $("popTotal"),
-    popProdNo: $("popProdNo"), popProdSta: $("popProdSta"), popSmall: $("popSmall"),
-
-    dotStatus: $("dotStatus"), txtStatus: $("txtStatus"), txtSub: $("txtSub"), logCount: $("logCount"),
-
-    vName: $("vName"), vTotalPrice: $("vTotalPrice"), vProdNo: $("vProdNo"),
-    vProdSta: $("vProdSta"), vMaker: $("vMaker"), vTokutei: $("vTokutei"),
-    vJan: $("vJan"), vGtin: $("vGtin"), candPos: $("candPos"), candTotal: $("candTotal"),
-
-    btnStart: $("btnStart"), btnStop: $("btnStop"),
-    btnNext: $("btnNext"), btnExport: $("btnExport"), btnClear: $("btnClear")
-  };
-
-  function log(msg){ el.log.textContent = msg + "\n\n" + el.log.textContent; }
-  function setPill(p,on){ p.classList.toggle("on", !!on); }
-  function digits(s){ return (s ?? "").toString().replace(/\D/g,""); }
-  function fmtYenInt(s){
-    const d = digits(s); if (!d) return "";
-    const n = Number(d); return Number.isFinite(n) ? ("¥"+n.toLocaleString("ja-JP")) : ("¥"+d);
-  }
-  function setStatus(kind, label, sub){
-    el.dotStatus.style.background =
-      kind==="ok" ? "var(--accent)" :
-      kind==="warn" ? "rgba(225,29,72,.45)" :
-      "rgba(20,19,22,.20)";
-    el.txtStatus.textContent = label;
-    el.txtSub.textContent = sub || "";
-  }
-  function showPopout({status, meta, name, totalYen, prodNo, prodSta, small}){
-    el.popStatus.textContent = status;
-    el.popMeta.textContent = meta || "";
-    el.popName.textContent = name || "—";
-    el.popTotal.textContent = totalYen || "—";
-    el.popProdNo.textContent = prodNo ? ("製品番号: " + prodNo) : "—";
-    el.popProdSta.textContent = prodSta ? ("規格: " + prodSta) : "—";
-    el.popSmall.textContent = small || "";
-    el.popout.classList.add("show");
-    clearTimeout(showPopout._t);
-    // ✅ 5.4秒表示（3秒延長済み）
-    showPopout._t = setTimeout(()=>el.popout.classList.remove("show"), 5400);
-  }
-
-  // ---- field picking ----
-  function pick(obj, keys){
-    for (const k of keys){
-      if (obj && Object.prototype.hasOwnProperty.call(obj, k)){
-        const v = (obj[k] ?? "").toString().trim();
-        if (v !== "") return v;
-      }
-    }
-    return "";
-  }
-  function f_product_name(o){ return pick(o, ["product_name","商品名"]); }
-  function f_total(o){ return pick(o, ["total_reimbursement_price_yen","（医科）償還価格合計","償還価格合計"]); }
-  function f_prodno(o){ return pick(o, ["product_no","製品番号"]); }
-  function f_prodsta(o){ return pick(o, ["product_sta","規格"]); }
-  function f_maker(o){ return pick(o, ["manufacturer_name","製造販売業者：企業略称名","製造販売業者"]); }
-  function f_tokutei(o){
-    return pick(o, [
-      "tokutei_name",
-      "（医科）特定保険医療材料名称０１の医事名称",
-      "（医科）特定保険医療材料名称01の医事名称",
-      "特定保険医療材料名称０１の医事名称",
-      "特定保険医療材料名称01の医事名称"
-    ]);
-  }
-
-  // ---- Quagga2 loader ----
-  function loadScript(src){
-    return new Promise((resolve,reject)=>{
-      const s = document.createElement("script");
-      s.src = src; s.async = true;
-      s.onload = resolve; s.onerror = ()=>reject(new Error("Failed "+src));
-      document.head.appendChild(s);
-    });
-  }
-  async function ensureQuagga(){
-    if (window.Quagga) return true;
-    const bust = "v=" + encodeURIComponent(BUILD) + "&t=" + Date.now();
-    const urls = [
-      "https://unpkg.com/@ericblade/quagga2@1.2.6/dist/quagga.min.js?" + bust,
-      "https://cdn.jsdelivr.net/npm/@ericblade/quagga2@1.2.6/dist/quagga.min.js?" + bust
-    ];
-    for (const u of urls){
-      try{ await loadScript(u); if (window.Quagga) return true; }catch(e){}
-    }
-    return false;
-  }
-
-  // ---- Dict split loading ----
-  const cache = new Map();
-  async function fetchText(url){
-    const res = await fetch(url, {cache:"no-store"});
-    if (!res.ok) throw new Error("HTTP "+res.status);
-    return await res.text();
-  }
-  function parseCSV(text){
-    const rows=[]; let i=0, field="", row=[], inQ=false;
-    while (i<text.length){
-      const c=text[i];
-      if (inQ){
-        if (c === '"'){
-          if (text[i+1] === '"'){ field+='"'; i+=2; continue; }
-          inQ=false; i++; continue;
-        }
-        field+=c; i++; continue;
-      }else{
-        if (c === '"'){ inQ=true; i++; continue; }
-        if (c === ","){ row.push(field); field=""; i++; continue; }
-        if (c === "\n"){
-          row.push(field); field="";
-          if (row.length>1 || (row.length===1 && row[0]!== "")) rows.push(row);
-          row=[]; i++; continue;
-        }
-        if (c === "\r"){ i++; continue; }
-        field+=c; i++; continue;
-      }
-    }
-    row.push(field);
-    if (row.length>1 || (row.length===1 && row[0]!== "")) rows.push(row);
-    return rows;
-  }
-  function toObjects(rows){
-    if (!rows.length) return [];
-    const header=rows[0].map(h=>(h??"").trim());
-    const objs=[];
-    for (let r=1;r<rows.length;r++){
-      const arr=rows[r]; const o={};
-      for (let c=0;c<header.length;c++) o[header[c]]=(arr[c]??"").trim();
-      objs.push(o);
-    }
-    return objs;
-  }
-  async function loadObjects(url){
-    if (cache.has(url)) return cache.get(url);
-    const t=await fetchText(url);
-    const objs=toObjects(parseCSV(t));
-    cache.set(url, objs);
-    return objs;
-  }
-  function pick3_4(d){
-    d = digits(d);
-    if (d.length<4) return ["",""];
-    return [d.slice(0,3), d.slice(0,4)];
-  }
-  function readJanFromRow(r){
-    const v = r?.jan13keta ?? r?.["ＪＡＮコード"] ?? r?.["JAN"] ?? r?.["jan13"] ?? r?.["jan13keta"] ?? "";
-    return digits(v);
-  }
-  async function lookupCandidatesByJan(jan13){
-    const [jan3, jan4]=pick3_4(jan13);
-    if (!jan4) return {cands:[], file:"", error:null};
-    const file = `dict_jan/${jan3}/${jan4}.csv`;
-    try{
-      const rows = await loadObjects(file);
-      const cands = rows.filter(r => readJanFromRow(r) === jan13);
-      return {cands, file, error:null};
-    }catch(e){
-      return {cands:[], file, error:e};
-    }
-  }
-  async function lookupJanByGtin(gtin14){
-    const [gt3, gt4]=pick3_4(gtin14);
-    if (!gt4) return {jan:"", file:"", error:null};
-    const file = `gtin_index/${gt3}/${gt4}.csv`;
-    try{
-      const rows=await loadObjects(file);
-      const hit = rows.find(r => digits(r.gtin14) === gtin14);
-      return {jan: hit ? digits(hit.jan13keta) : "", file, error:null};
-    }catch(e){
-      return {jan:"", file, error:e};
-    }
-  }
-  function pickBestCandidate(cands){
-    if (!cands.length) return {best:null, ordered:[]};
-    const ordered = cands
-      .map((c,idx)=>({c,idx,price:Number(digits(f_total(c)||""))||0}))
-      .sort((a,b)=>b.price-a.price||a.idx-b.idx)
-      .map(x=>x.c);
-    return {best:ordered[0], ordered};
-  }
-
-  // ---- candidates UI ----
-  let currentCandidates=[], currentIndex=0, currentJan="", currentGtin="";
-  function renderCandidate(idx){
-    const total=currentCandidates.length;
-    el.candTotal.textContent=String(total);
-    if (!total){
-      el.candPos.textContent="0";
-      el.vName.textContent="—"; el.vTotalPrice.textContent="—";
-      el.vProdNo.textContent="—"; el.vProdSta.textContent="—";
-      el.vMaker.textContent="—"; el.vTokutei.textContent="—";
-      el.vJan.textContent=currentJan||"—";
-      el.vGtin.textContent=currentGtin||"—";
-      return;
-    }
-    currentIndex=(idx+total)%total;
-    el.candPos.textContent=String(currentIndex+1);
-
-    const c=currentCandidates[currentIndex];
-    el.vName.textContent = f_product_name(c) || "—";
-    el.vTotalPrice.textContent = fmtYenInt(f_total(c)) || "—";
-    el.vProdNo.textContent = f_prodno(c) ? ("製品番号: " + f_prodno(c)) : "—";
-    el.vProdSta.textContent = f_prodsta(c) ? ("規格: " + f_prodsta(c)) : "—";
-    el.vMaker.textContent = f_maker(c) || "—";
-    el.vTokutei.textContent = f_tokutei(c) ? ("償還名称: " + f_tokutei(c)) : "—";
-
-    el.vJan.textContent = currentJan || readJanFromRow(c) || "—";
-    el.vGtin.textContent = currentGtin || "—";
-  }
-  el.btnNext.addEventListener("click", ()=>{ if (currentCandidates.length) renderCandidate(currentIndex+1); });
-
-  // ---- dedup ----
-  const DEDUP_MS = 5000;
-  let lastKey = "";
-  let lastAt = 0;
-
-  // ---- GTIN14 from GS1-128 raw ----
-  function parseGS1AI01(raw){
-    let s = (raw ?? "").toString();
-    if (s.startsWith("]C1")) s = s.slice(3);
-    const GS = String.fromCharCode(29);
-    for (let i=0; i<s.length-16; i++){
-      if (s[i] === GS) continue;
-      if (s[i] === "0" && s[i+1] === "1"){
-        const val = s.slice(i+2, i+16);
-        if (/^\d{14}$/.test(val)) return val;
-      }
-    }
-    const d = digits(s);
-    if (d.length === 14) return d;
-    return "";
-  }
-
-  // ---- scan log + CSV export ----
-  const LS_KEY = "linq_val_scanlog_v3";
-  function loadLogs(){ try{ return JSON.parse(localStorage.getItem(LS_KEY) || "[]"); }catch(e){ return []; } }
-  function saveLogs(arr){ localStorage.setItem(LS_KEY, JSON.stringify(arr)); }
-  function updateCount(){ el.logCount.textContent = String(loadLogs().length); }
-
-  function escapeCSV(v){
-    if (v === null || v === undefined) return "";
-    const s = String(v);
-    if (/[",\n\r]/.test(s)) return '"' + s.replace(/"/g,'""') + '"';
-    return s;
-  }
-  function toCSV(rows, header){
-    const lines = [];
-    lines.push(header.map(escapeCSV).join(","));
-    for (const r of rows) lines.push(header.map(h => escapeCSV(r[h] ?? "")).join(","));
-    return lines.join("\n");
-  }
-  function downloadText(filename, text){
-    const blob = new Blob([text], {type:"text/csv;charset=utf-8"});
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url; a.download = filename;
-    document.body.appendChild(a); a.click(); a.remove();
-    URL.revokeObjectURL(url);
-  }
-
-  el.btnExport.addEventListener("click", ()=>{
-    const logs = loadLogs();
-    const header = [
-      "timestamp","raw","format","jan13keta","gtin14",
-      "product_name","total_reimbursement_price_yen","product_no","product_sta",
-      "manufacturer_name","tokutei_name",
-      "candidate_count","status","dict_file","gtin_file"
-    ];
-    downloadText(`linq_val_scans_${new Date().toISOString().slice(0,10)}.csv`, toCSV(logs, header));
-  });
-
-  el.btnClear.addEventListener("click", ()=>{
-    if (!confirm("端末内ログを削除しますか？")) return;
-    localStorage.removeItem(LS_KEY);
-    updateCount();
-    log("Logs cleared.");
-  });
-
-  // ---- Quagga lifecycle (re-entry safe) ----
-  let running = false;
-  let starting = false;
-
-  async function sleep(ms){ return new Promise(r=>setTimeout(r, ms)); }
-
-  async function stopAll(){
-    try{
-      if (running && window.Quagga){
-        try{ Quagga.offDetected(onDetected); }catch(e){}
-        try{ Quagga.stop(); }catch(e){}
-      }
-    }catch(e){}
-    running = false;
-
-    // clean injected nodes (important on iOS)
-    try{
-      Array.from(el.scanner.querySelectorAll("video,canvas")).forEach(n=>n.remove());
-    }catch(e){}
-
-    setPill(el.pillCam, false);
-    setStatus("idle","停止中","Startで起動");
-    await sleep(180);
-  }
-
-  // ---- global error guard (Quagga internal null coords) ----
-  window.addEventListener("error", (ev)=>{
-    const msg = String(ev?.message || "");
-    if (msg.includes("evaluating 'n.x'") || msg.includes("n.x")){
-      // prevent killing the app
-      ev.preventDefault?.();
-      log("[IGNORED] Quagga internal coord error");
-    }
-  });
-
-  // ---- start ----
-  async function startAll(){
-    if (starting) return;
-    starting = true;
-    el.btnStart.disabled = true;
-    el.btnStop.disabled = true;
-
-    try{
-      await stopAll();
-      setStatus("idle","起動中…","準備中");
-
-      const ok = await ensureQuagga();
-      setPill(el.pillQ, ok);
-      if (!ok){
-        setStatus("warn","Quagga失敗","通信/CDN");
-        return;
-      }
-
-      // ROI: center area only (helps speed + stability)
-      const config = {
-        inputStream: {
-          name: "Live",
-          type: "LiveStream",
-          target: el.scanner,
-          constraints: { facingMode: "environment", width: { ideal: 1280 }, height: { ideal: 720 } },
-          area: { top: "20%", right: "10%", left: "10%", bottom: "20%" }
-        },
-        locator: { halfSample: true, patchSize: "medium" },
-        numOfWorkers: 0,
-        frequency: 10,
-        locate: false, // ✅ iOS安定化（座標計算で落ちる系を回避）
-        decoder: { readers: ["ean_reader","ean_8_reader","upc_reader","upc_e_reader","code_128_reader"] }
-      };
-
-      log("Quagga init...");
-      await new Promise((resolve, reject)=>{
-        Quagga.init(config, (err)=> err ? reject(err) : resolve());
-      });
-
-      Quagga.onDetected(onDetected);
-      Quagga.start();
-      running = true;
-
-      setPill(el.pillCam, true);
-      setStatus("idle","待機","スキャンしてください");
-      log("Quagga started.");
-    } catch(e){
-      log("Start FAILED: " + (e?.name ? (e.name+": "+e.message) : String(e)));
-      setStatus("warn","起動失敗","カメラ許可/他アプリ占有を確認");
-    } finally {
-      starting = false;
-      el.btnStart.disabled = false;
-      el.btnStop.disabled = false;
-    }
-  }
-
-  // ---- dedup & detection ----
-  async function onDetected(result){
-    try{
-      const raw = result?.codeResult?.code || "";
-      const fmt = result?.codeResult?.format || "";
-      const t = Date.now();
-
-      let jan13 = "";
-      let gtin14 = "";
-
-      const d = digits(raw);
-      if (d.length === 13){
-        jan13 = d;
-      } else {
-        gtin14 = parseGS1AI01(raw);
-        if (gtin14){
-          const r = await lookupJanByGtin(gtin14);
-          if (r.error) log(`[gtin_index ERROR] ${r.file} | ${r.error}`);
-          if (r.jan && r.jan.length === 13) jan13 = r.jan;
-        }
-      }
-
-      const key = (jan13 ? ("JAN:"+jan13) : "") + (gtin14 ? ("|GTIN:"+gtin14) : ("|RAW:"+raw));
-      if (key === lastKey && (t - lastAt) < DEDUP_MS) return;
-      lastKey = key; lastAt = t;
-
-      currentJan = jan13 || "";
-      currentGtin = gtin14 || "";
-
-      showPopout({
-        status:"READ",
-        meta: jan13 ? "JAN検出" : (gtin14 ? "GTIN検出" : "検出"),
-        name: jan13 || gtin14 || raw,
-        totalYen:"—", prodNo:"", prodSta:"",
-        small: fmt ? ("format:" + fmt) : ""
-      });
-
-      if (!jan13 && !gtin14){
-        setStatus("warn","未検出","距離/ブレ/照明");
-        return;
-      }
-
-      setStatus("warn","照合中…","辞書照合");
-
-      const rr = jan13 ? await lookupCandidatesByJan(jan13) : {cands:[], file:"", error:null};
-      const dictFile = rr.file || "";
-      const dictErr = rr.error;
-
-      if (dictErr){
-        setPill(el.pillDict, false);
-        setStatus("warn","WARN","辞書ファイル未取得");
-        log(`[dict ERROR] ${dictFile} | ${dictErr}`);
-
-        showPopout({
-          status:"WARN",
-          meta:"辞書ファイル未取得",
-          name: jan13 || gtin14 || raw,
-          totalYen:"—", prodNo:"", prodSta:"",
-          small: dictFile ? (`dict:${dictFile}`) : ""
-        });
-
-        const logs = loadLogs();
-        logs.push({
-          timestamp: new Date().toISOString(),
-          raw, format: fmt, jan13keta: jan13, gtin14,
-          product_name:"", total_reimbursement_price_yen:"", product_no:"", product_sta:"",
-          manufacturer_name:"", tokutei_name:"",
-          candidate_count: 0, status: "dict_fetch_error",
-          dict_file: dictFile, gtin_file: ""
-        });
-        saveLogs(logs); updateCount();
-        currentCandidates = [];
-        renderCandidate(0);
-        return;
-      }
-
-      setPill(el.pillDict, true);
-
-      const {best, ordered} = pickBestCandidate(rr.cands);
-      currentCandidates = ordered;
-      renderCandidate(0);
-
-      const gtinFile = gtin14 ? (`gtin_index/${gtin14.slice(0,3)}/${gtin14.slice(0,4)}.csv`) : "";
-
-      if (best){
-        setStatus("ok","OK","辞書一致");
-        const totalYen = fmtYenInt(f_total(best)) || "—";
-        showPopout({
-          status:"OK",
-          meta: ordered.length > 1 ? `候補${ordered.length}件` : "辞書一致",
-          name: f_product_name(best) || "—",
-          totalYen,
-          prodNo: f_prodno(best) || "",
-          prodSta: f_prodsta(best) || "",
-          small: `JAN:${jan13 || ""}${gtin14 ? "  GTIN:"+gtin14 : ""}`
-        });
-
-        const logs = loadLogs();
-        logs.push({
-          timestamp: new Date().toISOString(),
-          raw, format: fmt, jan13keta: jan13, gtin14,
-          product_name: f_product_name(best),
-          total_reimbursement_price_yen: f_total(best),
-          product_no: f_prodno(best),
-          product_sta: f_prodsta(best),
-          manufacturer_name: f_maker(best),
-          tokutei_name: f_tokutei(best),
-          candidate_count: ordered.length, status: "ok",
-          dict_file: dictFile, gtin_file: gtinFile
-        });
-        saveLogs(logs); updateCount();
-
-      } else {
-        setStatus("warn","WARN","辞書0件");
-        showPopout({
-          status:"WARN",
-          meta:"辞書0件",
-          name: jan13 || gtin14 || raw,
-          totalYen:"—", prodNo:"", prodSta:"",
-          small: dictFile ? (`dict:${dictFile}`) : ""
-        });
-
-        const logs = loadLogs();
-        logs.push({
-          timestamp: new Date().toISOString(),
-          raw, format: fmt, jan13keta: jan13, gtin14,
-          product_name:"", total_reimbursement_price_yen:"", product_no:"", product_sta:"",
-          manufacturer_name:"", tokutei_name:"",
-          candidate_count: 0, status: "no_match",
-          dict_file: dictFile, gtin_file: gtinFile
-        });
-        saveLogs(logs); updateCount();
-      }
-    } catch(e){
-      // keep alive
-    }
-  }
-
-  // ---- buttons ----
-  el.btnStart.addEventListener("click", startAll);
-  el.btnStop.addEventListener("click", stopAll);
-  el.btnNext.addEventListener("click", ()=>{ if (currentCandidates.length) renderCandidate(currentIndex+1); });
-
-  // ---- init ----
-  (function init(){
-    updateCount();
-    setStatus("idle","待機","Startで起動");
-    setPill(el.pillQ, false);
-    setPill(el.pillCam, false);
-    setPill(el.pillDict, false);
-    renderCandidate(0);
-  })();
-</script>
+  <script type="module" src="./app.js"></script>
 </body>
 </html>
