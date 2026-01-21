@@ -58,7 +58,7 @@
     .card{
       background:var(--card);
       border:1px solid #f2d2dd;
-      border-radius:var(--radius);
+      border-radius:18px;
       padding:14px;
       box-shadow: var(--shadow);
     }
@@ -139,7 +139,7 @@
     }
     .divider{height:1px; background:#f2d2dd; margin:10px 0;}
 
-    /* Billing row: 商品名｜医事名称｜billing_mapコード */
+    /* 医事：横並び */
     .triRow{
       display:grid;
       grid-template-columns: 1.25fr 1fr .75fr;
@@ -165,7 +165,7 @@
       white-space:nowrap;
     }
 
-    /* Toast: tapを邪魔しない */
+    /* Toast */
     .toast{
       position:fixed;
       left:12px; right:12px; bottom:14px;
