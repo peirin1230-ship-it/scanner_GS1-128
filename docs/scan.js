@@ -1,14 +1,11 @@
-// scan.js - Quagga2 wrapper for iPhone Safari
+// scan.js (Quagga2 wrapper for iPhone Safari)
 
 export function parseGS1ForGTIN14(raw) {
   const s = String(raw || "");
-  // (01)xxxxxxxxxxxxxx
   let m = s.match(/\(01\)\s*(\d{14})/);
   if (m) return m[1];
-  // ]C1 01xxxxxxxxxxxxxx
   m = s.match(/]C1\s*01(\d{14})/);
   if (m) return m[1];
-  // fallback 01xxxxxxxxxxxxxx
   m = s.match(/01(\d{14})/);
   if (m) return m[1];
   return null;
@@ -28,10 +25,9 @@ export class Scanner {
     this.onError = onError;
     this._running = false;
     this._starting = false;
-    this._handler = null;
     this._last = 0;
+    this._handler = null;
   }
-
   isRunning(){ return this._running; }
 
   async start(){
@@ -45,7 +41,6 @@ export class Scanner {
         type: "LiveStream",
         target: this.targetEl,
         constraints: { facingMode: "environment" },
-        // 中央だけ読む（安定）
         area: { top:"22%", right:"14%", left:"14%", bottom:"22%" }
       },
       locate: false,
@@ -59,19 +54,17 @@ export class Scanner {
 
     try{
       await new Promise((res, rej) => window.Quagga.init(config, (e)=> e?rej(e):res()));
-
       this._handler = (r) => {
         const code = r?.codeResult?.code;
         if (!code) return;
         const now = Date.now();
-        if (now - this._last < 120) return; // Quagga側の微細連続対策
+        if (now - this._last < 150) return;
         this._last = now;
         this.onDetected?.(code);
       };
-
       window.Quagga.onDetected(this._handler);
       window.Quagga.start();
-      await sleep(150);
+      await sleep(200);
       this._running = true;
     } catch(e){
       this.onError?.(e);
