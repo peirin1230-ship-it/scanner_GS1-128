@@ -3,110 +3,176 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-  <meta name="theme-color" content="#111827" />
-  <title>LinQ VAL PoC — Prototype System</title>
+  <meta name="theme-color" content="#ff3b6b" />
+  <title>LinQ VAL</title>
+
+  <!-- 優しい丸ゴシック（任意。読み込めない環境でもfallback） -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@400;700;900&display=swap" rel="stylesheet">
+
   <style>
     :root{
-      --bg:#0b1020; --card:#111827; --muted:#94a3b8; --fg:#e5e7eb;
-      --accent:#22c55e; --warn:#f59e0b; --err:#ef4444; --line:#1f2937;
-      --btn:#0f172a; --btn2:#111827;
-      --radius:14px;
+      --bg:#ffffff;
+      --pink:#ffe6ef;
+      --pink2:#fff3f7;
+      --red:#ff3b6b;
+      --red2:#ff6b8d;
+      --text:#1f2937;
+      --muted:#6b7280;
+      --line:#f1c6d4;
+      --card:#ffffff;
+      --shadow: 0 10px 30px rgba(255,59,107,.15);
+      --radius:18px;
+      --btnH:56px;
     }
     *{box-sizing:border-box}
-    body{margin:0;background:linear-gradient(180deg,#070a14,#0b1020 40%,#070a14);color:var(--fg);font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial}
-    a{color:inherit}
-    .topbar{
-      position:sticky;top:0;z-index:10;
-      background:rgba(7,10,20,.85);backdrop-filter:blur(12px);
-      border-bottom:1px solid var(--line);
-      padding:10px 12px;
-      display:flex;gap:10px;align-items:center;justify-content:space-between;
+    body{
+      margin:0;background:linear-gradient(180deg,var(--pink2),#fff);
+      color:var(--text);
+      font-family:"M PLUS Rounded 1c", system-ui, -apple-system, "Segoe UI", sans-serif;
     }
-    .brand{display:flex;gap:10px;align-items:center}
-    .pill{font-size:12px;color:var(--muted);border:1px solid var(--line);padding:4px 8px;border-radius:999px}
-    .btn{
-      background:linear-gradient(180deg,#0f172a,#0b1225);
+    .top{
+      position:sticky; top:0; z-index:10;
+      background:rgba(255,255,255,.92);
+      backdrop-filter: blur(10px);
+      border-bottom:1px solid #f2d2dd;
+      padding:10px 14px;
+      display:flex; align-items:center; justify-content:space-between;
+      gap:10px;
+    }
+    .brand{
+      display:flex; flex-direction:column; gap:2px;
+    }
+    .brand b{font-size:18px; font-weight:900; letter-spacing:.2px;}
+    .pill{
+      display:inline-flex; align-items:center; gap:8px;
+      font-size:13px; color:var(--muted);
+      background:var(--pink);
       border:1px solid var(--line);
-      color:var(--fg);
-      padding:10px 12px;border-radius:12px;
-      font-weight:650;letter-spacing:.2px;
+      padding:6px 10px;
+      border-radius:999px;
+      max-width: 70vw;
+      overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+    }
+    .wrap{max-width:980px; margin:0 auto; padding:14px 14px 120px;}
+    .grid{display:grid; gap:12px;}
+    .card{
+      background:var(--card);
+      border:1px solid #f2d2dd;
+      border-radius:var(--radius);
+      padding:14px;
+      box-shadow: var(--shadow);
+    }
+    .h1{margin:0 0 6px; font-size:20px; font-weight:900;}
+    .h2{margin:0 0 8px; font-size:16px; font-weight:900;}
+    .muted{color:var(--muted); font-size:14px; line-height:1.35;}
+    .row{display:flex; gap:10px; align-items:center; flex-wrap:wrap;}
+    .btn{
+      height:var(--btnH);
+      padding:0 16px;
+      border-radius:18px;
+      border:1px solid #f2d2dd;
+      background:#fff;
+      color:var(--text);
+      font-size:18px;
+      font-weight:900;
+      letter-spacing:.2px;
       cursor:pointer;
+      width:100%;
+      box-shadow: 0 10px 20px rgba(0,0,0,.04);
     }
-    .btn:disabled{opacity:.5;cursor:not-allowed}
-    .btn.small{padding:7px 10px;border-radius:10px;font-size:13px}
-    .btn.accent{border-color:rgba(34,197,94,.35)}
-    .btn.warn{border-color:rgba(245,158,11,.35)}
-    .btn.err{border-color:rgba(239,68,68,.35)}
-    .wrap{max-width:980px;margin:0 auto;padding:14px 12px 120px}
-    .grid{display:grid;gap:12px}
-    .card{background:rgba(17,24,39,.75);border:1px solid var(--line);border-radius:var(--radius);padding:12px}
-    .h1{font-size:18px;font-weight:800;margin:0 0 6px}
-    .h2{font-size:15px;font-weight:800;margin:0 0 8px}
-    .muted{color:var(--muted);font-size:13px}
-    .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
-    .kpi{display:flex;flex-direction:column;gap:2px;min-width:120px}
-    .kpi b{font-size:18px}
-    .input{
-      width:100%;padding:10px 12px;border-radius:12px;border:1px solid var(--line);
-      background:#0b1225;color:var(--fg);outline:none;
+    .btn.small{height:46px; font-size:16px; border-radius:16px; width:auto;}
+    .btn.primary{
+      background:linear-gradient(180deg,var(--red),var(--red2));
+      color:#fff; border-color:rgba(255,59,107,.3);
+      box-shadow: 0 12px 28px rgba(255,59,107,.25);
     }
-    .select{appearance:none}
-    .hr{height:1px;background:var(--line);margin:10px 0}
-    .tag{font-size:12px;border:1px solid var(--line);padding:3px 8px;border-radius:999px;color:var(--muted)}
-    .tag.ok{border-color:rgba(34,197,94,.35);color:#bbf7d0}
-    .tag.warn{border-color:rgba(245,158,11,.35);color:#fde68a}
-    .tag.err{border-color:rgba(239,68,68,.35);color:#fecaca}
-    .footerbar{
-      position:fixed;left:0;right:0;bottom:0;z-index:9;
-      background:rgba(7,10,20,.9);backdrop-filter:blur(12px);
-      border-top:1px solid var(--line);
-      padding:10px 12px;
+    .btn.ghost{
+      background:var(--pink);
     }
-    .toast{
-      position:fixed;left:12px;right:12px;bottom:72px;z-index:20;
-      background:rgba(17,24,39,.96);
-      border:1px solid rgba(34,197,94,.35);
-      border-radius:16px;padding:12px;
-      box-shadow:0 12px 40px rgba(0,0,0,.35);
-      display:none;
+    .btn:disabled{opacity:.55; cursor:not-allowed;}
+    .two{display:grid; gap:10px; grid-template-columns:1fr;}
+    @media (min-width:820px){ .two{grid-template-columns:1fr 1fr;} .btn{width:auto;} }
+    .input, .select{
+      width:100%;
+      height:54px;
+      border-radius:16px;
+      border:1px solid #f2d2dd;
+      padding:0 14px;
+      font-size:18px;
+      outline:none;
+      background:#fff;
     }
-    .toast.show{display:block}
-    .toast .title{font-weight:900}
-    .toast .sub{color:var(--muted);font-size:13px;margin-top:4px}
-    .mono{font-family:ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,monospace}
-    .caseItem{display:flex;gap:10px;align-items:flex-start;justify-content:space-between}
-    .caseItem .meta{display:flex;flex-direction:column;gap:2px}
-    .caseItem .meta b{font-size:14px}
-    .caseItem .meta span{font-size:12px;color:var(--muted)}
-    .divider{height:1px;background:var(--line);margin:8px 0}
+    .select{appearance:none;}
+    .listItem{
+      display:flex; justify-content:space-between; align-items:center;
+      gap:10px;
+      padding:12px;
+      border-radius:16px;
+      border:1px solid #f2d2dd;
+      background:linear-gradient(180deg,#fff, #fff7fa);
+    }
+    .listItem b{font-size:16px;}
+    .tag{
+      font-size:13px;
+      padding:6px 10px;
+      border-radius:999px;
+      border:1px solid #f2d2dd;
+      background:var(--pink);
+      color:var(--muted);
+    }
+
+    /* Scan area */
     .videoBox{
-      width:100%;aspect-ratio: 3 / 4;max-height:62vh;
-      border-radius:18px;overflow:hidden;border:1px solid var(--line);
+      width:100%;
+      aspect-ratio: 3 / 4;
+      max-height: 64vh;
+      border-radius:22px;
+      overflow:hidden;
+      border:2px solid rgba(255,59,107,.25);
       background:#000;
+      box-shadow: 0 12px 30px rgba(255,59,107,.18);
       position:relative;
     }
-    #scannerTarget video{width:100%;height:100%;object-fit:cover}
-    .hint{font-size:12px;color:var(--muted);line-height:1.4}
-    .two{display:grid;grid-template-columns:1fr;gap:12px}
-    @media (min-width:880px){ .two{grid-template-columns:1fr 1fr} }
+    #scannerTarget video{width:100%; height:100%; object-fit:cover;}
+    .hint{font-size:13px; color:var(--muted); line-height:1.35;}
+
+    /* Big toast */
+    .toast{
+      position:fixed;
+      left:12px; right:12px; bottom:14px;
+      z-index:50;
+      background:linear-gradient(180deg,#fff, #fff4f8);
+      border:2px solid rgba(255,59,107,.22);
+      border-radius:22px;
+      padding:14px 14px;
+      box-shadow: 0 16px 40px rgba(255,59,107,.22);
+      display:none;
+    }
+    .toast.show{display:block;}
+    .toast .t{font-size:18px; font-weight:900;}
+    .toast .s{font-size:15px; color:var(--muted); margin-top:4px; line-height:1.3;}
+    .toast .price{font-size:22px; font-weight:900; color:var(--red); margin-top:6px;}
+    .mono{font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;}
+    .check{
+      width:26px; height:26px;
+      accent-color: var(--red);
+      transform: scale(1.25);
+    }
+    .divider{height:1px; background:#f2d2dd; margin:10px 0;}
   </style>
 
-  <!-- Quagga2 CDN -->
+  <!-- Quagga2 -->
   <script src="https://unpkg.com/@ericblade/quagga2@1.12.1/dist/quagga.min.js"></script>
 </head>
 <body>
-  <div class="topbar">
+  <div class="top">
     <div class="brand">
-      <div style="font-weight:900;">LinQ VAL</div>
-      <div class="pill">Prototype System</div>
-      <div class="pill mono" id="buildTag">BUILD: poc-2026-01-21</div>
+      <b>LinQ VAL</b>
+      <div class="pill" id="rolePill">職種：未選択</div>
     </div>
-    <div class="row">
-      <button class="btn small" id="navHome">Home</button>
-      <button class="btn small" id="navBilling">医事</button>
-      <button class="btn small" id="navDocs">Docs</button>
-      <button class="btn small" id="navExport">Export</button>
-    </div>
+    <button class="btn small ghost" id="btnRole">職種変更</button>
   </div>
 
   <div class="wrap">
@@ -114,23 +180,9 @@
   </div>
 
   <div class="toast" id="toast">
-    <div class="title" id="toastTitle">Scan OK</div>
-    <div class="sub" id="toastSub"></div>
-  </div>
-
-  <div class="footerbar">
-    <div class="row" style="justify-content:space-between;">
-      <div class="row" style="gap:8px;">
-        <span class="tag">Integration</span>
-        <button class="btn small" id="stageDown">-</button>
-        <span class="pill mono" id="stageTag">Stage 0</span>
-        <button class="btn small" id="stageUp">+</button>
-      </div>
-      <div class="row" style="gap:8px;">
-        <span class="tag">Role</span>
-        <span class="pill mono" id="roleTag">field</span>
-      </div>
-    </div>
+    <div class="t" id="toastTitle">OK</div>
+    <div class="price" id="toastPrice"></div>
+    <div class="s" id="toastSub"></div>
   </div>
 
   <script type="module" src="./app.js"></script>
