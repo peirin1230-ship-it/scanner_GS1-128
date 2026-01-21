@@ -521,13 +521,18 @@ function screenDone(){
    - 商品名 / 医事名称 / billingmapコード を横並び（CSS .triRow を使用）
 ---------------------------- */
 function triRow(product, ijiName, code, price){
-  const left = `<div class="triRow">
-    <div class="c1"><b>${product||"(不明)"}</b></div>
-    <div class="c2">${ijiName||""}</div>
-    <div class="c3">${code||"—"}</div>
-  </div>${price?`<div class="muted" style="margin-top:6px;">${jpy(price)}円</div>`:""}`;
-  return listItem(left, "");
+  return `
+    <div class="listItem" style="align-items:center;">
+      <div class="triRow">
+        <div class="c1"><b>${product||"(不明)"}</b></div>
+        <div class="c2">${ijiName||""}</div>
+        <div class="c3">${code||"—"}</div>
+      </div>
+    </div>
+    ${price ? `<div class="muted" style="margin:6px 6px 14px;">${jpy(price)}円</div>` : `<div style="height:10px;"></div>`}
+  `;
 }
+
 
 function screenBillingHome(){
   return `<div class="grid"><div class="card">
