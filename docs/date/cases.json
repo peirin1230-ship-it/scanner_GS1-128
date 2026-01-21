@@ -1,0 +1,19 @@
+[
+  {
+    "case_id": "CASE-20260121-0001",
+    "patient_ref": "P-000123",
+    "encounter_ref": "E-20260121-01",
+    "order_ref": "O-ABC-999",
+    "dept": "カテ室",
+    "phase": "術中",
+    "status": "DRAFT",
+    "selected_procedures": {
+      "main": { "code_system": "K", "code": "000", "name": "（ダミー）経皮的冠動脈形成術" },
+      "subs": [
+        { "code_system": "K", "code": "000-2", "name": "（ダミー）補助手技A" }
+      ]
+    },
+    "materials": [],
+    "audit": []
+  }
+]
