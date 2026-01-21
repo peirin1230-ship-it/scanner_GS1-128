@@ -6,7 +6,6 @@
   <meta name="theme-color" content="#ff3b6b" />
   <title>LinQ VAL</title>
 
-  <!-- 優しい丸ゴシック（任意。読み込めない環境でもfallback） -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@400;700;900&display=swap" rel="stylesheet">
@@ -41,9 +40,7 @@
       display:flex; align-items:center; justify-content:space-between;
       gap:10px;
     }
-    .brand{
-      display:flex; flex-direction:column; gap:2px;
-    }
+    .brand{display:flex; flex-direction:column; gap:2px;}
     .brand b{font-size:18px; font-weight:900; letter-spacing:.2px;}
     .pill{
       display:inline-flex; align-items:center; gap:8px;
@@ -88,9 +85,7 @@
       color:#fff; border-color:rgba(255,59,107,.3);
       box-shadow: 0 12px 28px rgba(255,59,107,.25);
     }
-    .btn.ghost{
-      background:var(--pink);
-    }
+    .btn.ghost{background:var(--pink);}
     .btn:disabled{opacity:.55; cursor:not-allowed;}
     .two{display:grid; gap:10px; grid-template-columns:1fr;}
     @media (min-width:820px){ .two{grid-template-columns:1fr 1fr;} .btn{width:auto;} }
@@ -106,7 +101,7 @@
     }
     .select{appearance:none;}
     .listItem{
-      display:flex; justify-content:space-between; align-items:center;
+      display:flex; justify-content:space-between; align-items:flex-start;
       gap:10px;
       padding:12px;
       border-radius:16px;
@@ -121,9 +116,8 @@
       border:1px solid #f2d2dd;
       background:var(--pink);
       color:var(--muted);
+      white-space:nowrap;
     }
-
-    /* Scan area */
     .videoBox{
       width:100%;
       aspect-ratio: 3 / 4;
@@ -136,9 +130,14 @@
       position:relative;
     }
     #scannerTarget video{width:100%; height:100%; object-fit:cover;}
-    .hint{font-size:13px; color:var(--muted); line-height:1.35;}
+    .check{
+      width:26px; height:26px;
+      accent-color: var(--red);
+      transform: scale(1.25);
+    }
+    .divider{height:1px; background:#f2d2dd; margin:10px 0;}
 
-    /* Big toast */
+    /* Big toast (fixed bottom) */
     .toast{
       position:fixed;
       left:12px; right:12px; bottom:14px;
@@ -152,18 +151,11 @@
     }
     .toast.show{display:block;}
     .toast .t{font-size:18px; font-weight:900;}
-    .toast .s{font-size:15px; color:var(--muted); margin-top:4px; line-height:1.3;}
     .toast .price{font-size:22px; font-weight:900; color:var(--red); margin-top:6px;}
+    .toast .s{font-size:15px; color:var(--muted); margin-top:4px; line-height:1.3;}
     .mono{font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;}
-    .check{
-      width:26px; height:26px;
-      accent-color: var(--red);
-      transform: scale(1.25);
-    }
-    .divider{height:1px; background:#f2d2dd; margin:10px 0;}
   </style>
 
-  <!-- Quagga2 -->
   <script src="https://unpkg.com/@ericblade/quagga2@1.12.1/dist/quagga.min.js"></script>
 </head>
 <body>
