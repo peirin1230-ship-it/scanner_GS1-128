@@ -3,10 +3,10 @@ import { Scanner, parseGS1ForGTIN14, normalizeJan13 } from "./scan.js";
 /* =========================
    Tuning
 ========================= */
-const LS = { role:"linqval_role_v1", state:"linqval_state_v10", last:"#/role" };
+const LS = { role:"linqval_role_v1", state:"linqval_state_v11", last:"#/role" };
 const TOAST_MS = 5400;
 
-const ANY_SCAN_COOLDOWN_MS = 4500;  // 4.5秒
+const ANY_SCAN_COOLDOWN_MS = 4500;
 const SAME_CODE_COOLDOWN_MS = 8000;
 
 /* =========================
@@ -50,7 +50,7 @@ function listItem(htmlLeft, htmlRight=""){
 function defaultState(){
   return {
     drafts: [],
-    done: [],       // {status: pending/approved, doctor_comment, approved_at}
+    done: [],
     docsDrafts: {}
   };
 }
@@ -62,28 +62,23 @@ function save(){
 }
 
 /* =========================
-   "必ず職種選択へ戻れる" 制御
+   Navigation: always back to role
 ========================= */
 function storeLastHash(){
-  // role画面自体は保存しない（戻るでループしないように）
   if (location.hash && !location.hash.includes("#/role")) {
     localStorage.setItem(LS.last, location.hash);
   }
 }
 function gotoRole(){
-  // どの状態でも確実に戻る
   storeLastHash();
   try { scannerInst?.stop?.(); } catch {}
   role = "";
   save();
   location.hash = "#/role";
-  render(); // hashchange待たずに即描画
+  render();
 }
 function goBackFromRole(){
   const last = localStorage.getItem(LS.last) || "#/";
-  // role未選択のままだと戻ってもまたroleに来るので、戻るは「roleだけ閉じる」用途
-  // ここでは role は未選択のまま（＝戻っても再度roleになる）ため、使わない運用推奨
-  // ただしユーザー要望で「戻る」ボタンは出す
   location.hash = last;
   render();
 }
@@ -235,7 +230,7 @@ function upsertDraft(){
 }
 
 /* =========================
-   Doctor docs helpers
+   Doctor docs
 ========================= */
 function ensureDocsPatient(pid){
   state.docsDrafts[pid] = state.docsDrafts[pid] || { symptom:[], reply:[], other:[] };
@@ -246,8 +241,6 @@ function ensureDocsPatient(pid){
    Screens
 ========================= */
 function screenRole(){
-  const last = localStorage.getItem(LS.last);
-  const canBack = !!last && last !== "#/role";
   return `
     <div class="grid"><div class="card">
       <div class="h1">職種</div><div class="divider"></div>
@@ -263,7 +256,6 @@ function screenRole(){
     </div></div>`;
 }
 
-/* ---- Doctor ---- */
 function screenDoctorHome(){
   return `<div class="grid"><div class="card">
     <div class="h1">医師</div>
@@ -297,13 +289,10 @@ function screenDoctorApprovals(){
   return `<div class="grid">
     <div class="card">
       <div class="h1">承認</div><div class="divider"></div>
-
       <div class="h2">一括コメント（任意）</div>
       <textarea id="bulk_comment" style="width:100%;height:90px;border-radius:16px;border:1px solid #f2d2dd;padding:12px;font-size:16px;outline:none;"></textarea>
-
       <div class="divider"></div>
       <div class="grid">${list}</div>
-
       <div class="divider"></div>
       <div class="row">
         ${btn("✅ 一括承認","bulk_approve","primary")}
@@ -330,11 +319,9 @@ function renderApprovalDetail(item){
     <div class="divider"></div>
     <div class="h2">材料</div>
     <div class="grid">${mats}</div>
-
     <div class="divider"></div>
     <div class="h2">コメント</div>
     <textarea id="doctor_comment" style="width:100%;height:110px;border-radius:16px;border:1px solid #f2d2dd;padding:12px;font-size:16px;outline:none;"></textarea>
-
     <div class="divider"></div>
     <div class="row">
       <button class="btn primary" id="approve_with_comment">✅ 承認</button>
@@ -365,7 +352,6 @@ function screenDoctorDocs(){
   </div>`;
 }
 
-/* ---- Field ---- */
 function screenFieldHome(){
   return `<div class="grid"><div class="card">
     <div class="h1">実施入力</div>
@@ -434,7 +420,8 @@ function screenFieldStep(step){
     return `<div class="grid"><div class="card">
       <div class="h1">入力者</div><div class="divider"></div>
       <select class="select" id="op_select">
-        <option value="">選択</option>${OPERATORS.map(o=>`<option value="${o.id}" ${scanCtx.operatorId===o.id?"selected":""}>${o.label}</option>`).join("")}
+        <option value="">選択</option>
+        ${OPERATORS.map(o=>`<option value="${o.id}" ${scanCtx.operatorId===o.id?"selected":""}>${o.label}</option>`).join("")}
       </select>
       <div class="divider"></div>${btn("➡ 次へ","to_step2","primary")}
       <div class="divider"></div>${saveBar}
@@ -444,7 +431,8 @@ function screenFieldStep(step){
     return `<div class="grid"><div class="card">
       <div class="h1">患者</div><div class="divider"></div>
       <select class="select" id="pt_select">
-        <option value="">選択</option>${PATIENTS.map(p=>`<option value="${p.id}" ${scanCtx.patientId===p.id?"selected":""}>${p.label}</option>`).join("")}
+        <option value="">選択</option>
+        ${PATIENTS.map(p=>`<option value="${p.id}" ${scanCtx.patientId===p.id?"selected":""}>${p.label}</option>`).join("")}
       </select>
       <div class="divider"></div>${btn("➡ 次へ","to_step3","primary")}
       <div class="divider"></div>${saveBar}
@@ -454,13 +442,13 @@ function screenFieldStep(step){
     return `<div class="grid"><div class="card">
       <div class="h1">手技</div><div class="divider"></div>
       <select class="select" id="proc_select">
-        <option value="">選択</option>${PROCEDURES.map(p=>`<option value="${p.id}" ${scanCtx.procedureId===p.id?"selected":""}>${p.label}</option>`).join("")}
+        <option value="">選択</option>
+        ${PROCEDURES.map(p=>`<option value="${p.id}" ${scanCtx.procedureId===p.id?"selected":""}>${p.label}</option>`).join("")}
       </select>
       <div class="divider"></div>${btn("➡ 次へ","to_step4","primary")}
       <div class="divider"></div>${saveBar}
     </div></div>`;
   }
-
   if (step===4){
     return `<div class="grid"><div class="card">
       <div class="h1">材料</div><div class="divider"></div>
@@ -477,27 +465,33 @@ function screenFieldStep(step){
     </div></div>`;
   }
 
-  // ★確定画面で「入力者/患者/手技」を編集できる
   return `<div class="grid"><div class="card">
     <div class="h1">確定</div>
     <div class="divider"></div>
 
-    <div class="h2">入力者</div>
-    <select class="select" id="op_select2">
-      <option value="">選択</option>${OPERATORS.map(o=>`<option value="${o.id}" ${scanCtx.operatorId===o.id?"selected":""}>${o.label}</option>`).join("")}
-    </select>
+    <div class="listItem"><div style="width:100%;">
+      <b>入力者</b><div style="height:8px;"></div>
+      <select class="select" id="op_select2">
+        <option value="">未選択</option>
+        ${OPERATORS.map(o=>`<option value="${o.id}" ${scanCtx.operatorId===o.id?"selected":""}>${o.label}</option>`).join("")}
+      </select>
+    </div></div>
 
-    <div class="divider"></div>
-    <div class="h2">患者</div>
-    <select class="select" id="pt_select2">
-      <option value="">選択</option>${PATIENTS.map(p=>`<option value="${p.id}" ${scanCtx.patientId===p.id?"selected":""}>${p.label}</option>`).join("")}
-    </select>
+    <div class="listItem"><div style="width:100%;">
+      <b>患者</b><div style="height:8px;"></div>
+      <select class="select" id="pt_select2">
+        <option value="">未選択</option>
+        ${PATIENTS.map(p=>`<option value="${p.id}" ${scanCtx.patientId===p.id?"selected":""}>${p.label}</option>`).join("")}
+      </select>
+    </div></div>
 
-    <div class="divider"></div>
-    <div class="h2">手技</div>
-    <select class="select" id="proc_select2">
-      <option value="">選択</option>${PROCEDURES.map(p=>`<option value="${p.id}" ${scanCtx.procedureId===p.id?"selected":""}>${p.label}</option>`).join("")}
-    </select>
+    <div class="listItem"><div style="width:100%;">
+      <b>手技</b><div style="height:8px;"></div>
+      <select class="select" id="proc_select2">
+        <option value="">未選択</option>
+        ${PROCEDURES.map(p=>`<option value="${p.id}" ${scanCtx.procedureId===p.id?"selected":""}>${p.label}</option>`).join("")}
+      </select>
+    </div></div>
 
     <div class="divider"></div>
     <div class="grid" id="confirmList"></div>
@@ -659,21 +653,28 @@ function bindGoRoleButtons(){
   });
 }
 
+function highlightAndFocus(el){
+  if (!el) return;
+  el.scrollIntoView({ behavior:"smooth", block:"center" });
+  try { el.focus(); } catch {}
+  const prev = el.style.borderColor;
+  el.style.borderColor = "rgba(255,59,107,.9)";
+  setTimeout(()=>{ el.style.borderColor = prev || ""; }, 1800);
+}
+
 function render(){
   setRolePill(role);
+
+  $("#btnRole").onclick = gotoRole;
+  $("#rolePill").onclick = gotoRole;
+
   const v = view();
   const app = $("#app");
 
-  // 常に「職種変更」ボタンは効く
-  $("#btnRole").onclick = gotoRole;
-  $("#rolePill").onclick = gotoRole; // pillタップでも戻れる（保険）
-
-  // scan以外でカメラ停止
   if (!v.startsWith("/field/scan/step/4")) {
     try { scannerInst?.stop?.(); } catch {}
   }
 
-  // role未選択 or role画面は常にrole画面を描画
   if (!role || v === "/role"){
     app.innerHTML = screenRole();
     $("#role_doctor").onclick=()=>{ role="doctor"; save(); location.hash="#/"; render(); };
@@ -696,7 +697,7 @@ function render(){
     if (v === "/doctor/approvals"){
       app.innerHTML = screenDoctorApprovals();
       $("#back_doc_home").onclick=()=>{ setView("/"); render(); };
-      $("#go_role_any2").onclick = gotoRole;
+      bindGoRoleButtons();
 
       $("#bulk_approve").onclick=()=>{
         const bulkText = $("#bulk_comment").value || "";
@@ -729,6 +730,7 @@ function render(){
           const id=b.getAttribute("data-open");
           const item=state.done.find(x=>x.id===id);
           if(!item) return;
+
           const box=$("#approveDetail");
           box.innerHTML = renderApprovalDetail(item);
           box.style.display="block";
@@ -755,7 +757,7 @@ function render(){
     if (v === "/doctor/docs"){
       app.innerHTML = screenDoctorDocs();
       $("#back_doc_home2").onclick=()=>{ setView("/"); render(); };
-      $("#go_role_any4").onclick = gotoRole;
+      bindGoRoleButtons();
 
       const docsList=$("#docsList");
       const editor=$("#docsEditor");
@@ -921,11 +923,6 @@ function render(){
         return;
       }
       if (step===3){
-        $("#proc_select").onchange = ()=>{
-          ensureScanCtx();
-          scanCtx.procedureId = $("#proc_select").value || "";
-          upsertDraft();
-        };
         $("#to_step4").onclick=()=>{
           ensureScanCtx();
           scanCtx.procedureId=$("#proc_select").value||scanCtx.procedureId||"";
@@ -952,7 +949,7 @@ function render(){
 
         const onDetected = async (raw)=>{
           const supported = isSupported(raw);
-          if (!supported) return;
+          if (!supported) return; // 不明は保存しない
 
           const t = Date.now();
           if (t - lastScan.anyTs < ANY_SCAN_COOLDOWN_MS) return;
@@ -1008,30 +1005,24 @@ function render(){
         return;
       }
 
-      // step5 confirm + editable selects
+      // step5 confirm (editable)
       ensureScanCtx();
       paintConfirmList();
 
-      $("#op_select2").onchange = ()=>{
-        scanCtx.operatorId = $("#op_select2").value || "";
-        upsertDraft();
-      };
-      $("#pt_select2").onchange = ()=>{
-        scanCtx.patientId = $("#pt_select2").value || "";
-        upsertDraft();
-      };
-      $("#proc_select2").onchange = ()=>{
-        scanCtx.procedureId = $("#proc_select2").value || "";
-        upsertDraft();
-      };
+      const op2=$("#op_select2"), pt2=$("#pt_select2"), pr2=$("#proc_select2");
+      op2.onchange=()=>{ scanCtx.operatorId=op2.value||""; upsertDraft(); };
+      pt2.onchange=()=>{ scanCtx.patientId=pt2.value||""; upsertDraft(); };
+      pr2.onchange=()=>{ scanCtx.procedureId=pr2.value||""; upsertDraft(); };
 
       $("#back_step4").onclick=()=>{ setView("/field/scan/step/4"); render(); };
+      $("#save_draft_any2").onclick=saveDraftExit;
+
       $("#confirm_done").onclick=()=>{
         ensureScanCtx();
-        if (!scanCtx.operatorId){ toastShow({title:"未選択", sub:"入力者"}); return; }
-        if (!scanCtx.patientId){ toastShow({title:"未選択", sub:"患者"}); return; }
-        if (!scanCtx.procedureId){ toastShow({title:"未選択", sub:"手技"}); return; }
-        if (!scanCtx.materials?.length){ toastShow({title:"材料なし", sub:"スキャンしてください"}); return; }
+        if (!scanCtx.operatorId){ toastShow({title:"未選択", sub:"入力者を選択"}); highlightAndFocus(op2); return; }
+        if (!scanCtx.patientId){ toastShow({title:"未選択", sub:"患者を選択"}); highlightAndFocus(pt2); return; }
+        if (!scanCtx.procedureId){ toastShow({title:"未選択", sub:"手技を選択"}); highlightAndFocus(pr2); return; }
+        if (!scanCtx.materials?.length){ toastShow({title:"材料なし", sub:"スキャンしてください"}); highlightAndFocus($("#confirmList")); return; }
 
         state.done.unshift({
           id: uid("DONE"),
@@ -1061,34 +1052,11 @@ function render(){
     setView("/"); render(); return;
   }
 
-  /* ---------- Billing ---------- */
+  /* ---------- Billing (minimal list/detail) ---------- */
   if (role==="billing"){
-    if (v === "/" || v === ""){
-      app.innerHTML = screenBillingHome();
-      $("#go_bill_done").onclick=()=>{ setView("/billing/done"); render(); };
-      $("#go_bill_pending").onclick=()=>{ setView("/billing/pending"); render(); };
-      bindGoRoleButtons();
-      return;
-    }
-    if (v === "/billing/done" || v === "/billing/pending"){
-      app.innerHTML = screenBillingList(v.endsWith("pending")?"pending":"done");
-      $("#back_billing_home").onclick=()=>{ setView("/"); render(); };
-      bindGoRoleButtons();
-      document.querySelectorAll("[data-openbill]").forEach(el=>{
-        el.onclick=()=>{
-          const id = el.getAttribute("data-openbill");
-          const item = state.done.find(x=>x.id===id);
-          if(!item) return;
-          const box=$("#billDetail");
-          box.innerHTML = renderBillingDetail(item);
-          box.style.display="block";
-          $("#close_bill_detail").onclick=()=>{ box.style.display="none"; };
-          bindGoRoleButtons();
-        };
-      });
-      return;
-    }
-    setView("/"); render(); return;
+    app.innerHTML = screenBillingHome();
+    bindGoRoleButtons();
+    return;
   }
 
   setView("/role"); render();
