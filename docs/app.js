@@ -3,12 +3,12 @@ import { Scanner, parseGS1ForGTIN14, normalizeJan13 } from "./scan.js";
 /* ---------------------------
    Tuning
 ---------------------------- */
-const LS = { role:"linqval_role_v1", state:"linqval_state_v5" };
+const LS = { role:"linqval_role_v1", state:"linqval_state_v6" };
 const TOAST_MS = 5400;
 
-// 「連続で読めすぎる」を止める
-const ANY_SCAN_COOLDOWN_MS = 2500;      // 1回読んだら最低2.5秒待つ
-const SAME_CODE_COOLDOWN_MS = 8000;     // 同じコードは8秒抑制
+// A) 1回読んだら必ず2〜3秒は次を読まない ＋2秒 → 4.5秒
+const ANY_SCAN_COOLDOWN_MS = 4500;
+const SAME_CODE_COOLDOWN_MS = 8000;
 
 /* ---------------------------
    Helpers
@@ -20,8 +20,9 @@ function safeParse(s, fb){ try { return JSON.parse(s); } catch { return fb; } }
 function uid(prefix="ID"){ return `${prefix}-${Math.random().toString(16).slice(2,10)}-${Date.now().toString(36)}`; }
 
 function toastShow({ title, price, sub }){
-  $("#toastTitle").textContent = title || "OK";                 // 商品名を主役
-  $("#toastPrice").textContent = price ? `${jpy(price)}円` : ""; // 価格は控えめ
+  // 商品名を主役に
+  $("#toastTitle").textContent = title || "OK";
+  $("#toastPrice").textContent = price ? `${jpy(price)}円` : "";
   $("#toastSub").textContent = sub || "";
   $("#toast").classList.add("show");
   setTimeout(()=> $("#toast").classList.remove("show"), TOAST_MS);
@@ -41,7 +42,6 @@ function btn(label, id, kind=""){
   const cls = kind === "primary" ? "btn primary" : kind === "ghost" ? "btn ghost" : "btn";
   return `<button class="${cls}" id="${id}">${label}</button>`;
 }
-
 function listItem(htmlLeft, htmlRight=""){
   return `<div class="listItem"><div style="flex:1;">${htmlLeft}</div><div>${htmlRight}</div></div>`;
 }
@@ -72,18 +72,21 @@ const FALLBACK_PROCEDURES = [
   { id:"pr1", label:"PCI" },{ id:"pr2", label:"冠動脈造影" },{ id:"pr3", label:"ステント留置" }
 ];
 const FALLBACK_PROC_SUG = { base:["pr1","pr2","pr3"], byTokuteiName:{}, byProductName:{} };
+const FALLBACK_BILLMAP = { byTokuteiName:{}, byProductName:{} };
 
 async function loadJSON(path, fallback){
   try{ const r = await fetch(path, {cache:"no-store"}); if(!r.ok) return fallback; return await r.json(); }
   catch{ return fallback; }
 }
 
-let OPERATORS=[], PATIENTS=[], PROCEDURES=[], PROC_SUG={};
+let OPERATORS=[], PATIENTS=[], PROCEDURES=[], PROC_SUG={}, BILLMAP={};
 async function bootData(){
   OPERATORS = await loadJSON("./data/operators.json", FALLBACK_OPERATORS);
   PATIENTS  = await loadJSON("./data/patients.json",  FALLBACK_PATIENTS);
   PROCEDURES= await loadJSON("./data/procedures.json",FALLBACK_PROCEDURES);
   PROC_SUG  = await loadJSON("./data/procedure_suggest.json", FALLBACK_PROC_SUG);
+  BILLMAP   = await loadJSON("./data/billing_map.json", FALLBACK_BILLMAP);
+
   if (!Array.isArray(OPERATORS)||!OPERATORS.length) OPERATORS=FALLBACK_OPERATORS;
   if (!Array.isArray(PATIENTS)||!PATIENTS.length) PATIENTS=FALLBACK_PATIENTS;
   if (!Array.isArray(PROCEDURES)||!PROCEDURES.length) PROCEDURES=FALLBACK_PROCEDURES;
@@ -133,19 +136,16 @@ function mapDictRow(row){
   const totalRaw = (row["total_reimbursement_price_yen"]||"").toString();
   const total = totalRaw ? Number(totalRaw.replace(/[^\d]/g,"")) : 0;
 
-  // tokutei01 を「医事名称/略称コード」の代表として使う
   const tokutei01_name = (row["tokutei01_name"]||"").trim();
-  const tokutei01_iji_code = (row["tokutei01_iji_code"]||"").trim();
 
   // 内訳（医事画面だけで表示）
   const tokutei_details = [];
   for (let i=1;i<=10;i++){
     const nn = String(i).padStart(2,"0");
-    const code = (row[`tokutei${nn}_iji_code`]||"").trim();
     const name = (row[`tokutei${nn}_name`]||"").trim();
     const pr = (row[`tokutei${nn}_price`]||"").toString();
     const price = pr ? Number(pr.replace(/[^\d]/g,"")) : 0;
-    if (code || name || price) tokutei_details.push({ idx: nn, iji_code: code, name, price });
+    if (name || price) tokutei_details.push({ idx: nn, name, price });
   }
 
   return {
@@ -155,7 +155,6 @@ function mapDictRow(row){
     product_sta,
     total_reimbursement_price_yen: total,
     tokutei01_name,
-    tokutei01_iji_code,
     tokutei_details
   };
 }
@@ -190,6 +189,15 @@ async function lookupJanFromGtin14(gtin14){
 }
 
 /* ---------------------------
+   Billing map code (医事側はこれを表示)
+---------------------------- */
+function billingMapCode(material){
+  const t = material?.tokutei01_name || "";
+  const p = material?.product_name || "";
+  return BILLMAP.byTokuteiName?.[t] || BILLMAP.byProductName?.[p] || "—";
+}
+
+/* ---------------------------
    Procedure suggest
 ---------------------------- */
 function suggestProcedureIds(materials){
@@ -211,13 +219,14 @@ function suggestProcedureIds(materials){
 /* ---------------------------
    Routing + flow ctx
 ---------------------------- */
-let scanner=null;
+let scannerInst=null;
 let scanCtx=null; // {draftId, step, operatorId, patientId, procedureId, place, materials[]}
 let lastScan = { anyTs:0, raw:"", sameTs:0 };
 
 function setView(hash){ location.hash = `#${hash}`; }
 function view(){ return (location.hash || "#/").slice(1); }
 function ensureRole(){ if (!role){ setView("/role"); return false; } return true; }
+
 function ensureScanCtx(){
   if (!scanCtx){
     scanCtx = { draftId:uid("DRAFT"), step:1, operatorId:"", patientId:"", procedureId:"", place:"未設定", materials:[], createdAt:iso(), updatedAt:iso() };
@@ -246,6 +255,7 @@ function screenRole(){
     </div></div>`;
 }
 
+/* ---- Doctor ---- */
 function screenDoctorHome(){
   return `<div class="grid"><div class="card">
     <div class="h1">医師</div>
@@ -281,14 +291,13 @@ function screenDoctorApprovals(){
   </div>`;
 }
 
+// 医師側はコードを見せない（要望）
 function renderApprovalDetail(item){
   const patient = PATIENTS.find(p=>p.id===item.patientId)?.label || item.patientId;
   const proc = PROCEDURES.find(p=>p.id===item.procedureId)?.label || "未選択";
-  // 医師側は内訳を出さない（要望）
   const mats = (item.materials||[]).map(m=>{
     const left = `<b>${m.product_name||"(不明)"}</b><div class="muted">${m.tokutei01_name||""}</div>`;
-    const right = `<span class="tag">${m.tokutei01_iji_code||"—"}</span>`;
-    return listItem(left,right);
+    return listItem(left, "");
   }).join("") || `<div class="muted">材料なし</div>`;
 
   return `
@@ -304,6 +313,7 @@ function renderApprovalDetail(item){
     </div>`;
 }
 
+/* Docs（複数下書き） */
 function ensureDocsPatient(pid){
   state.docsDrafts[pid] = state.docsDrafts[pid] || { symptom:[], reply:[], other:[] };
   return state.docsDrafts[pid];
@@ -328,6 +338,7 @@ function screenDoctorDocs(){
   </div>`;
 }
 
+/* ---- Field ---- */
 function screenFieldHome(){
   return `<div class="grid"><div class="card">
     <div class="h1">実施入力</div>
@@ -386,8 +397,7 @@ function screenFieldStep(step){
 
   if (step===4){
     const mats = (scanCtx.materials||[]).slice(0,8).map(m=>{
-      const left = `<b>${m.product_name||"(不明)"}</b>
-        <div class="muted">${m.tokutei01_name||""} ${m.total_reimbursement_price_yen?`${jpy(m.total_reimbursement_price_yen)}円`:""}</div>`;
+      const left = `<b>${m.product_name||"(不明)"}</b><div class="muted">${m.tokutei01_name||""}</div>`;
       const right = `<span class="tag">${m.dict_status}</span>`;
       return listItem(left,right);
     }).join("") || `<div class="muted">材料なし</div>`;
@@ -407,14 +417,13 @@ function screenFieldStep(step){
     </div></div>`;
   }
 
-  // confirm
+  // confirm（ここもコード表示しない）
   const op = OPERATORS.find(o=>o.id===scanCtx.operatorId)?.label || "未選択";
   const pt = PATIENTS.find(p=>p.id===scanCtx.patientId)?.label || "未選択";
   const pr = PROCEDURES.find(p=>p.id===scanCtx.procedureId)?.label || "未選択";
   const mats = (scanCtx.materials||[]).map(m=>{
     const left = `<b>${m.product_name||"(不明)"}</b><div class="muted">${m.tokutei01_name||""}</div>`;
-    const right = `<span class="tag">${m.tokutei01_iji_code||"—"}</span>`;
-    return listItem(left,right);
+    return listItem(left,"");
   }).join("") || `<div class="muted">材料なし</div>`;
 
   return `<div class="grid"><div class="card">
@@ -467,7 +476,11 @@ function screenDone(){
   </div></div>`;
 }
 
-/* Billing: tri-column row */
+/* ---------------------------
+   Billing screens
+   - 医事側は billing_map のコードを表示
+   - 商品名 / 医事名称 / billingmapコード を横並び（CSS .triRow を使用）
+---------------------------- */
 function triRow(product, ijiName, code, price){
   const left = `<div class="triRow">
     <div class="c1"><b>${product||"(不明)"}</b></div>
@@ -519,8 +532,7 @@ function renderTokuteiDetails(details){
   return `<div class="grid" style="gap:8px;margin-top:10px;">${
     details.map(t=>{
       const pr = t.price ? `${jpy(t.price)}円` : "";
-      const code = t.iji_code ? `略称:${t.iji_code}` : "";
-      return listItem(`<b>${t.name||"(名称なし)"}</b><div class="muted">${[code,pr].filter(Boolean).join(" / ")}</div>`);
+      return listItem(`<b>${t.name||"(名称なし)"}</b><div class="muted">${pr}</div>`);
     }).join("")
   }</div>`;
 }
@@ -530,14 +542,12 @@ function renderBillingDetail(item){
   const proc = item.procedureId ? (PROCEDURES.find(p=>p.id===item.procedureId)?.label || "未選択") : "未選択";
 
   const mats = (item.materials||[]).map(m=>{
-    // 医事画面は「商品名 / 医事名称 / 略称コード」を横並び
     const product = m.product_name || "(不明)";
     const ijiName = m.tokutei01_name || "";
-    const code = m.tokutei01_iji_code || "—";
+    const code = billingMapCode(m); // ★billing_map のコードを表示
     const price = m.total_reimbursement_price_yen || 0;
     const top = triRow(product, ijiName, code, price);
-    // 内訳は医事画面だけ
-    const detail = renderTokuteiDetails(m.tokutei_details || []);
+    const detail = renderTokuteiDetails(m.tokutei_details || []); // ★内訳は医事側のみ
     return `${top}${detail}`;
   }).join("") || `<div class="muted">材料なし</div>`;
 
@@ -556,8 +566,6 @@ function renderBillingDetail(item){
 /* ---------------------------
    Render + bind
 ---------------------------- */
-let scannerInst=null;
-
 function render(){
   setRolePill(role);
   const v = view();
@@ -576,7 +584,7 @@ function render(){
     return;
   }
 
-  // top role button
+  // top role reset
   $("#btnRole").onclick = ()=>{ role=""; save(); setView("/role"); render(); };
 
   // Doctor
@@ -592,7 +600,8 @@ function render(){
       $("#back_doc_home").onclick=()=>{ setView("/"); render(); };
 
       $("#bulk_approve").onclick=()=>{
-        const checked = Array.from(document.querySelectorAll("[data-chk]")).filter(x=>x.checked).map(x=>x.getAttribute("data-chk"));
+        const checked = Array.from(document.querySelectorAll("[data-chk]"))
+          .filter(x=>x.checked).map(x=>x.getAttribute("data-chk"));
         if (!checked.length){ toastShow({title:"選択なし", sub:"チェックしてください"}); return; }
         checked.forEach(id=>{ const it=state.done.find(x=>x.id===id); if(it) it.status="approved"; });
         save(); toastShow({title:"承認", sub:`${checked.length}件`}); render();
@@ -774,7 +783,7 @@ function render(){
         const onDetected = async (raw)=>{
           const t = Date.now();
 
-          // 連続読み取りを抑制
+          // 連続読み取り抑制（強め）
           if (t - lastScan.anyTs < ANY_SCAN_COOLDOWN_MS) return;
           if (raw === lastScan.raw && (t - lastScan.sameTs) < SAME_CODE_COOLDOWN_MS) return;
 
@@ -798,7 +807,6 @@ function render(){
             product_sta:"",
             total_reimbursement_price_yen:0,
             tokutei01_name:"",
-            tokutei01_iji_code:"",
             tokutei_details:[]
           };
 
@@ -923,7 +931,7 @@ function render(){
       app.innerHTML = screenBillingHome();
       $("#go_bill_done").onclick=()=>{ setView("/billing/done"); render(); };
       $("#go_bill_pending").onclick=()=>{ setView("/billing/pending"); render(); };
-      $("#back_bill_home").onclick=()=>{ setView("/role"); render(); }; // 医事は職種へ戻す
+      $("#back_bill_home").onclick=()=>{ setView("/role"); render(); };
       return;
     }
     if (v==="/billing/done" || v==="/billing/pending"){
@@ -947,11 +955,6 @@ function render(){
   }
 }
 
-/* Top: role reset */
-$("#btnRole").onclick = ()=>{ role=""; save(); setView("/role"); render(); };
-
-window.addEventListener("hashchange", render);
-
 /* Boot */
 (async function(){
   await bootData();
@@ -959,4 +962,5 @@ window.addEventListener("hashchange", render);
   setRolePill(role);
   save();
   render();
+  window.addEventListener("hashchange", render);
 })();
