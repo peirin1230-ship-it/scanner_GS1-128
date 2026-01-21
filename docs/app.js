@@ -395,44 +395,83 @@ function screenFieldStep(step){
     </div></div>`;
   }
 
-  if (step===4){
+   if (step===4){
+    const op = OPERATORS.find(o=>o.id===scanCtx.operatorId)?.label || "未選択";
+    const pt = PATIENTS.find(p=>p.id===scanCtx.patientId)?.label || "未選択";
+    const pr = PROCEDURES.find(p=>p.id===scanCtx.procedureId)?.label || "未選択";
+
     const mats = (scanCtx.materials||[]).slice(0,8).map(m=>{
-      const left = `<b>${m.product_name||"(不明)"}</b><div class="muted">${m.tokutei01_name||""}</div>`;
+      const left = `
+        <span class="chip mat">材料</span>
+        <div style="margin-top:6px;"><b>${m.product_name||"(不明)"}</b></div>
+        <div class="muted">${m.tokutei01_name||""}</div>
+      `;
       const right = `<span class="tag">${m.dict_status}</span>`;
       return listItem(left,right);
     }).join("") || `<div class="muted">材料なし</div>`;
 
     return `<div class="grid"><div class="card">
-      <div class="h1">材料</div><div class="divider"></div>
+      <div class="h1">材料</div>
+
+      <div class="row" style="margin-top:8px;">
+        <span class="chip patient">患者</span><span style="font-weight:900;">${pt}</span>
+        <span class="chip proc">手技</span><span style="font-weight:900;">${pr}</span>
+      </div>
+      <div class="row" style="margin-top:6px;">
+        <span class="chip" style="background:#fff;border-color:#f2d2dd;">入力者</span><span style="font-weight:900;">${op}</span>
+      </div>
+
+      <div class="divider"></div>
       <div class="videoBox" id="scannerTarget"></div>
+
       <div class="divider"></div>
       <div class="row">
         <button class="btn primary" id="scan_start">▶ Start</button>
         <button class="btn ghost" id="scan_stop" disabled>■ Stop</button>
         <button class="btn ghost" id="to_confirm">✅ 確定</button>
       </div>
+
       <div class="divider"></div>
       <div class="grid" id="matList">${mats}</div>
-      <div class="divider"></div>${saveBar}
+
+      <div class="divider"></div>
+      <div class="row">
+        <button class="btn ghost" id="save_draft_any">💾 下書き</button>
+        <button class="btn ghost" id="cancel_flow">✖ 中止</button>
+      </div>
     </div></div>`;
   }
 
-  // confirm（ここもコード表示しない）
+  // confirm（患者/手技/材料を色分けして“まとまり”を出す）
   const op = OPERATORS.find(o=>o.id===scanCtx.operatorId)?.label || "未選択";
   const pt = PATIENTS.find(p=>p.id===scanCtx.patientId)?.label || "未選択";
   const pr = PROCEDURES.find(p=>p.id===scanCtx.procedureId)?.label || "未選択";
+
   const mats = (scanCtx.materials||[]).map(m=>{
-    const left = `<b>${m.product_name||"(不明)"}</b><div class="muted">${m.tokutei01_name||""}</div>`;
+    const left = `
+      <span class="chip mat">材料</span>
+      <div style="margin-top:6px;"><b>${m.product_name||"(不明)"}</b></div>
+      <div class="muted">${m.tokutei01_name||""}</div>
+    `;
     return listItem(left,"");
   }).join("") || `<div class="muted">材料なし</div>`;
 
   return `<div class="grid"><div class="card">
-    <div class="h1">確定</div><div class="divider"></div>
-    ${listItem(`<b>入力者</b><div class="muted">${op}</div>`)}
-    ${listItem(`<b>患者</b><div class="muted">${pt}</div>`)}
-    ${listItem(`<b>手技</b><div class="muted">${pr}</div>`)}
+    <div class="h1">確定</div>
+
+    <div class="row" style="margin-top:8px;">
+      <span class="chip patient">患者</span><span style="font-weight:900;">${pt}</span>
+    </div>
+    <div class="row" style="margin-top:6px;">
+      <span class="chip proc">手技</span><span style="font-weight:900;">${pr}</span>
+    </div>
+    <div class="row" style="margin-top:6px;">
+      <span class="chip" style="background:#fff;border-color:#f2d2dd;">入力者</span><span style="font-weight:900;">${op}</span>
+    </div>
+
     <div class="divider"></div>
     <div class="grid">${mats}</div>
+
     <div class="divider"></div>
     <div class="row">
       ${btn("✅ 実施済み","confirm_done","primary")}
@@ -440,7 +479,7 @@ function screenFieldStep(step){
       ${btn("💾 下書き","save_draft_any2","ghost")}
     </div>
   </div></div>`;
-}
+
 
 function screenDrafts(){
   const list = state.drafts.length ? state.drafts.map(d=>{
