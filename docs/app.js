@@ -1401,6 +1401,7 @@ if (!role || v === "/role"){
 }
 
 
+
   /* ---- doctor ---- */
   if (role==="doctor"){
     const deptOk = (doctorProfile.dept||"").trim().length>0;
