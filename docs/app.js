@@ -1,12 +1,12 @@
 import { Scanner, parseGS1ForGTIN14, normalizeJan13 } from "./scan.js";
 
 /* =========================
-   Tuning
+   Config
 ========================= */
 const LS = {
   role: "linqval_role_v3",
-  state: "linqval_state_v17",
-  doctor: "linqval_doctor_profile_v1",
+  state: "linqval_state_v18",
+  doctor: "linqval_doctor_profile_v2",
   recentApprovers: "linqval_recent_approvers_v1"
 };
 const TOAST_MS = 5400;
@@ -23,6 +23,7 @@ const todayStr = ()=>new Date().toISOString().slice(0,10);
 const jpy = (n)=> (Number(n||0)).toLocaleString("ja-JP");
 function safeParse(s, fb){ try { return JSON.parse(s); } catch { return fb; } }
 function uid(prefix="ID"){ return `${prefix}-${Math.random().toString(16).slice(2,10)}-${Date.now().toString(36)}`; }
+function deepClone(v){ return JSON.parse(JSON.stringify(v ?? null)); }
 function fmtDT(s){ if(!s) return "—"; try { return new Date(s).toLocaleString("ja-JP"); } catch { return String(s); } }
 function toastShow({ title, price, sub }){
   $("#toastTitle").textContent = title || "OK";
@@ -93,8 +94,12 @@ function defaultState(){
 }
 let role = localStorage.getItem(LS.role) || "";
 let state = safeParse(localStorage.getItem(LS.state), null) || defaultState();
+
+// doctorProfile: {dept, doctorId}
 let doctorProfile = safeParse(localStorage.getItem(LS.doctor), null) || { dept:"", doctorId:"" };
-let recentApprovers = safeParse(localStorage.getItem(LS.recentApprovers), null) || {}; // {doctorId: ts}
+
+// recentApprovers: {doctorId: ts}
+let recentApprovers = safeParse(localStorage.getItem(LS.recentApprovers), null) || {};
 
 function save(){
   localStorage.setItem(LS.role, role);
@@ -148,8 +153,13 @@ function operatorLabel(id){ return (OPERATORS.find(x=>x.id===id)?.label) || (id|
 function patientLabel(id){ return (PATIENTS.find(x=>x.id===id)?.label) || (id||"未選択"); }
 function procedureLabel(id){ return (PROCEDURES.find(x=>x.id===id)?.label) || (id||"未選択"); }
 function doctorLabelById(id){
+  if (id === "BILLING") return "医事課（最終承認）";
   const d = DOCTORS.find(x=>x.id===id);
   return d ? `${d.dept} ${d.name}（${d.id}）` : (id||"未選択");
+}
+function doctorDeptList(){
+  const s = new Set(DOCTORS.map(d=>d.dept).filter(Boolean));
+  return Array.from(s).sort();
 }
 
 /* =========================
@@ -236,22 +246,17 @@ function billingMapCode(material){
 }
 
 /* =========================
-   Recent approvers (sorted)
+   Recent approvers
 ========================= */
 function touchRecentApprover(doctorId){
   if (!doctorId) return;
   recentApprovers[doctorId] = Date.now();
   save();
 }
-function doctorDeptList(){
-  const s = new Set(DOCTORS.map(d=>d.dept).filter(Boolean));
-  return Array.from(s).sort();
-}
 function sortedApprovers(deptFilter){
   const list = DOCTORS
     .filter(d=> !deptFilter || deptFilter==="ALL" || d.dept===deptFilter)
     .slice();
-
   list.sort((a,b)=>{
     const ta = recentApprovers[a.id] || 0;
     const tb = recentApprovers[b.id] || 0;
@@ -262,21 +267,32 @@ function sortedApprovers(deptFilter){
 }
 
 /* =========================
-   Edit history utilities
+   Edit history + detailed diff
 ========================= */
 function pushHistory(it, entry){
   it.history = Array.isArray(it.history) ? it.history : [];
   it.history.unshift(entry);
 }
-function diffMaterials(oldMats, newMats){
-  const a = new Set((oldMats||[]).map(x=>x.id));
-  const b = new Set((newMats||[]).map(x=>x.id));
-  let added=0, removed=0;
-  for (const id of b) if (!a.has(id)) added++;
-  for (const id of a) if (!b.has(id)) removed++;
+function materialKey(m){
+  // なるべく安定キー（辞書hitなら jan13 / gtin14 / raw も使える）
+  return m?.jan13 || m?.gtin14 || m?.raw || m?.id;
+}
+function materialLabel(m){
+  const n = m?.product_name || "(不明)";
+  const t = m?.tokutei01_name || "";
+  return t ? `${n} / ${t}` : n;
+}
+function diffMaterialsDetailed(oldMats, newMats){
+  const oldMap = new Map((oldMats||[]).map(m=>[materialKey(m), m]));
+  const newMap = new Map((newMats||[]).map(m=>[materialKey(m), m]));
+
+  const added=[], removed=[];
+  for (const [k,m] of newMap.entries()) if (!oldMap.has(k)) added.push(m);
+  for (const [k,m] of oldMap.entries()) if (!newMap.has(k)) removed.push(m);
+
   return { added, removed };
 }
-function summarizeChanges(oldIt, newIt){
+function summarizeChangesDetailed(oldIt, newIt){
   const changes=[];
   const f = (k, label, fmt=(v)=>v)=>{
     if ((oldIt?.[k]||"") !== (newIt?.[k]||"")) changes.push(`${label}: ${fmt(oldIt?.[k])} → ${fmt(newIt?.[k])}`);
@@ -285,9 +301,16 @@ function summarizeChanges(oldIt, newIt){
   f("patientId","患者", patientLabel);
   f("procedureId","手技", procedureLabel);
   f("assignedDoctorId","承認依頼", doctorLabelById);
-  const m = diffMaterials(oldIt?.materials, newIt?.materials);
-  if (m.added || m.removed) changes.push(`材料: +${m.added} / -${m.removed}`);
-  return changes.length ? changes : ["変更なし"];
+
+  const m = diffMaterialsDetailed(oldIt?.materials, newIt?.materials);
+  if (m.added.length || m.removed.length){
+    const a = m.added.slice(0,5).map(materialLabel);
+    const r = m.removed.slice(0,5).map(materialLabel);
+    if (m.added.length) changes.push(`材料追加: ${m.added.length}件` + (a.length ? `（${a.join(" / ")}${m.added.length>5?" …":""}）` : ""));
+    if (m.removed.length) changes.push(`材料削除: ${m.removed.length}件` + (r.length ? `（${r.join(" / ")}${m.removed.length>5?" …":""}）` : ""));
+  }
+
+  return changes.length ? changes : ["修正なし"];
 }
 function renderHistory(it){
   const h = Array.isArray(it.history) ? it.history : [];
@@ -309,7 +332,7 @@ function renderHistory(it){
 }
 
 /* =========================
-   Routing + scan flow
+   Router + scan flow
 ========================= */
 let scannerInst=null;
 let scanCtx=null;
@@ -325,6 +348,7 @@ function gotoRole(){
   location.hash = "#/role";
   render();
 }
+
 function ensureScanCtx(){
   if (!scanCtx){
     scanCtx = {
@@ -339,7 +363,7 @@ function ensureScanCtx(){
       updatedAt:iso(),
       editDoneId:null,
       assignedDoctorId:"",
-      approverDept:"ALL" // ✅ 承認者候補の診療科フィルタ
+      approverDept:"ALL"
     };
   }
 }
@@ -393,18 +417,34 @@ function screenRole(){
     </div></div>`;
 }
 
-/* ---------- Doctor ---------- */
+/* ---------- Doctor (dropdown login) ---------- */
 function screenDoctorLogin(){
+  const deptOptions = [`<option value="">選択</option>`]
+    .concat(doctorDeptList().map(d=>`<option value="${d}"${doctorProfile.dept===d?" selected":""}>${d}</option>`))
+    .join("");
+
+  const list = DOCTORS
+    .filter(d=> !doctorProfile.dept || d.dept===doctorProfile.dept)
+    .slice()
+    .sort((a,b)=>(a.name||"").localeCompare(b.name||"","ja"));
+
+  const docOptions = [`<option value="">選択</option>`]
+    .concat(list.map(d=>`<option value="${d.id}"${doctorProfile.doctorId===d.id?" selected":""}>${d.name}（${d.id}）</option>`))
+    .join("");
+
   return `
     <div class="grid"><div class="card">
       <div class="h1">医師ログイン</div>
-      <div class="muted">診療科と医師IDを入力してください</div>
+      <div class="muted">診療科 → 医師（ID）を選択</div>
       <div class="divider"></div>
+
       <div class="h2">診療科</div>
-      <input class="input" id="doc_dept" placeholder="例：循環器内科" value="${(doctorProfile.dept||"").replace(/"/g,"")}" />
+      <select class="select" id="doc_dept_sel">${deptOptions}</select>
+
       <div class="divider"></div>
-      <div class="h2">医師ID</div>
-      <input class="input" id="doc_id" placeholder="例：dr001" value="${(doctorProfile.doctorId||"").replace(/"/g,"")}" />
+      <div class="h2">医師</div>
+      <select class="select" id="doc_id_sel">${docOptions}</select>
+
       <div class="divider"></div>
       ${btn("開始","doc_login_go","primary")}
       <div class="divider"></div>
@@ -688,6 +728,30 @@ function screenFieldStep(step){
   }
   if (step===5){
     const editTag = scanCtx.editDoneId ? `<div class="tag">修正モード</div>` : ``;
+
+    // 修正内容（差分）を表示
+    let diffHtml = "";
+    if (scanCtx.editDoneId){
+      const base = state.done.find(x=>x.id===scanCtx.editDoneId);
+      if (base){
+        const pseudoNew = {
+          operatorId: scanCtx.operatorId,
+          patientId: scanCtx.patientId,
+          procedureId: scanCtx.procedureId,
+          assignedDoctorId: scanCtx.assignedDoctorId,
+          materials: scanCtx.materials
+        };
+        const changes = summarizeChangesDetailed(base, pseudoNew);
+        diffHtml = `
+          <div class="divider"></div>
+          <div class="h2">修正内容</div>
+          <div class="grid" style="gap:8px;">
+            ${changes.map(c=>`<div class="listItem"><div><b>${c}</b></div></div>`).join("")}
+          </div>
+        `;
+      }
+    }
+
     return `<div class="grid"><div class="card">
       <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;">
         <div>
@@ -724,6 +788,8 @@ function screenFieldStep(step){
 
       <div class="divider"></div>
       <div class="grid" id="confirmList"></div>
+
+      ${diffHtml}
 
       <div class="divider"></div>
       <div class="row">
@@ -793,49 +859,7 @@ function screenBillingHome(){
   </div></div>`;
 }
 
-function screenBillingList(kind){
-  const isPending = kind==="pending";
-  const base = state.done.slice();
-
-  // フィルタ UI（承認者 / 承認日時）
-  const approverOptions = [`<option value="ALL">すべて</option>`, `<option value="NONE">未承認</option>`]
-    .concat(DOCTORS.map(d=>`<option value="${d.id}">${d.dept} ${d.name}（${d.id}）</option>`))
-    .join("");
-
-  const dateOptions = `
-    <option value="TODAY">今日</option>
-    <option value="7D">直近7日</option>
-    <option value="ALL">全期間</option>
-  `;
-
-  return `<div class="grid">
-    <div class="card">
-      <div class="h1">${isPending ? "承認待ち" : "実施入力済み"}</div>
-      <div class="divider"></div>
-
-      <div class="grid" style="gap:10px;">
-        <div>
-          <div class="h2">承認者</div>
-          <select class="select" id="bill_filter_approver">${approverOptions}</select>
-        </div>
-        <div>
-          <div class="h2">承認日時</div>
-          <select class="select" id="bill_filter_approvedat">${dateOptions}</select>
-        </div>
-      </div>
-
-      <div class="divider"></div>
-      <div class="grid" id="billList"></div>
-
-      <div class="divider"></div>
-      ${btn("⬅ 戻る","back_billing_home","ghost")}
-    </div>
-
-    <div class="card" id="billDetail" style="display:none;"></div>
-  </div>`;
-}
-
-// 材料ごとに1枠
+// 材料ごとに1枠（医事詳細）
 function billingMaterialCard(m){
   const code = billingMapCode(m);
   const line1 = [(m.product_name||"(不明)"), (m.product_no||""), (m.product_sta||"")].filter(Boolean).join(" ");
@@ -890,13 +914,75 @@ function renderBillingDetail(item){
   `;
 }
 
+function screenBillingList(kind){
+  const isPending = kind==="pending";
+
+  // フィルタ UI（承認者 / 承認日時）
+  const approverOptions = [
+    `<option value="ALL">すべて</option>`,
+    `<option value="NONE">未承認</option>`,
+    `<option value="BILLING">医事課（最終承認）</option>`,
+    ...DOCTORS.map(d=>`<option value="${d.id}">${d.dept} ${d.name}（${d.id}）</option>`)
+  ].join("");
+
+  const dateOptions = `
+    <option value="TODAY">今日</option>
+    <option value="7D">直近7日</option>
+    <option value="ALL">全期間</option>
+  `;
+
+  // 一括承認用（承認者を選べる）
+  const bulkApproverOptions = [
+    `<option value="BILLING">医事課（最終承認）</option>`,
+    ...DOCTORS.map(d=>`<option value="${d.id}">${d.dept} ${d.name}（${d.id}）</option>`)
+  ].join("");
+
+  const bulkBox = isPending ? `
+    <div class="divider"></div>
+    <div class="h2">一括承認（最終手段）</div>
+    <div class="muted">レセプト点検などで確認済みのものを、医事課側で一括承認できます</div>
+    <div style="height:8px;"></div>
+    <div class="h2">承認者</div>
+    <select class="select" id="bill_bulk_approver">${bulkApproverOptions}</select>
+    <div style="height:10px;"></div>
+    ${btn("✅ 選択を一括承認","bill_bulk_approve","primary")}
+  ` : "";
+
+  return `<div class="grid">
+    <div class="card">
+      <div class="h1">${isPending ? "承認待ち" : "実施入力済み"}</div>
+      <div class="divider"></div>
+
+      <div class="grid" style="gap:10px;">
+        <div>
+          <div class="h2">承認者</div>
+          <select class="select" id="bill_filter_approver">${approverOptions}</select>
+        </div>
+        <div>
+          <div class="h2">承認日時</div>
+          <select class="select" id="bill_filter_approvedat">${dateOptions}</select>
+        </div>
+      </div>
+
+      ${bulkBox}
+
+      <div class="divider"></div>
+      <div class="grid" id="billList"></div>
+
+      <div class="divider"></div>
+      ${btn("⬅ 戻る","back_billing_home","ghost")}
+    </div>
+
+    <div class="card" id="billDetail" style="display:none;"></div>
+  </div>`;
+}
+
 /* =========================
-   Paint helpers
+   Scan UI painters
 ========================= */
 function paintMatList(){
   const matList = $("#matList");
   if (!matList) return;
-
   const html = (scanCtx?.materials||[]).slice(0,12).map(m=>{
     const left = `<b>${m.product_name||"(不明)"}</b><div class="muted">${m.tokutei01_name||""}</div>`;
     const right = `<span class="tag">${m.dict_status||""}</span> <button class="btn small ghost" data-delmat="${m.id}">🗑</button>`;
@@ -916,7 +1002,6 @@ function paintMatList(){
 function paintConfirmList(){
   const box = $("#confirmList");
   if (!box) return;
-
   const mats = (scanCtx.materials||[]).map(m=>{
     const left = `<b>${m.product_name||"(不明)"}</b><div class="muted">${m.tokutei01_name||""}</div>`;
     const right = `<button class="btn small ghost" data-delmat2="${m.id}">🗑</button>`;
@@ -1055,14 +1140,27 @@ function render(){
 
     if (v === "/doctor/login"){
       app.innerHTML = screenDoctorLogin();
+
+      const deptSel = $("#doc_dept_sel");
+      const docSel = $("#doc_id_sel");
+
+      deptSel.onchange = ()=>{
+        doctorProfile.dept = deptSel.value || "";
+        doctorProfile.doctorId = "";
+        save();
+        render(); // 医師候補を再描画
+      };
+
       $("#doc_login_go").onclick=()=>{
-        doctorProfile.dept = ($("#doc_dept").value||"").trim();
-        doctorProfile.doctorId = ($("#doc_id").value||"").trim();
-        if (!doctorProfile.dept){ toastShow({title:"未入力", sub:"診療科"}); highlightAndFocus($("#doc_dept")); return; }
-        if (!doctorProfile.doctorId){ toastShow({title:"未入力", sub:"医師ID"}); highlightAndFocus($("#doc_id")); return; }
+        const did = docSel.value || "";
+        if (!doctorProfile.dept){ toastShow({title:"未選択", sub:"診療科"}); highlightAndFocus(deptSel); return; }
+        if (!did){ toastShow({title:"未選択", sub:"医師"}); highlightAndFocus(docSel); return; }
+        doctorProfile.doctorId = did;
+        // deptは選択済みを使用（doctors.jsonのdeptとズレる場合もあるため）
         save();
         setView("/"); render();
       };
+
       $("#doc_login_clear").onclick=()=>{
         doctorProfile = { dept:"", doctorId:"" };
         save();
@@ -1097,17 +1195,19 @@ function render(){
         checked.forEach(id=>{
           const it = state.done.find(x=>x.id===id);
           if (!it) return;
+
           it.status="approved";
           it.approved_at = iso();
           it.approved_by = doctorProfile.doctorId || "";
           if (bulkText.trim()){
             it.doctor_comment = it.doctor_comment ? `${it.doctor_comment}\n---\n${bulkText}` : bulkText;
           }
+
           pushHistory(it, {
             at: iso(),
             actor: `${doctorProfile.dept} ${doctorProfile.doctorId}`,
             type: "承認",
-            changes: [`承認: ${fmtDT(it.approved_at)}`]
+            changes: [`承認: ${fmtDT(it.approved_at)}`, it.doctor_comment ? "コメント更新" : "コメントなし"]
           });
         });
 
@@ -1134,12 +1234,14 @@ function render(){
             item.approved_at = iso();
             item.approved_by = doctorProfile.doctorId || "";
             item.doctor_comment = $("#doctor_comment").value || "";
+
             pushHistory(item, {
               at: iso(),
               actor: `${doctorProfile.dept} ${doctorProfile.doctorId}`,
               type: "承認",
-              changes: [`コメント更新`, `承認: ${fmtDT(item.approved_at)}`]
+              changes: [`承認: ${fmtDT(item.approved_at)}`, "コメント更新"]
             });
+
             save();
             toastShow({title:"承認", sub:"コメント保存"});
             box.style.display="none";
@@ -1255,11 +1357,14 @@ function render(){
     if (v === "/field/drafts"){
       app.innerHTML = screenDrafts();
       $("#back_field_home").onclick=()=>{ setView("/"); render(); };
+
       document.querySelectorAll("[data-resume]").forEach(b=>{
         b.onclick=()=>{
           const id=b.getAttribute("data-resume");
           const d=state.drafts.find(x=>x.id===id);
           if(!d) return;
+
+          // ✅ deep copy: drafts -> scanCtx
           scanCtx={
             draftId:d.id,
             step:d.step||1,
@@ -1267,18 +1372,20 @@ function render(){
             patientId:d.patientId||"",
             procedureId:d.procedureId||"",
             place:d.place||"未設定",
-            materials:d.materials||[],
+            materials: deepClone(d.materials||[]),
             createdAt:d.createdAt||iso(),
             updatedAt:d.updatedAt||iso(),
             editDoneId: d.editDoneId || null,
             assignedDoctorId: d.assignedDoctorId || "",
             approverDept: d.approverDept || "ALL"
           };
+
           candidate={code:"",ts:0,count:0};
           lastScan={anyTs:0,raw:"",sameTs:0};
           setView(`/field/scan/step/${scanCtx.step}`); render();
         };
       });
+
       return;
     }
 
@@ -1302,6 +1409,8 @@ function render(){
           if (editBtn){
             editBtn.onclick=()=>{
               if (item.status !== "pending"){ toastShow({title:"修正不可", sub:"承認済み"}); return; }
+
+              // ✅ deep copy: done -> scanCtx（参照共有を断ち切る）
               scanCtx = {
                 draftId: uid("DRAFT"),
                 step: 5,
@@ -1309,7 +1418,7 @@ function render(){
                 patientId: item.patientId || "",
                 procedureId: item.procedureId || "",
                 place: item.place || "未設定",
-                materials: item.materials || [],
+                materials: deepClone(item.materials || []),
                 createdAt: iso(),
                 updatedAt: iso(),
                 editDoneId: item.id,
@@ -1420,9 +1529,9 @@ function render(){
         paintConfirmList();
 
         const op2=$("#op_select2"), pt2=$("#pt_select2"), pr2=$("#proc_select2");
-        op2.onchange=()=>{ scanCtx.operatorId=op2.value||""; upsertDraft(); };
-        pt2.onchange=()=>{ scanCtx.patientId=pt2.value||""; upsertDraft(); };
-        pr2.onchange=()=>{ scanCtx.procedureId=pr2.value||""; upsertDraft(); };
+        op2.onchange=()=>{ scanCtx.operatorId=op2.value||""; upsertDraft(); render(); };
+        pt2.onchange=()=>{ scanCtx.patientId=pt2.value||""; upsertDraft(); render(); };
+        pr2.onchange=()=>{ scanCtx.procedureId=pr2.value||""; upsertDraft(); render(); };
 
         $("#back_step4").onclick=()=>{ setView("/field/scan/step/4"); render(); };
         $("#save_draft_any2").onclick=saveDraftExit;
@@ -1445,14 +1554,13 @@ function render(){
         return;
       }
 
-      // step6 承認依頼
+      // step 6 承認依頼
       ensureScanCtx();
       const deptSel = $("#approver_dept");
       const sel = $("#approver_select");
 
       deptSel.onchange = ()=>{
         scanCtx.approverDept = deptSel.value || "ALL";
-        // dept変えたら候補リスト再描画
         upsertDraft();
         setView("/field/scan/step/6"); render();
       };
@@ -1462,7 +1570,6 @@ function render(){
           const id = b.getAttribute("data-quick-approver");
           scanCtx.assignedDoctorId = id;
           upsertDraft();
-          // select反映
           try { sel.value = id; } catch {}
         };
       });
@@ -1478,19 +1585,19 @@ function render(){
 
         touchRecentApprover(did);
 
-        // 修正モード：既存 pending を上書き + 履歴
+        // 修正モード：既存 pending を上書き + 詳細履歴
         if (scanCtx.editDoneId){
           const it = state.done.find(x=>x.id===scanCtx.editDoneId);
           if (!it){ toastShow({title:"エラー", sub:"対象が見つかりません"}); return; }
           if (it.status !== "pending"){ toastShow({title:"修正不可", sub:"承認済み"}); return; }
 
-          const before = JSON.parse(JSON.stringify(it));
+          const before = deepClone(it);
 
           it.operatorId = scanCtx.operatorId;
           it.patientId  = scanCtx.patientId;
           it.procedureId= scanCtx.procedureId;
           it.place      = scanCtx.place || "未設定";
-          it.materials  = scanCtx.materials || [];
+          it.materials  = deepClone(scanCtx.materials || []);
           it.assignedDoctorId = did;
           it.updatedAt = iso();
 
@@ -1498,7 +1605,7 @@ function render(){
             at: iso(),
             actor: operatorLabel(scanCtx.operatorId),
             type: "修正",
-            changes: summarizeChanges(before, it)
+            changes: summarizeChangesDetailed(before, it)
           });
 
           save();
@@ -1511,7 +1618,7 @@ function render(){
             patientId: scanCtx.patientId,
             procedureId: scanCtx.procedureId,
             place: scanCtx.place || "未設定",
-            materials: scanCtx.materials || [],
+            materials: deepClone(scanCtx.materials || []),
             status: "pending",
             confirmedAt: iso(),
             approved_at: "",
@@ -1559,16 +1666,14 @@ function render(){
     }
 
     if (v === "/billing/done" || v === "/billing/pending"){
-      app.innerHTML = screenBillingList(v.endsWith("pending")?"pending":"done");
+      const kind = v.endsWith("pending") ? "pending" : "done";
+      app.innerHTML = screenBillingList(kind);
       $("#back_billing_home").onclick=()=>{ setView("/"); render(); };
 
-      // default filter values
       const approverSel = $("#bill_filter_approver");
       const approvedSel = $("#bill_filter_approvedat");
       approverSel.value = "ALL";
-      approvedSel.value = "TODAY";
-
-      const kind = v.endsWith("pending") ? "pending" : "done";
+      approvedSel.value = (kind==="pending") ? "ALL" : "TODAY";
 
       const applyFilters = ()=>{
         const approver = approverSel.value;
@@ -1596,31 +1701,43 @@ function render(){
         if (kind==="pending") items = items.filter(x=>x.status==="pending");
         else items = items.filter(x=>x.status==="approved");
 
-        // approval filters
+        // approver filter = approved_by
         if (approver !== "ALL"){
           if (approver === "NONE") items = items.filter(x=>!x.approved_by);
           else items = items.filter(x=>x.approved_by === approver);
         }
-        // approval date filter (only when approved_at exists)
+
+        // approved_at window (only if approved_at exists)
         if (approvedWindow !== "ALL"){
           items = items.filter(x=> x.approved_at && inWindow(x.approved_at));
         }
 
         const listHtml = items.length ? items.map(x=>{
           const c  = x.doctor_comment ? "💬" : "";
-          return `<div class="listItem" data-openbill="${x.id}">
+          const rowCore = `
             <div>
               <b>${patientLabel(x.patientId)} ${c}</b>
               <div class="muted">${procedureLabel(x.procedureId)} / ${operatorLabel(x.operatorId)}</div>
               <div class="muted" style="font-size:13px;">承認者: ${x.approved_by ? doctorLabelById(x.approved_by) : "—"} / ${x.approved_at ? fmtDT(x.approved_at) : "—"}</div>
             </div>
             <span class="tag">${(x.materials||[]).length}点</span>
-          </div>`;
+          `;
+
+          if (kind==="pending"){
+            return `<div class="listItem">
+              <div style="display:flex;gap:12px;align-items:center;">
+                <input class="check" type="checkbox" data-bchk="${x.id}">
+                <div style="flex:1;min-width:0;">${rowCore}</div>
+              </div>
+            </div>`;
+          }
+          return `<div class="listItem" data-openbill="${x.id}">${rowCore}</div>`;
         }).join("") : `<div class="muted">該当なし</div>`;
 
         const box = $("#billList");
         box.innerHTML = listHtml;
 
+        // open detail (done view only, and pending view via click on content isn't required; keep simple: use detail from checkbox list by long press? We'll add click on label area)
         box.querySelectorAll("[data-openbill]").forEach(el=>{
           el.onclick=()=>{
             const id = el.getAttribute("data-openbill");
@@ -1632,11 +1749,71 @@ function render(){
             $("#close_bill_detail").onclick=()=>{ detail.style.display="none"; };
           };
         });
+
+        // pending view: allow tapping the row (excluding checkbox) to open detail
+        if (kind==="pending"){
+          box.querySelectorAll("[data-bchk]").forEach(chk=>{
+            const id = chk.getAttribute("data-bchk");
+            const container = chk.closest(".listItem");
+            if (container){
+              container.onclick = (ev)=>{
+                if (ev.target === chk) return;
+                const item = state.done.find(x=>x.id===id);
+                if(!item) return;
+                const detail=$("#billDetail");
+                detail.innerHTML = renderBillingDetail(item);
+                detail.style.display="block";
+                $("#close_bill_detail").onclick=()=>{ detail.style.display="none"; };
+              };
+            }
+          });
+        }
       };
 
       approverSel.onchange = applyFilters;
       approvedSel.onchange = applyFilters;
       applyFilters();
+
+      // ✅ 医事一括承認（pending view only）
+      if (kind==="pending"){
+        const bulkBtn = $("#bill_bulk_approve");
+        if (bulkBtn){
+          bulkBtn.onclick = ()=>{
+            const approver = ($("#bill_bulk_approver")?.value) || "BILLING";
+            const checked = Array.from(document.querySelectorAll("[data-bchk]"))
+              .filter(x=>x.checked)
+              .map(x=>x.getAttribute("data-bchk"));
+
+            if (!checked.length){
+              toastShow({title:"選択なし", sub:"チェックしてください"});
+              return;
+            }
+
+            checked.forEach(id=>{
+              const it = state.done.find(x=>x.id===id);
+              if (!it) return;
+              if (it.status !== "pending") return;
+
+              it.status = "approved";
+              it.approved_at = iso();
+              it.approved_by = approver; // BILLING or doctorId
+              // comment is kept
+
+              pushHistory(it, {
+                at: iso(),
+                actor: "医事課",
+                type: "医事一括承認",
+                changes: [`承認者: ${doctorLabelById(approver)}`, `承認: ${fmtDT(it.approved_at)}`]
+              });
+            });
+
+            save();
+            toastShow({title:"一括承認", sub:`${checked.length}件`});
+            applyFilters();
+          };
+        }
+      }
+
       return;
     }
 
