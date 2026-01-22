@@ -3,7 +3,7 @@ import { Scanner, parseGS1ForGTIN14, normalizeJan13 } from "./scan.js";
 /* ========= settings ========= */
 const LS = {
   role: "linqval_role_v3",
-  state: "linqval_state_v22",
+  state: "linqval_state_v23",
   doctor: "linqval_doctor_profile_v2",
   recentApprovers: "linqval_recent_approvers_v1"
 };
@@ -88,23 +88,36 @@ const FALLBACK_DOCTORS = [
   { id:"dr101", name:"医師C", dept:"心臓血管外科" },
 ];
 const FALLBACK_BILLMAP = { byTokuteiName:{}, byProductName:{} };
+const FALLBACK_STANDARD_BUILDER = {
+  version: "fallback",
+  domain: "cathlab",
+  defaultProcedureCandidates: ["pr2","pr1"],
+  rules: [
+    { name:"ステント", matchAny:["ステント","DES","BMS"], suggest:["pr1","pr3"] },
+    { name:"バルーン", matchAny:["バルーン","PTCA"], suggest:["pr1"] }
+  ]
+};
 
 async function loadJSON(path, fallback){
   try{ const r = await fetch(path, {cache:"no-store"}); if(!r.ok) return fallback; return await r.json(); }
   catch{ return fallback; }
 }
-let OPERATORS=[], PATIENTS=[], PROCEDURES=[], DOCTORS=[], BILLMAP={};
+
+let OPERATORS=[], PATIENTS=[], PROCEDURES=[], DOCTORS=[], BILLMAP={}, STANDARD_BUILDER=FALLBACK_STANDARD_BUILDER;
+
 async function bootData(){
   OPERATORS = await loadJSON("./data/operators.json", FALLBACK_OPERATORS);
   PATIENTS  = await loadJSON("./data/patients.json",  FALLBACK_PATIENTS);
   PROCEDURES= await loadJSON("./data/procedures.json",FALLBACK_PROCEDURES);
   DOCTORS   = await loadJSON("./data/doctors.json", FALLBACK_DOCTORS);
   BILLMAP   = await loadJSON("./data/billing_map.json", FALLBACK_BILLMAP);
+  STANDARD_BUILDER = await loadJSON("./data/standard_builder.json", FALLBACK_STANDARD_BUILDER);
 
   if (!Array.isArray(OPERATORS)||!OPERATORS.length) OPERATORS=FALLBACK_OPERATORS;
   if (!Array.isArray(PATIENTS)||!PATIENTS.length) PATIENTS=FALLBACK_PATIENTS;
   if (!Array.isArray(PROCEDURES)||!PROCEDURES.length) PROCEDURES=FALLBACK_PROCEDURES;
   if (!Array.isArray(DOCTORS)||!DOCTORS.length) DOCTORS=FALLBACK_DOCTORS;
+  if (!STANDARD_BUILDER || !Array.isArray(STANDARD_BUILDER.rules)) STANDARD_BUILDER=FALLBACK_STANDARD_BUILDER;
 }
 
 /* ========= labels ========= */
@@ -455,7 +468,6 @@ function updateSummaryUI(){
   const host = $("#summaryHost");
   if (!host) return;
 
-  // field以外は非表示
   const v = view();
   const isField = (role==="field") && (v.startsWith("/field") || v==="/" || v==="");
   if (!isField){
@@ -486,6 +498,124 @@ function updateSummaryUI(){
     </div>
   `;
   host.style.display = "block";
+}
+
+/* ========= ⭐ Standard Builder Suggestions ========= */
+function procedureLabelSafe(id){
+  return PROCEDURES.find(p=>p.id===id)?.label || id;
+}
+function normalizeText(s){
+  return String(s||"").toLowerCase();
+}
+function computeProcedureSuggestions(){
+  ensureScanCtx();
+  const mats = scanCtx.materials || [];
+  const rules = Array.isArray(STANDARD_BUILDER.rules) ? STANDARD_BUILDER.rules : [];
+  const defaults = Array.isArray(STANDARD_BUILDER.defaultProcedureCandidates) ? STANDARD_BUILDER.defaultProcedureCandidates : [];
+
+  // Map: procId -> {score, reasons:Set}
+  const agg = new Map();
+
+  // default candidates
+  for (const pid of defaults){
+    if (!pid) continue;
+    agg.set(pid, { score: 0.1, reasons: new Set(["標準"]) });
+  }
+
+  // build searchable texts
+  const texts = mats.map(m=>{
+    const a = m.tokutei01_name || "";
+    const b = m.product_name || "";
+    return normalizeText(`${a} ${b}`);
+  });
+
+  // rules matching
+  for (const rule of rules){
+    const matchAny = Array.isArray(rule.matchAny) ? rule.matchAny : [];
+    const suggest = Array.isArray(rule.suggest) ? rule.suggest : [];
+    if (!suggest.length || !matchAny.length) continue;
+
+    // find which keywords match any material text
+    const hits = [];
+    for (const kw of matchAny){
+      const k = normalizeText(kw);
+      if (!k) continue;
+      if (texts.some(t => t.includes(k))) hits.push(kw);
+    }
+    if (!hits.length) continue;
+
+    const strength = 1 + Math.min(2, hits.length - 1); // 1..3
+    for (const pid of suggest){
+      if (!pid) continue;
+      const cur = agg.get(pid) || { score: 0, reasons: new Set() };
+      cur.score += strength;
+      // store only a few reasons
+      for (const h of hits.slice(0,2)) cur.reasons.add(h);
+      if (rule.name) cur.reasons.add(rule.name);
+      agg.set(pid, cur);
+    }
+  }
+
+  // build ranked list
+  const out = Array.from(agg.entries())
+    .map(([pid, v]) => ({
+      id: pid,
+      label: procedureLabelSafe(pid),
+      score: v.score,
+      reason: Array.from(v.reasons).filter(Boolean).slice(0,3).join(" / ")
+    }))
+    .sort((a,b)=>{
+      if (b.score !== a.score) return b.score - a.score;
+      return a.label.localeCompare(b.label, "ja");
+    });
+
+  // top 3
+  return out.slice(0,3);
+}
+
+function updateSuggestionUI(){
+  // step3
+  const host3 = $("#suggestProcHost3");
+  const host5 = $("#suggestProcHost5");
+  if (!host3 && !host5) return;
+
+  const suggestions = computeProcedureSuggestions();
+  const selected = scanCtx?.procedureId || "";
+
+  const html = suggestions.length ? `
+    <div class="sugBox">
+      <div class="sugRow">
+        ${suggestions.map(s=>{
+          const isSel = s.id === selected;
+          const cls = isSel ? "btn small primary" : "btn small ghost";
+          return `<button class="${cls}" data-sugproc="${s.id}">⭐ ${s.label}</button>`;
+        }).join("")}
+      </div>
+      <div class="sugNote">根拠: ${suggestions.map(s=>`${s.label}（${s.reason||"—"}）`).join(" / ")}</div>
+    </div>
+  ` : `<div class="muted">候補なし</div>`;
+
+  if (host3) host3.innerHTML = html;
+  if (host5) host5.innerHTML = html;
+
+  document.querySelectorAll("[data-sugproc]").forEach(b=>{
+    b.onclick = ()=>{
+      const pid = b.getAttribute("data-sugproc");
+      ensureScanCtx();
+      scanCtx.procedureId = pid || "";
+      upsertDraft();
+      updateSummaryUI();
+
+      // sync selects if present
+      const selA = $("#proc_select");
+      const selB = $("#proc_select2");
+      if (selA) selA.value = scanCtx.procedureId;
+      if (selB) selB.value = scanCtx.procedureId;
+
+      updateSuggestionUI();
+      toastShow({ title:"手技セット", sub: procedureLabelSafe(scanCtx.procedureId) });
+    };
+  });
 }
 
 /* parsing / merge */
@@ -526,7 +656,6 @@ async function handleDetected(raw){
 
   const codeKey = supported.kind==="jan13" ? supported.jan13 : supported.gtin14;
 
-  // double-hit confirm
   const now = Date.now();
   if (candidate.code === codeKey && (now - candidate.ts) <= DOUBLE_HIT_WINDOW_MS){
     candidate.count += 1;
@@ -582,6 +711,7 @@ async function handleDetected(raw){
   upsertDraft();
   paintMatList();
   updateSummaryUI();
+  updateSuggestionUI();
 
   const showName = updated.product_name || "読み取りOK";
   const qty = updated.qty || 1;
@@ -881,11 +1011,19 @@ function screenFieldStep(step){
   }
   if (step===3){
     return `<div class="grid"><div class="card">
-      <div class="h1">手技</div><div class="divider"></div>
+      <div class="h1">手技</div>
+      <div class="muted">材料からおすすめを表示（⭐）</div>
+      <div class="divider"></div>
+
+      <div class="h2">おすすめ</div>
+      <div id="suggestProcHost3"></div>
+
+      <div class="divider"></div>
       <select class="select" id="proc_select">
         <option value="">選択</option>
         ${PROCEDURES.map(p=>`<option value="${p.id}" ${scanCtx.procedureId===p.id?"selected":""}>${p.label}</option>`).join("")}
       </select>
+
       <div class="divider"></div>${btn("➡ 次へ","to_step4","primary")}
       <div class="divider"></div>${saveBar}
     </div></div>`;
@@ -911,12 +1049,16 @@ function screenFieldStep(step){
     <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;">
       <div>
         <div class="h1">確定</div>
-        <div class="muted">承認依頼前に確認</div>
+        <div class="muted">承認依頼前に確認（⭐おすすめあり）</div>
       </div>
       ${scanCtx.editDoneId ? `<span class="tag">修正</span>` : ``}
     </div>
     <div class="divider"></div>
 
+    <div class="h2">おすすめ手技</div>
+    <div id="suggestProcHost5"></div>
+
+    <div class="divider"></div>
     <div class="h2">入力者</div>
     <select class="select" id="op_select2">
       <option value="">未選択</option>
@@ -1000,7 +1142,7 @@ function screenApproverSelect(){
   </div></div>`;
 }
 
-/* Billing screens (v21維持) */
+/* Billing screens (v22維持) */
 function screenBillingHome(){
   return `<div class="grid"><div class="card">
     <div class="h1">医事</div>
@@ -1130,30 +1272,16 @@ function paintMatList(){
 
   matList.innerHTML = html;
 
-  matList.querySelectorAll("[data-dec]").forEach(b=>{
-    b.onclick = ()=>{
-      decMaterialById(scanCtx.materials, b.getAttribute("data-dec"));
-      upsertDraft();
-      paintMatList();
-      updateSummaryUI();
-    };
-  });
-  matList.querySelectorAll("[data-one]").forEach(b=>{
-    b.onclick = ()=>{
-      decMaterialById(scanCtx.materials, b.getAttribute("data-one"));
-      upsertDraft();
-      paintMatList();
-      updateSummaryUI();
-    };
-  });
-  matList.querySelectorAll("[data-all]").forEach(b=>{
-    b.onclick = ()=>{
-      removeMaterialRowById(scanCtx.materials, b.getAttribute("data-all"));
-      upsertDraft();
-      paintMatList();
-      updateSummaryUI();
-    };
-  });
+  const after = ()=>{
+    upsertDraft();
+    paintMatList();
+    updateSummaryUI();
+    updateSuggestionUI();
+  };
+
+  matList.querySelectorAll("[data-dec]").forEach(b=> b.onclick=()=>{ decMaterialById(scanCtx.materials, b.getAttribute("data-dec")); after(); });
+  matList.querySelectorAll("[data-one]").forEach(b=> b.onclick=()=>{ decMaterialById(scanCtx.materials, b.getAttribute("data-one")); after(); });
+  matList.querySelectorAll("[data-all]").forEach(b=> b.onclick=()=>{ removeMaterialRowById(scanCtx.materials, b.getAttribute("data-all")); after(); });
 }
 
 function paintConfirmList(){
@@ -1173,16 +1301,17 @@ function paintConfirmList(){
 
   box.innerHTML = mats;
 
-  const afterChange = ()=>{
+  const after = ()=>{
     upsertDraft();
     paintConfirmList();
     refreshDiffBox();
     updateSummaryUI();
+    updateSuggestionUI();
   };
 
-  box.querySelectorAll("[data-cdec]").forEach(b=> b.onclick=()=>{ decMaterialById(scanCtx.materials, b.getAttribute("data-cdec")); afterChange(); });
-  box.querySelectorAll("[data-cone]").forEach(b=> b.onclick=()=>{ decMaterialById(scanCtx.materials, b.getAttribute("data-cone")); afterChange(); });
-  box.querySelectorAll("[data-call]").forEach(b=> b.onclick=()=>{ removeMaterialRowById(scanCtx.materials, b.getAttribute("data-call")); afterChange(); });
+  box.querySelectorAll("[data-cdec]").forEach(b=> b.onclick=()=>{ decMaterialById(scanCtx.materials, b.getAttribute("data-cdec")); after(); });
+  box.querySelectorAll("[data-cone]").forEach(b=> b.onclick=()=>{ decMaterialById(scanCtx.materials, b.getAttribute("data-cone")); after(); });
+  box.querySelectorAll("[data-call]").forEach(b=> b.onclick=()=>{ removeMaterialRowById(scanCtx.materials, b.getAttribute("data-call")); after(); });
 }
 
 function refreshDiffBox(){
@@ -1243,9 +1372,6 @@ function render(){
   if (!role || v === "/role"){
     app.innerHTML = screenRole();
     updateSummaryUI();
-    $("#role_doctor").onclick=()=>{ role="doctor"; save(); setView("/doctor/login"); renderWithGuard(); };
-    $("#role_field").onclick =()=>{ role="field";  save(); setView("/"); renderWithGuard(); };
-    $("#role_billing").onclick=()=>{ role="billing";save(); setView("/"); renderWithGuard(); };
     return;
   }
 
@@ -1455,7 +1581,6 @@ function render(){
 
   /* ---- field ---- */
   if (role==="field"){
-    // サマリーは field の全画面で表示
     updateSummaryUI();
 
     if (v === "/" || v === ""){
@@ -1574,6 +1699,7 @@ function render(){
       const step = Number(v.split("/").pop());
       app.innerHTML = screenFieldStep(step);
       updateSummaryUI();
+      updateSuggestionUI();
 
       const saveDraftExit = ()=>{
         upsertDraft();
@@ -1618,6 +1744,7 @@ function render(){
         return;
       }
       if (step===3){
+        updateSuggestionUI();
         $("#to_step4").onclick=()=>{
           ensureScanCtx();
           scanCtx.procedureId=$("#proc_select").value||"";
@@ -1626,12 +1753,20 @@ function render(){
           setView("/field/scan/step/4");
           renderWithGuard();
         };
+        // 手で選んでもサマリー更新
+        $("#proc_select").onchange=()=>{
+          scanCtx.procedureId = $("#proc_select").value || "";
+          upsertDraft();
+          updateSummaryUI();
+          updateSuggestionUI();
+        };
         return;
       }
       if (step===4){
         ensureScanCtx();
         paintMatList();
         updateSummaryUI();
+        updateSuggestionUI();
 
         const startBtn=$("#scan_start"), stopBtn=$("#scan_stop"), target=$("#scannerTarget");
         const setBtns=(run)=>{ startBtn.disabled=!!run; stopBtn.disabled=!run; };
@@ -1663,11 +1798,11 @@ function render(){
       paintConfirmList();
       refreshDiffBox();
       updateSummaryUI();
+      updateSuggestionUI();
 
-      // onchangeでrenderしない：サマリーは即更新
-      $("#op_select2").onchange=()=>{ scanCtx.operatorId=$("#op_select2").value||""; upsertDraft(); refreshDiffBox(); updateSummaryUI(); };
-      $("#pt_select2").onchange=()=>{ scanCtx.patientId=$("#pt_select2").value||""; upsertDraft(); refreshDiffBox(); updateSummaryUI(); };
-      $("#proc_select2").onchange=()=>{ scanCtx.procedureId=$("#proc_select2").value||""; upsertDraft(); refreshDiffBox(); updateSummaryUI(); };
+      $("#op_select2").onchange=()=>{ scanCtx.operatorId=$("#op_select2").value||""; upsertDraft(); refreshDiffBox(); updateSummaryUI(); updateSuggestionUI(); };
+      $("#pt_select2").onchange=()=>{ scanCtx.patientId=$("#pt_select2").value||""; upsertDraft(); refreshDiffBox(); updateSummaryUI(); updateSuggestionUI(); };
+      $("#proc_select2").onchange=()=>{ scanCtx.procedureId=$("#proc_select2").value||""; upsertDraft(); refreshDiffBox(); updateSummaryUI(); updateSuggestionUI(); };
 
       $("#go_add_material").onclick=()=>{ upsertDraft(); setView("/field/scan/step/4"); renderWithGuard(); };
       $("#back_step4").onclick=()=>{ setView("/field/scan/step/4"); renderWithGuard(); };
@@ -1686,6 +1821,7 @@ function render(){
     if (v === "/field/approver"){
       app.innerHTML = screenApproverSelect();
       updateSummaryUI();
+      updateSuggestionUI();
 
       $("#approver_dept").onchange=()=>{
         scanCtx.approverDept = $("#approver_dept").value || "ALL";
@@ -1765,7 +1901,6 @@ function render(){
   /* ---- billing ---- */
   if (role==="billing"){
     updateSummaryUI();
-
     if (v === "/" || v === ""){
       app.innerHTML = screenBillingHome();
       $("#go_bill_done").onclick=()=>{ setView("/billing/done"); renderWithGuard(); };
