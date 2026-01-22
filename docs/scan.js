@@ -1,4 +1,5 @@
-// scan.js
+// scan.js (Quagga2 wrapper for iPhone Safari)
+
 export function parseGS1ForGTIN14(raw) {
   const s = String(raw || "");
   let m = s.match(/\(01\)\s*(\d{14})/);
@@ -39,16 +40,17 @@ export class Scanner {
         name: "Live",
         type: "LiveStream",
         target: this.targetEl,
-        constraints: { facingMode: "environment" },
-        area: { top:"22%", right:"14%", left:"14%", bottom:"22%" } // 中央ROI
+        constraints: {
+          facingMode: "environment",
+          width: { ideal: 1280 },
+          height:{ ideal: 720 }
+        },
+        area: { top:"22%", right:"14%", left:"14%", bottom:"22%" }
       },
-      locate: false,        // iOS落ち回避
-      numOfWorkers: 0,      // Safari重要
+      locate: false,
+      numOfWorkers: 0,
       frequency: 6,
-      decoder: {
-        readers: ["ean_reader", "code_128_reader"],
-        multiple: false
-      }
+      decoder: { readers: ["ean_reader", "code_128_reader"], multiple: false }
     };
 
     try{
@@ -57,7 +59,7 @@ export class Scanner {
         const code = r?.codeResult?.code;
         if (!code) return;
         const now = Date.now();
-        if (now - this._last < 900) return;
+        if (now - this._last < 120) return;
         this._last = now;
         this.onDetected?.(code);
       };
