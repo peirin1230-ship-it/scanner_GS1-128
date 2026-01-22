@@ -3,7 +3,7 @@ import { Scanner, parseGS1ForGTIN14, normalizeJan13 } from "./scan.js";
 /* ========= settings ========= */
 const LS = {
   role: "linqval_role_v3",
-  state: "linqval_state_v20",
+  state: "linqval_state_v21",
   doctor: "linqval_doctor_profile_v2",
   recentApprovers: "linqval_recent_approvers_v1"
 };
@@ -174,7 +174,7 @@ function renderHistory(it){
   }</div>`;
 }
 
-/* ========= material qty + diff (signature-based) ========= */
+/* ========= material qty ========= */
 function materialSig(m){
   return m?.jan13 || m?.gtin14 || m?.raw || m?.product_name || m?.id;
 }
@@ -203,7 +203,6 @@ function diffMaterialsQty(oldMats, newMats){
     if (bn > ao) added.push({sig, qty: bn-ao});
     if (ao > bn) removed.push({sig, qty: ao-bn});
   }
-  // labelが取れるよう参照を拾う
   const ref = new Map();
   for (const m of (newMats||[])) ref.set(materialSig(m), m);
   for (const m of (oldMats||[])) if (!ref.has(materialSig(m))) ref.set(materialSig(m), m);
@@ -389,7 +388,7 @@ function exportDoneCSV(items, filename){
 
 /* ========= scan flow ========= */
 let scannerInst=null;
-let scanCtx=null; // includes _baseSnapshot for diff on edit
+let scanCtx=null;
 let lastScan = { anyTs:0, raw:"", sameTs:0 };
 let candidate = { code: "", ts: 0, count: 0 };
 
@@ -456,16 +455,32 @@ function parseSupported(raw){
   return null;
 }
 
-function mergeOrAddMaterial(targetList, newItem){
-  const sig = materialSig(newItem);
-  const idx = (targetList||[]).findIndex(m=>materialSig(m)===sig);
+function mergeOrAddMaterial(list, item){
+  const sig = materialSig(item);
+  const idx = list.findIndex(m=>materialSig(m)===sig);
   if (idx >= 0){
-    targetList[idx].qty = Number(targetList[idx].qty||1) + 1;
-    return { merged:true, item: targetList[idx] };
+    list[idx].qty = Number(list[idx].qty||1) + 1;
+    return list[idx];
   }
-  newItem.qty = 1;
-  targetList.unshift(newItem);
-  return { merged:false, item:newItem };
+  item.qty = 1;
+  list.unshift(item);
+  return item;
+}
+
+/* ✅ 1つ減らす（qty--） */
+function decMaterialById(list, id){
+  const i = list.findIndex(x=>x.id===id);
+  if (i<0) return;
+  const q = Number(list[i].qty||1);
+  if (q > 1) list[i].qty = q - 1;
+  else list.splice(i,1);
+}
+
+/* ✅ 全削除（行ごと削除） */
+function removeMaterialRowById(list, id){
+  const i = list.findIndex(x=>x.id===id);
+  if (i<0) return;
+  list.splice(i,1);
 }
 
 async function handleDetected(raw){
@@ -520,26 +535,21 @@ async function handleDetected(raw){
       const r = await lookupByJan13(item.jan13);
       item.dict_status = r.status;
       if (r.status==="hit") Object.assign(item, mapDictRow(r.row));
-    } else {
-      item.dict_status = "no_match";
-    }
+    } else item.dict_status="no_match";
   }
 
-  // scan log
   state.scanLog.unshift({ at: iso(), raw: String(raw||""), key: codeKey, status: item.dict_status });
   state.scanLog = state.scanLog.slice(0, 200);
 
-  const result = mergeOrAddMaterial(scanCtx.materials, item);
+  const updated = mergeOrAddMaterial(scanCtx.materials, item);
   upsertDraft();
   paintMatList();
 
-  // toast: qty も表示
-  const showName = result.item.product_name || "読み取りOK";
-  const qty = result.item.qty || 1;
-  const sub = result.item.tokutei01_name ? `${result.item.tokutei01_name} / ×${qty}` : `×${qty}`;
-  toastShow({ title: showName, price: result.item.total_reimbursement_price_yen, sub });
+  const showName = updated.product_name || "読み取りOK";
+  const qty = updated.qty || 1;
+  const sub = updated.tokutei01_name ? `${updated.tokutei01_name} / ×${qty}` : `×${qty}`;
+  toastShow({ title: showName, price: updated.total_reimbursement_price_yen, sub });
 
-  // if we are on confirm screen and come back, diff box will be recalculated there. No rerender here.
   save();
   candidate = { code:"", ts:0, count:0 };
 }
@@ -557,7 +567,7 @@ function screenRole(){
     </div></div>`;
 }
 
-/* Doctor login (dropdown) with NO full re-render on dept change: we update options in place */
+/* Doctor login */
 function screenDoctorLogin(){
   const deptOptions = [`<option value="">選択</option>`]
     .concat(doctorDeptList().map(d=>`<option value="${d}"${doctorProfile.dept===d?" selected":""}>${d}</option>`))
@@ -709,8 +719,9 @@ function screenFieldHome(){
 function screenDrafts(){
   const list = state.drafts.length ? state.drafts.map(d=>{
     const mode = d.editDoneId ? "（修正）" : "";
+    const qtySum = (d.materials||[]).reduce((p,m)=>p+Number(m.qty||1),0);
     return `<div class="listItem">
-      <div><b>${patientLabel(d.patientId)}${mode}</b><div class="muted">${operatorLabel(d.operatorId)} / ${(d.materials||[]).reduce((p,m)=>p+Number(m.qty||1),0)}点</div></div>
+      <div><b>${patientLabel(d.patientId)}${mode}</b><div class="muted">${operatorLabel(d.operatorId)} / ${qtySum}点</div></div>
       <button class="btn small" data-resume="${d.id}">続き</button>
     </div>`;
   }).join("") : `<div class="muted">下書きなし</div>`;
@@ -797,6 +808,7 @@ function renderDoneDetail(item){
   `;
 }
 
+/* Field steps */
 function screenFieldStep(step){
   ensureScanCtx();
   scanCtx.step = step;
@@ -856,7 +868,7 @@ function screenFieldStep(step){
     </div></div>`;
   }
 
-  // step 5 confirm
+  // confirm (step 5)
   return `<div class="grid"><div class="card">
     <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;">
       <div>
@@ -867,23 +879,28 @@ function screenFieldStep(step){
     </div>
     <div class="divider"></div>
 
-    ${listItem(`<b>入力者</b><div style="height:8px;"></div>
-      <select class="select" id="op_select2">
-        <option value="">未選択</option>
-        ${OPERATORS.map(o=>`<option value="${o.id}" ${scanCtx.operatorId===o.id?"selected":""}>${o.label}</option>`).join("")}
-      </select>`)}
-    ${listItem(`<b>患者</b><div style="height:8px;"></div>
-      <select class="select" id="pt_select2">
-        <option value="">未選択</option>
-        ${PATIENTS.map(p=>`<option value="${p.id}" ${scanCtx.patientId===p.id?"selected":""}>${p.label}</option>`).join("")}
-      </select>`)}
-    ${listItem(`<b>手技</b><div style="height:8px;"></div>
-      <select class="select" id="proc_select2">
-        <option value="">未選択</option>
-        ${PROCEDURES.map(p=>`<option value="${p.id}" ${scanCtx.procedureId===p.id?"selected":""}>${p.label}</option>`).join("")}
-      </select>`)}
+    <div class="h2">入力者</div>
+    <select class="select" id="op_select2">
+      <option value="">未選択</option>
+      ${OPERATORS.map(o=>`<option value="${o.id}" ${scanCtx.operatorId===o.id?"selected":""}>${o.label}</option>`).join("")}
+    </select>
 
     <div class="divider"></div>
+    <div class="h2">患者</div>
+    <select class="select" id="pt_select2">
+      <option value="">未選択</option>
+      ${PATIENTS.map(p=>`<option value="${p.id}" ${scanCtx.patientId===p.id?"selected":""}>${p.label}</option>`).join("")}
+    </select>
+
+    <div class="divider"></div>
+    <div class="h2">手技</div>
+    <select class="select" id="proc_select2">
+      <option value="">未選択</option>
+      ${PROCEDURES.map(p=>`<option value="${p.id}" ${scanCtx.procedureId===p.id?"selected":""}>${p.label}</option>`).join("")}
+    </select>
+
+    <div class="divider"></div>
+    <div class="h2">材料</div>
     <div class="grid" id="confirmList"></div>
 
     <div class="divider"></div>
@@ -901,6 +918,7 @@ function screenFieldStep(step){
   </div></div>`;
 }
 
+/* Approver select */
 function screenApproverSelect(){
   ensureScanCtx();
   const deptOptions = [`<option value="ALL"${scanCtx.approverDept==="ALL"?" selected":""}>すべて</option>`]
@@ -944,47 +962,163 @@ function screenApproverSelect(){
   </div></div>`;
 }
 
+/* Billing screens (復活) */
 function screenBillingHome(){
   return `<div class="grid"><div class="card">
     <div class="h1">医事</div>
     <div class="grid">
-      ${btn("📄 実施入力済み","go_bill_done","primary")}
+      ${btn("📄 実施入力済み（承認済み）","go_bill_done","primary")}
       ${btn("⏳ 承認待ち","go_bill_pending","primary")}
     </div>
   </div></div>`;
+}
+
+function billingMaterialCard(m){
+  const code = billingMapCode(m);
+  const qty = Number(m.qty||1);
+  const line1 = [(m.product_name||"(不明)"), `×${qty}`, (m.product_no||""), (m.product_sta||"")].filter(Boolean).join(" ");
+  const tok = (m.tokutei01_name||"");
+  const price = m.total_reimbursement_price_yen ? `${jpy(m.total_reimbursement_price_yen)}円` : "";
+  return `
+    <div style="position:relative;border:1px solid #f2d2dd;border-radius:16px;padding:12px;background:linear-gradient(180deg,#fff,#fff7fa);">
+      <div class="tag" style="position:absolute;top:10px;right:10px;">${code}</div>
+      <div style="font-weight:900;font-size:16px;line-height:1.25;padding-right:86px;">${line1}</div>
+      <div class="muted" style="margin-top:6px;">${tok}</div>
+      <div style="margin-top:6px;font-weight:900;color:#ff3b6b;">${price}</div>
+    </div>`;
+}
+
+function renderBillingDetail(item){
+  const st = item.status==="pending" ? "承認待ち" : "承認済み";
+  const headerInfo = `
+    ${listItem(`<b>日時</b><div class="muted">${fmtDT(item.confirmedAt)}</div>`)}
+    ${listItem(`<b>患者</b><div class="muted">${patientLabel(item.patientId)}</div>`)}
+    ${listItem(`<b>手技</b><div class="muted">${procedureLabel(item.procedureId)}</div>`)}
+    ${listItem(`<b>入力者</b><div class="muted">${operatorLabel(item.operatorId)}</div>`)}
+    ${listItem(`<b>承認依頼</b><div class="muted">${doctorLabelById(item.assignedDoctorId)}</div>`)}
+    ${listItem(`<b>状態</b><div class="muted">${st}</div>`)}
+    ${listItem(`<b>承認者</b><div class="muted">${doctorLabelById(item.approved_by||"")}</div>`)}
+    ${listItem(`<b>承認日時</b><div class="muted">${item.approved_at?fmtDT(item.approved_at):"—"}</div>`)}
+  `;
+  const comment = item.doctor_comment ? `
+    <div style="border:1px solid #f2d2dd;border-radius:16px;padding:10px;background:#fff;margin-top:10px;">
+      <div class="h2">医師コメント</div>
+      <div class="muted">${item.doctor_comment}</div>
+    </div>` : "";
+  const mats = (item.materials||[]).map(m=>billingMaterialCard(m)).join("") || `<div class="muted">材料なし</div>`;
+  return `
+    <div class="h2">詳細</div>
+    <div class="divider"></div>
+    <div class="grid">${headerInfo}</div>
+    ${comment}
+    <div class="divider"></div>
+    <div class="grid" style="gap:10px;">${mats}</div>
+    <div class="divider"></div>
+    <div class="h2">編集履歴</div>
+    ${renderHistory(item)}
+    <div class="divider"></div>
+    ${btn("✖ 閉じる","close_bill_detail","ghost")}
+  `;
+}
+
+function screenBillingList(kind){
+  const isPending = kind==="pending";
+
+  const approverOptions = [
+    `<option value="ALL">すべて</option>`,
+    `<option value="NONE">未承認</option>`,
+    `<option value="BILLING">医事課（最終承認）</option>`,
+    ...DOCTORS.map(d=>`<option value="${d.id}">${d.dept} ${d.name}（${d.id}）</option>`)
+  ].join("");
+
+  const dateOptions = `<option value="TODAY">今日</option><option value="7D">直近7日</option><option value="ALL">全期間</option>`;
+
+  const bulkApproverOptions = [
+    `<option value="BILLING">医事課（最終承認）</option>`,
+    ...DOCTORS.map(d=>`<option value="${d.id}">${d.dept} ${d.name}（${d.id}）</option>`)
+  ].join("");
+
+  return `<div class="grid">
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;">
+        <div><div class="h1">${isPending ? "承認待ち" : "実施入力済み（承認済み）"}</div></div>
+        <button class="btn small ghost" id="bill_csv">⬇ CSV</button>
+      </div>
+
+      <div class="divider"></div>
+      <div class="grid" style="gap:10px;">
+        <div>
+          <div class="h2">承認者</div>
+          <select class="select" id="bill_filter_approver">${approverOptions}</select>
+        </div>
+        <div>
+          <div class="h2">承認日時</div>
+          <select class="select" id="bill_filter_approvedat">${dateOptions}</select>
+        </div>
+      </div>
+
+      ${isPending ? `
+        <div class="divider"></div>
+        <div class="h2">一括承認（最終手段）</div>
+        <div class="muted">点検済みのものを医事でまとめて承認</div>
+        <div style="height:8px;"></div>
+        <div class="h2">承認者</div>
+        <select class="select" id="bill_bulk_approver">${bulkApproverOptions}</select>
+        <div style="height:10px;"></div>
+        ${btn("✅ 選択を一括承認","bill_bulk_approve","primary")}
+      ` : ""}
+
+      <div class="divider"></div>
+      <div class="grid" id="billList"></div>
+
+      <div class="divider"></div>
+      ${btn("⬅ 戻る","back_billing_home","ghost")}
+    </div>
+
+    <div class="card" id="billDetail" style="display:none;"></div>
+  </div>`;
 }
 
 /* ========= painters ========= */
 function paintMatList(){
   const matList = $("#matList");
   if (!matList) return;
+
   const html = (scanCtx?.materials||[]).slice(0,12).map(m=>{
-    const qty = m.qty || 1;
+    const qty = Number(m.qty||1);
     const left = `<b>${m.product_name||"(不明)"} ×${qty}</b><div class="muted">${m.tokutei01_name||""}</div>`;
     const right = `
       <span class="tag">${m.dict_status||""}</span>
       <button class="btn small ghost" data-dec="${m.id}">−</button>
-      <button class="btn small ghost" data-del="${m.id}">🗑</button>`;
+      <button class="btn small ghost" data-one="${m.id}">🗑</button>
+      <button class="btn small ghost" data-all="${m.id}">✖</button>
+    `;
     return listItem(left, right);
   }).join("") || `<div class="muted">材料なし</div>`;
+
   matList.innerHTML = html;
 
   matList.querySelectorAll("[data-dec]").forEach(b=>{
     b.onclick = ()=>{
-      const id = b.getAttribute("data-dec");
-      const i = scanCtx.materials.findIndex(x=>x.id===id);
-      if (i<0) return;
-      const q = Number(scanCtx.materials[i].qty||1);
-      if (q > 1) scanCtx.materials[i].qty = q-1;
-      else scanCtx.materials.splice(i,1);
+      decMaterialById(scanCtx.materials, b.getAttribute("data-dec"));
       upsertDraft();
       paintMatList();
     };
   });
-  matList.querySelectorAll("[data-del]").forEach(b=>{
+
+  // ✅ 🗑 = 1つ減らす（ユーザーの期待動作）
+  matList.querySelectorAll("[data-one]").forEach(b=>{
     b.onclick = ()=>{
-      const id = b.getAttribute("data-del");
-      scanCtx.materials = scanCtx.materials.filter(x=>x.id!==id);
+      decMaterialById(scanCtx.materials, b.getAttribute("data-one"));
+      upsertDraft();
+      paintMatList();
+    };
+  });
+
+  // ✅ ✖ = 全削除（行ごと）
+  matList.querySelectorAll("[data-all]").forEach(b=>{
+    b.onclick = ()=>{
+      removeMaterialRowById(scanCtx.materials, b.getAttribute("data-all"));
       upsertDraft();
       paintMatList();
     };
@@ -994,18 +1128,40 @@ function paintMatList(){
 function paintConfirmList(){
   const box = $("#confirmList");
   if (!box) return;
+
   const mats = (scanCtx.materials||[]).map(m=>{
-    const qty = m.qty || 1;
+    const qty = Number(m.qty||1);
     const left = `<b>${m.product_name||"(不明)"} ×${qty}</b><div class="muted">${m.tokutei01_name||""}</div>`;
-    const right = `<button class="btn small ghost" data-delmat2="${m.id}">🗑</button>`;
+    const right = `
+      <button class="btn small ghost" data-cdec="${m.id}">−</button>
+      <button class="btn small ghost" data-cone="${m.id}">🗑</button>
+      <button class="btn small ghost" data-call="${m.id}">✖</button>
+    `;
     return listItem(left, right);
   }).join("") || `<div class="muted">材料なし</div>`;
+
   box.innerHTML = mats;
 
-  box.querySelectorAll("[data-delmat2]").forEach(b=>{
+  box.querySelectorAll("[data-cdec]").forEach(b=>{
     b.onclick = ()=>{
-      const id = b.getAttribute("data-delmat2");
-      scanCtx.materials = (scanCtx.materials||[]).filter(x=>x.id!==id);
+      decMaterialById(scanCtx.materials, b.getAttribute("data-cdec"));
+      upsertDraft();
+      paintConfirmList();
+      refreshDiffBox();
+    };
+  });
+  box.querySelectorAll("[data-cone]").forEach(b=>{
+    b.onclick = ()=>{
+      // ✅ confirmでも🗑は1つ減らす
+      decMaterialById(scanCtx.materials, b.getAttribute("data-cone"));
+      upsertDraft();
+      paintConfirmList();
+      refreshDiffBox();
+    };
+  });
+  box.querySelectorAll("[data-call]").forEach(b=>{
+    b.onclick = ()=>{
+      removeMaterialRowById(scanCtx.materials, b.getAttribute("data-call"));
       upsertDraft();
       paintConfirmList();
       refreshDiffBox();
@@ -1066,7 +1222,6 @@ function render(){
   const v = view();
   const app = $("#app");
 
-  // scan画面以外は止める
   if (!v.startsWith("/field/scan/step/4")) stopScannerIfAny();
 
   if (!role || v === "/role"){
@@ -1089,21 +1244,18 @@ function render(){
 
     if (v === "/doctor/login"){
       app.innerHTML = screenDoctorLogin();
-
       const deptSel = $("#doc_dept_sel");
       const docSel = $("#doc_id_sel");
 
-      // ✅ dept change: re-renderしないで doctor optionsだけ差し替え（プルダウンのチラつき回避）
+      // dept change: optionsだけ差し替え（再描画しない）
       deptSel.onchange = ()=>{
         doctorProfile.dept = deptSel.value || "";
         doctorProfile.doctorId = "";
         save();
-
         const list = DOCTORS
           .filter(d=> !doctorProfile.dept || d.dept===doctorProfile.dept)
           .slice()
           .sort((a,b)=>(a.name||"").localeCompare(b.name||"","ja"));
-
         docSel.innerHTML = [`<option value="">選択</option>`]
           .concat(list.map(d=>`<option value="${d.id}">${d.name}（${d.id}）</option>`))
           .join("");
@@ -1193,7 +1345,6 @@ function render(){
           };
         };
       });
-
       return;
     }
 
@@ -1349,8 +1500,6 @@ function render(){
           if (editBtn){
             editBtn.onclick=()=>{
               if (item.status !== "pending"){ toastShow({title:"修正不可", sub:"承認済み"}); return; }
-
-              // ✅ base snapshot for diff + materials deep copy
               scanCtx = {
                 draftId: uid("DRAFT"),
                 step: 5,
@@ -1455,9 +1604,7 @@ function render(){
             onDetected: (raw)=>{ handleDetected(raw); },
             onError: (e)=>toastShow({title:"Start失敗", sub:e.message})
           });
-        } else {
-          scannerInst.targetEl = target;
-        }
+        } else scannerInst.targetEl = target;
 
         setBtns(scannerInst.isRunning?.()||false);
         startBtn.onclick=async()=>{ await scannerInst.start(); setBtns(true); };
@@ -1477,7 +1624,7 @@ function render(){
       paintConfirmList();
       refreshDiffBox();
 
-      // ✅ onchangeで renderしない（プルダウンが消える原因）
+      // onchangeでrenderしない（ちらつき防止）
       $("#op_select2").onchange=()=>{ scanCtx.operatorId=$("#op_select2").value||""; upsertDraft(); refreshDiffBox(); };
       $("#pt_select2").onchange=()=>{ scanCtx.patientId=$("#pt_select2").value||""; upsertDraft(); refreshDiffBox(); };
       $("#proc_select2").onchange=()=>{ scanCtx.procedureId=$("#proc_select2").value||""; upsertDraft(); refreshDiffBox(); };
@@ -1493,7 +1640,6 @@ function render(){
         setView("/field/approver");
         renderWithGuard();
       };
-
       return;
     }
 
@@ -1503,7 +1649,6 @@ function render(){
       $("#approver_dept").onchange=()=>{
         scanCtx.approverDept = $("#approver_dept").value || "ALL";
         upsertDraft();
-        // re-render this screen only
         renderWithGuard();
       };
 
@@ -1571,7 +1716,6 @@ function render(){
         setView("/field/done");
         renderWithGuard();
       };
-
       return;
     }
   }
@@ -1585,18 +1729,124 @@ function render(){
       return;
     }
 
-    // ここは v19 のままでも良いので簡略（CSVは field側が主でOK）
-    app.innerHTML = `<div class="card">
-      <div class="h1">医事</div>
-      <div class="muted">この v20 では医事画面の詳細は v19 と同等です（必要なら次で統合します）</div>
-      <div class="divider"></div>
-      ${btn("⬅ 戻る","bill_back","ghost")}
-    </div>`;
-    $("#bill_back").onclick=()=>{ setView("/"); renderWithGuard(); };
-    return;
+    if (v === "/billing/done" || v === "/billing/pending"){
+      const kind = v.endsWith("pending") ? "pending" : "done";
+      app.innerHTML = screenBillingList(kind);
+      $("#back_billing_home").onclick=()=>{ setView("/"); renderWithGuard(); };
+
+      $("#bill_csv").onclick=()=>{
+        const items = state.done.filter(x=> kind==="pending" ? x.status==="pending" : x.status==="approved");
+        exportDoneCSV(items, `linqval_billing_${kind}_${todayStr()}.csv`);
+      };
+
+      const approverSel = $("#bill_filter_approver");
+      const approvedSel = $("#bill_filter_approvedat");
+      approverSel.value = "ALL";
+      approvedSel.value = (kind==="pending") ? "ALL" : "TODAY";
+
+      const applyFilters = ()=>{
+        const approver = approverSel.value;
+        const approvedWindow = approvedSel.value;
+
+        const now = Date.now();
+        const inWindow = (ts)=>{
+          if (!ts) return false;
+          const t = new Date(ts).getTime();
+          if (approvedWindow==="ALL") return true;
+          if (approvedWindow==="TODAY"){
+            const d = new Date();
+            const start = new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+            return t >= start;
+          }
+          if (approvedWindow==="7D"){
+            return (now - t) <= 7*24*60*60*1000;
+          }
+          return true;
+        };
+
+        let items = state.done.slice();
+        items = items.filter(x=> kind==="pending" ? x.status==="pending" : x.status==="approved");
+
+        if (approver !== "ALL"){
+          if (approver === "NONE") items = items.filter(x=>!x.approved_by);
+          else items = items.filter(x=>x.approved_by === approver);
+        }
+        if (approvedWindow !== "ALL"){
+          items = items.filter(x=> x.approved_at && inWindow(x.approved_at));
+        }
+
+        const box = $("#billList");
+        if (!items.length){
+          box.innerHTML = `<div class="muted">該当なし</div>`;
+          return;
+        }
+
+        box.innerHTML = items.map(x=>{
+          const qtySum = (x.materials||[]).reduce((p,m)=>p+Number(m.qty||1),0);
+          const c  = x.doctor_comment ? "💬" : "";
+          const row = `
+            <div>
+              <b>${patientLabel(x.patientId)} ${c}</b>
+              <div class="muted">${procedureLabel(x.procedureId)} / ${operatorLabel(x.operatorId)}</div>
+              <div class="muted" style="font-size:13px;">承認者: ${doctorLabelById(x.approved_by||"")} / ${x.approved_at?fmtDT(x.approved_at):"—"}</div>
+            </div>
+            <span class="tag">${qtySum}点</span>
+          `;
+
+          if (kind==="pending"){
+            return `<div class="listItem">
+              <div style="display:flex;gap:12px;align-items:center;">
+                <input class="check" type="checkbox" data-bchk="${x.id}">
+                <div style="flex:1;min-width:0;" data-openbill="${x.id}">${row}</div>
+              </div>
+            </div>`;
+          }
+          return `<div class="listItem" data-openbill="${x.id}">${row}</div>`;
+        }).join("");
+
+        box.querySelectorAll("[data-openbill]").forEach(el=>{
+          el.onclick=()=>{
+            const id = el.getAttribute("data-openbill");
+            const item = state.done.find(x=>x.id===id);
+            if(!item) return;
+            const detail=$("#billDetail");
+            detail.innerHTML = renderBillingDetail(item);
+            detail.style.display="block";
+            $("#close_bill_detail").onclick=()=>{ detail.style.display="none"; };
+          };
+        });
+      };
+
+      approverSel.onchange = applyFilters;
+      approvedSel.onchange = applyFilters;
+      applyFilters();
+
+      if (kind==="pending"){
+        $("#bill_bulk_approve").onclick=()=>{
+          const approver = $("#bill_bulk_approver").value || "BILLING";
+          const checked = Array.from(document.querySelectorAll("[data-bchk]"))
+            .filter(x=>x.checked)
+            .map(x=>x.getAttribute("data-bchk"));
+          if (!checked.length){ toastShow({title:"選択なし", sub:"チェックしてください"}); return; }
+
+          checked.forEach(id=>{
+            const it = state.done.find(x=>x.id===id);
+            if (!it) return;
+            if (it.status !== "pending") return;
+            it.status="approved";
+            it.approved_at = iso();
+            it.approved_by = approver;
+            pushHistory(it, { at: iso(), actor:"医事課", type:"医事一括承認", changes:[`承認者: ${doctorLabelById(approver)}`, `承認: ${fmtDT(it.approved_at)}`] });
+          });
+          save();
+          toastShow({title:"一括承認", sub:`${checked.length}件`});
+          applyFilters();
+        };
+      }
+      return;
+    }
   }
 
-  // fallback
   setView("/role");
   renderWithGuard();
 }
