@@ -1369,11 +1369,38 @@ function render(){
 
   if (!v.startsWith("/field/scan/step/4")) stopScannerIfAny();
 
-  if (!role || v === "/role"){
-    app.innerHTML = screenRole();
-    updateSummaryUI();
-    return;
-  }
+if (!role || v === "/role"){
+  app.innerHTML = screenRole();
+  updateSummaryUI();
+
+  // ✅ 職種ボタンのイベントを付与（v23で抜けていた）
+  const toDoctor = $("#role_doctor");
+  const toField  = $("#role_field");
+  const toBill   = $("#role_billing");
+
+  if (toDoctor) toDoctor.onclick = ()=>{
+    role = "doctor";
+    save();
+    setView("/doctor/login");
+    renderWithGuard();
+  };
+  if (toField) toField.onclick = ()=>{
+    role = "field";
+    save();
+    setView("/");
+    renderWithGuard();
+  };
+  if (toBill) toBill.onclick = ()=>{
+    role = "billing";
+    save();
+    setView("/");
+    renderWithGuard();
+  };
+
+  return;
+}
+
+
 
   /* ---- doctor ---- */
   if (role==="doctor"){

@@ -152,7 +152,7 @@
     /* ✅ サマリー固定バー */
     .summarySticky{
       position: sticky;
-      top: 74px;          /* ヘッダー直下 */
+      top: 74px;
       z-index: 15;
       margin-bottom: 12px;
     }
@@ -174,12 +174,21 @@
       font-weight:900;
       color:var(--text);
     }
-    .chip b{font-weight:900;}
     .chip.warn{
       background: #ffe1e8;
       border-color: rgba(255,59,107,.35);
       color: var(--red);
     }
+
+    /* ⭐おすすめ手技 */
+    .sugBox{
+      border:1px solid #f2d2dd;
+      border-radius:16px;
+      padding:10px;
+      background:linear-gradient(180deg,#fff,#fff7fa);
+    }
+    .sugRow{display:flex; gap:8px; flex-wrap:wrap;}
+    .sugNote{margin-top:8px; font-size:12px; color:var(--muted); line-height:1.3;}
 
     .toast{
       position:fixed;
@@ -206,15 +215,13 @@
     <div class="brand">
       <b>LinQ VAL</b>
       <div class="pill" id="rolePill">職種：未選択</div>
-      <div class="muted" style="font-size:12px;">BUILD: v22</div>
+      <div class="muted" style="font-size:12px;">BUILD: v23</div>
     </div>
     <button class="btn small ghost" id="btnRole">職種変更</button>
   </div>
 
   <div class="wrap">
-    <!-- ✅ 常時表示サマリーのホスト（fieldのみ表示） -->
     <div id="summaryHost" class="summarySticky" style="display:none;"></div>
-
     <div id="app"></div>
   </div>
 
