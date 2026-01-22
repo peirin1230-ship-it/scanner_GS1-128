@@ -1,8 +1,50 @@
 {
   "byTokuteiName": {
-    "冠動脈ステント": "HSP-0001"
+    "冠動脈ステント": "BM-CATH-1001",
+    "バルーンカテーテル": "BM-CATH-1002",
+    "ガイドワイヤ": "BM-CATH-1003",
+    "ガイディングカテーテル": "BM-CATH-1004",
+    "造影カテーテル": "BM-CATH-1005",
+    "シースイントロデューサ": "BM-CATH-1006",
+    "止血デバイス": "BM-CATH-1007",
+    "IVUSカテーテル": "BM-CATH-1010",
+    "OCTカテーテル": "BM-CATH-1011",
+    "FFRワイヤ": "BM-CATH-1012",
+    "ロータブレーター用バー": "BM-CATH-1013",
+    "血栓吸引カテーテル": "BM-CATH-1014",
+    "IABPバルーン": "BM-CATH-1020",
+    "Impellaカテーテル": "BM-CATH-1021",
+    "TAVI弁デバイス": "BM-CATH-1030",
+    "MitraClipデバイス": "BM-CATH-1031",
+    "ASD閉鎖デバイス": "BM-CATH-1032",
+    "LAA閉鎖デバイス": "BM-CATH-1033",
+    "アブレーションカテーテル": "BM-EP-2001",
+    "マッピングカテーテル": "BM-EP-2002",
+    "ペースメーカー本体": "BM-EP-2010",
+    "ペースメーカーリード": "BM-EP-2011",
+    "ICD本体": "BM-EP-2020",
+    "ICDリード": "BM-EP-2021",
+    "CRT本体": "BM-EP-2030",
+    "CRTリード": "BM-EP-2031"
   },
   "byProductName": {
-    "（ダミー）ステント": "HSP-0001"
+    "DES": "BM-CATH-1001",
+    "Drug Eluting Stent": "BM-CATH-1001",
+    "Balloon": "BM-CATH-1002",
+    "Guidewire": "BM-CATH-1003",
+    "IVUS": "BM-CATH-1010",
+    "OCT": "BM-CATH-1011",
+    "FFR": "BM-CATH-1012",
+    "Rotablator": "BM-CATH-1013",
+    "Thrombectomy": "BM-CATH-1014",
+    "IABP": "BM-CATH-1020",
+    "Impella": "BM-CATH-1021",
+    "TAVI": "BM-CATH-1030",
+    "MitraClip": "BM-CATH-1031",
+    "Watchman": "BM-CATH-1033",
+    "Ablation": "BM-EP-2001",
+    "Pacemaker": "BM-EP-2010",
+    "ICD": "BM-EP-2020",
+    "CRT": "BM-EP-2030"
   }
 }

@@ -1,9 +1,112 @@
 {
-  "base": ["pr1", "pr2", "pr3"],
-  "byTokuteiName": {
-    "冠動脈ステント": ["pr3", "pr1"]
-  },
-  "byProductName": {
-    "（ダミー）ステント": ["pr3", "pr1"]
-  }
+  "version": "2026-01-22",
+  "domain": "cathlab",
+  "defaultProcedureCandidates": ["PR-CATH-001","PR-PCI-001","PR-ACC-001"],
+  "rules": [
+    {
+      "name": "ステント系",
+      "matchAny": ["ステント", "DES", "Drug Eluting", "BMS"],
+      "suggest": ["PR-PCI-001","PR-PCI-003","PR-CATH-001","PR-CATH-005"]
+    },
+    {
+      "name": "バルーン系",
+      "matchAny": ["バルーン", "PTCA", "Balloon"],
+      "suggest": ["PR-PCI-002","PR-PCI-001","PR-CATH-001"]
+    },
+    {
+      "name": "ガイド/ガイディング/カテ",
+      "matchAny": ["ガイドワイヤ", "Guidewire", "ガイディング", "Guiding", "造影カテ", "診断カテ"],
+      "suggest": ["PR-CATH-001","PR-ACC-001"]
+    },
+    {
+      "name": "IVUS",
+      "matchAny": ["IVUS", "血管内超音波"],
+      "suggest": ["PR-CATH-005","PR-PCI-001","PR-PCI-003"]
+    },
+    {
+      "name": "OCT",
+      "matchAny": ["OCT", "光干渉断層"],
+      "suggest": ["PR-CATH-006","PR-PCI-001","PR-PCI-003"]
+    },
+    {
+      "name": "FFR/iFR",
+      "matchAny": ["FFR", "iFR", "圧較差", "pressure wire"],
+      "suggest": ["PR-CATH-004","PR-CATH-001"]
+    },
+    {
+      "name": "ロータブレーター/アテレクトミー",
+      "matchAny": ["ロータ", "Rotablator", "アテレクトミー", "DCA"],
+      "suggest": ["PR-PCI-005","PR-PCI-004","PR-PCI-001"]
+    },
+    {
+      "name": "血栓吸引",
+      "matchAny": ["血栓吸引", "Thrombectomy", "aspiration"],
+      "suggest": ["PR-PCI-006","PR-PCI-001","PR-CATH-001"]
+    },
+    {
+      "name": "シース/アクセス",
+      "matchAny": ["シース", "イントロデューサ", "Sheath"],
+      "suggest": ["PR-ACC-001","PR-CATH-001"]
+    },
+    {
+      "name": "止血デバイス",
+      "matchAny": ["止血", "Angio-Seal", "Perclose", "closure"],
+      "suggest": ["PR-ACC-002","PR-ACC-001"]
+    },
+    {
+      "name": "IABP/補助循環",
+      "matchAny": ["IABP"],
+      "suggest": ["PR-PCI-007","PR-CATH-001"]
+    },
+    {
+      "name": "Impella/補助循環",
+      "matchAny": ["Impella"],
+      "suggest": ["PR-PCI-008","PR-CATH-001"]
+    },
+    {
+      "name": "TAVI",
+      "matchAny": ["TAVI", "経カテーテル大動脈弁"],
+      "suggest": ["PR-STR-001","PR-CATH-002","PR-ACC-001"]
+    },
+    {
+      "name": "MitraClip",
+      "matchAny": ["MitraClip", "僧帽弁クリップ"],
+      "suggest": ["PR-STR-002","PR-CATH-002","PR-ACC-001"]
+    },
+    {
+      "name": "ASD/PFO閉鎖",
+      "matchAny": ["ASD", "PFO", "中隔欠損", "閉鎖デバイス"],
+      "suggest": ["PR-STR-003","PR-CATH-002","PR-ACC-001"]
+    },
+    {
+      "name": "LAA閉鎖",
+      "matchAny": ["LAA", "Watchman", "左心耳閉鎖"],
+      "suggest": ["PR-STR-004","PR-CATH-002","PR-ACC-001"]
+    },
+    {
+      "name": "アブレーション",
+      "matchAny": ["アブレーション", "Ablation"],
+      "suggest": ["PR-EP-002","PR-EP-001"]
+    },
+    {
+      "name": "マッピング",
+      "matchAny": ["マッピング", "Mapping"],
+      "suggest": ["PR-EP-001","PR-EP-002"]
+    },
+    {
+      "name": "ペースメーカー",
+      "matchAny": ["ペースメーカー", "Pacemaker", "PM本体", "PMリード"],
+      "suggest": ["PR-EP-003","PR-EP-006"]
+    },
+    {
+      "name": "ICD/CRT",
+      "matchAny": ["ICD", "CRT", "除細動", "再同期"],
+      "suggest": ["PR-EP-004","PR-EP-005","PR-EP-006"]
+    },
+    {
+      "name": "末梢PTA",
+      "matchAny": ["下肢", "末梢", "PTA", "EVT", "シャント"],
+      "suggest": ["PR-PER-001","PR-PER-004","PR-PER-002"]
+    }
+  ]
 }

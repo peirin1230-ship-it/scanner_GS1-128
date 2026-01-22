@@ -1,6 +1,38 @@
 [
-  { "id": "pr1", "label": "PCI" },
-  { "id": "pr2", "label": "冠動脈造影" },
-  { "id": "pr3", "label": "ステント留置" },
-  { "id": "pr4", "label": "内視鏡処置" }
+  {"id":"PR-CATH-001","label":"冠動脈造影（CAG）"},
+  {"id":"PR-CATH-002","label":"左心カテ（LHC）"},
+  {"id":"PR-CATH-003","label":"右心カテ（RHC）"},
+  {"id":"PR-CATH-004","label":"圧較差/FFR・iFR"},
+  {"id":"PR-CATH-005","label":"IVUS（血管内超音波）"},
+  {"id":"PR-CATH-006","label":"OCT（光干渉断層）"},
+
+  {"id":"PR-PCI-001","label":"PCI（経皮的冠動脈形成術）"},
+  {"id":"PR-PCI-002","label":"PTCA（バルーン拡張）"},
+  {"id":"PR-PCI-003","label":"ステント留置（DES/BMS）"},
+  {"id":"PR-PCI-004","label":"DCA/アテレクトミー"},
+  {"id":"PR-PCI-005","label":"ロータブレーター（Rotablator）"},
+  {"id":"PR-PCI-006","label":"血栓吸引（T/A）"},
+  {"id":"PR-PCI-007","label":"IABP挿入/管理"},
+  {"id":"PR-PCI-008","label":"Impella挿入/管理"},
+
+  {"id":"PR-STR-001","label":"TAVI（経カテーテル大動脈弁植込み）"},
+  {"id":"PR-STR-002","label":"MitraClip（経皮的僧帽弁クリップ）"},
+  {"id":"PR-STR-003","label":"ASD/PFO閉鎖（デバイス）"},
+  {"id":"PR-STR-004","label":"LAA閉鎖（Watchman等）"},
+
+  {"id":"PR-EP-001","label":"EPS（電気生理学的検査）"},
+  {"id":"PR-EP-002","label":"カテーテルアブレーション"},
+  {"id":"PR-EP-003","label":"ペースメーカー植込み（PM）"},
+  {"id":"PR-EP-004","label":"ICD植込み"},
+  {"id":"PR-EP-005","label":"CRT-P/CRT-D植込み"},
+  {"id":"PR-EP-006","label":"リード抜去/リード追加"},
+
+  {"id":"PR-PER-001","label":"末梢血管PTA（下肢）"},
+  {"id":"PR-PER-002","label":"末梢ステント留置"},
+  {"id":"PR-PER-003","label":"腎動脈/頸動脈PTA"},
+  {"id":"PR-PER-004","label":"透析シャントPTA"},
+  {"id":"PR-PER-005","label":"IVR（塞栓術など）"},
+
+  {"id":"PR-ACC-001","label":"穿刺/アクセス（シース挿入）"},
+  {"id":"PR-ACC-002","label":"止血デバイス（Angio-Seal等）"}
 ]

@@ -1,0 +1,22 @@
+[
+  {"id":"DR-CARD-001","name":"秋山 循一","dept":"循環器内科","role":"主治医","active":true},
+  {"id":"DR-CARD-002","name":"佐藤 仁","dept":"循環器内科","role":"実施医","active":true},
+  {"id":"DR-CARD-003","name":"高橋 恒一","dept":"循環器内科","role":"実施医","active":true},
+  {"id":"DR-CARD-004","name":"田中 恒一郎","dept":"循環器内科","role":"主治医","active":true},
+  {"id":"DR-CARD-005","name":"鈴木 亮","dept":"循環器内科","role":"外来","active":true},
+
+  {"id":"DR-CVS-001","name":"中村 恒一","dept":"心臓血管外科","role":"術者","active":true},
+  {"id":"DR-CVS-002","name":"小林 直樹","dept":"心臓血管外科","role":"術者","active":true},
+
+  {"id":"DR-EP-001","name":"山本 恒一","dept":"不整脈科","role":"術者","active":true},
+  {"id":"DR-EP-002","name":"加藤 亮","dept":"不整脈科","role":"術者","active":true},
+
+  {"id":"DR-RAD-001","name":"渡辺 恒一","dept":"放射線科","role":"IVR","active":true},
+  {"id":"DR-RAD-002","name":"伊藤 直","dept":"放射線科","role":"IVR","active":true},
+
+  {"id":"DR-ANES-001","name":"石井 恒一","dept":"麻酔科","role":"麻酔担当","active":true},
+  {"id":"DR-ANES-002","name":"斎藤 直","dept":"麻酔科","role":"麻酔担当","active":true},
+
+  {"id":"DR-ER-001","name":"松本 恒一","dept":"救急科","role":"救急","active":true},
+  {"id":"DR-ICU-001","name":"井上 恒一","dept":"集中治療科","role":"ICU","active":true}
+]

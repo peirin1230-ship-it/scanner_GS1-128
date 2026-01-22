@@ -1,5 +1,13 @@
 [
-  { "id": "op1", "label": "看護師A" },
-  { "id": "op2", "label": "看護師B" },
-  { "id": "op3", "label": "臨床工学C" }
+  {"id":"OP-NUR-001","label":"看護師A（カテ室）","role":"看護師","unit":"カテ室","room":"CATH-1","active":true},
+  {"id":"OP-NUR-002","label":"看護師B（カテ室）","role":"看護師","unit":"カテ室","room":"CATH-2","active":true},
+  {"id":"OP-NUR-003","label":"看護師C（CCU）","role":"看護師","unit":"CCU","room":"CCU","active":true},
+
+  {"id":"OP-CE-001","label":"CE技士A（機器）","role":"臨床工学技士","unit":"カテ室","room":"CATH-1","active":true},
+  {"id":"OP-CE-002","label":"CE技士B（機器）","role":"臨床工学技士","unit":"カテ室","room":"CATH-2","active":true},
+
+  {"id":"OP-RT-001","label":"放射線技師A（透視）","role":"放射線技師","unit":"放射線","room":"CATH-1","active":true},
+  {"id":"OP-RT-002","label":"放射線技師B（透視）","role":"放射線技師","unit":"放射線","room":"CATH-2","active":true},
+
+  {"id":"OP-CL-001","label":"クラークA（補助）","role":"クラーク","unit":"カテ室","room":"CATH-1","active":true}
 ]
