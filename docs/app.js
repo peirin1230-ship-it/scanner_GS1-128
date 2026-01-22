@@ -3,7 +3,7 @@ import { Scanner, parseGS1ForGTIN14, normalizeJan13 } from "./scan.js";
 /* ========= settings ========= */
 const LS = {
   role: "linqval_role_v3",
-  state: "linqval_state_v21",
+  state: "linqval_state_v22",
   doctor: "linqval_doctor_profile_v2",
   recentApprovers: "linqval_recent_approvers_v1"
 };
@@ -447,6 +447,48 @@ function upsertDraft(){
   save();
 }
 
+/* ✅ サマリー（fieldで常時表示） */
+function totalQty(){
+  return (scanCtx?.materials||[]).reduce((p,m)=>p+Number(m.qty||1),0);
+}
+function updateSummaryUI(){
+  const host = $("#summaryHost");
+  if (!host) return;
+
+  // field以外は非表示
+  const v = view();
+  const isField = (role==="field") && (v.startsWith("/field") || v==="/" || v==="");
+  if (!isField){
+    host.style.display = "none";
+    host.innerHTML = "";
+    return;
+  }
+
+  ensureScanCtx();
+
+  const opMissing = !scanCtx.operatorId;
+  const ptMissing = !scanCtx.patientId;
+  const prMissing = !scanCtx.procedureId;
+
+  const op = opMissing ? "未選択" : operatorLabel(scanCtx.operatorId);
+  const pt = ptMissing ? "未選択" : patientLabel(scanCtx.patientId);
+  const pr = prMissing ? "未選択" : procedureLabel(scanCtx.procedureId);
+  const qty = totalQty();
+
+  host.innerHTML = `
+    <div class="summaryCard">
+      <div class="chipRow">
+        <div class="chip ${opMissing?"warn":""}"><b>入力者</b> ${op}</div>
+        <div class="chip ${ptMissing?"warn":""}"><b>患者</b> ${pt}</div>
+        <div class="chip ${prMissing?"warn":""}"><b>手技</b> ${pr}</div>
+        <div class="chip"><b>合計</b> ${qty}点</div>
+      </div>
+    </div>
+  `;
+  host.style.display = "block";
+}
+
+/* parsing / merge */
 function parseSupported(raw){
   const jan13 = normalizeJan13(raw);
   if (jan13 && validEan13(jan13)) return { kind:"jan13", jan13 };
@@ -454,7 +496,6 @@ function parseSupported(raw){
   if (gtin14 && validGtin14(gtin14)) return { kind:"gtin14", gtin14 };
   return null;
 }
-
 function mergeOrAddMaterial(list, item){
   const sig = materialSig(item);
   const idx = list.findIndex(m=>materialSig(m)===sig);
@@ -466,8 +507,6 @@ function mergeOrAddMaterial(list, item){
   list.unshift(item);
   return item;
 }
-
-/* ✅ 1つ減らす（qty--） */
 function decMaterialById(list, id){
   const i = list.findIndex(x=>x.id===id);
   if (i<0) return;
@@ -475,8 +514,6 @@ function decMaterialById(list, id){
   if (q > 1) list[i].qty = q - 1;
   else list.splice(i,1);
 }
-
-/* ✅ 全削除（行ごと削除） */
 function removeMaterialRowById(list, id){
   const i = list.findIndex(x=>x.id===id);
   if (i<0) return;
@@ -544,6 +581,7 @@ async function handleDetected(raw){
   const updated = mergeOrAddMaterial(scanCtx.materials, item);
   upsertDraft();
   paintMatList();
+  updateSummaryUI();
 
   const showName = updated.product_name || "読み取りOK";
   const qty = updated.qty || 1;
@@ -721,7 +759,7 @@ function screenDrafts(){
     const mode = d.editDoneId ? "（修正）" : "";
     const qtySum = (d.materials||[]).reduce((p,m)=>p+Number(m.qty||1),0);
     return `<div class="listItem">
-      <div><b>${patientLabel(d.patientId)}${mode}</b><div class="muted">${operatorLabel(d.operatorId)} / ${qtySum}点</div></div>
+      <div><b>${patientLabel(d.patientId)}${mode}</b><div class="muted">${operatorLabel(d.operatorId)} / ${procedureLabel(d.procedureId)} / ${qtySum}点</div></div>
       <button class="btn small" data-resume="${d.id}">続き</button>
     </div>`;
   }).join("") : `<div class="muted">下書きなし</div>`;
@@ -962,7 +1000,7 @@ function screenApproverSelect(){
   </div></div>`;
 }
 
-/* Billing screens (復活) */
+/* Billing screens (v21維持) */
 function screenBillingHome(){
   return `<div class="grid"><div class="card">
     <div class="h1">医事</div>
@@ -972,7 +1010,6 @@ function screenBillingHome(){
     </div>
   </div></div>`;
 }
-
 function billingMaterialCard(m){
   const code = billingMapCode(m);
   const qty = Number(m.qty||1);
@@ -987,7 +1024,6 @@ function billingMaterialCard(m){
       <div style="margin-top:6px;font-weight:900;color:#ff3b6b;">${price}</div>
     </div>`;
 }
-
 function renderBillingDetail(item){
   const st = item.status==="pending" ? "承認待ち" : "承認済み";
   const headerInfo = `
@@ -1020,19 +1056,15 @@ function renderBillingDetail(item){
     ${btn("✖ 閉じる","close_bill_detail","ghost")}
   `;
 }
-
 function screenBillingList(kind){
   const isPending = kind==="pending";
-
   const approverOptions = [
     `<option value="ALL">すべて</option>`,
     `<option value="NONE">未承認</option>`,
     `<option value="BILLING">医事課（最終承認）</option>`,
     ...DOCTORS.map(d=>`<option value="${d.id}">${d.dept} ${d.name}（${d.id}）</option>`)
   ].join("");
-
   const dateOptions = `<option value="TODAY">今日</option><option value="7D">直近7日</option><option value="ALL">全期間</option>`;
-
   const bulkApproverOptions = [
     `<option value="BILLING">医事課（最終承認）</option>`,
     ...DOCTORS.map(d=>`<option value="${d.id}">${d.dept} ${d.name}（${d.id}）</option>`)
@@ -1103,24 +1135,23 @@ function paintMatList(){
       decMaterialById(scanCtx.materials, b.getAttribute("data-dec"));
       upsertDraft();
       paintMatList();
+      updateSummaryUI();
     };
   });
-
-  // ✅ 🗑 = 1つ減らす（ユーザーの期待動作）
   matList.querySelectorAll("[data-one]").forEach(b=>{
     b.onclick = ()=>{
       decMaterialById(scanCtx.materials, b.getAttribute("data-one"));
       upsertDraft();
       paintMatList();
+      updateSummaryUI();
     };
   });
-
-  // ✅ ✖ = 全削除（行ごと）
   matList.querySelectorAll("[data-all]").forEach(b=>{
     b.onclick = ()=>{
       removeMaterialRowById(scanCtx.materials, b.getAttribute("data-all"));
       upsertDraft();
       paintMatList();
+      updateSummaryUI();
     };
   });
 }
@@ -1142,31 +1173,16 @@ function paintConfirmList(){
 
   box.innerHTML = mats;
 
-  box.querySelectorAll("[data-cdec]").forEach(b=>{
-    b.onclick = ()=>{
-      decMaterialById(scanCtx.materials, b.getAttribute("data-cdec"));
-      upsertDraft();
-      paintConfirmList();
-      refreshDiffBox();
-    };
-  });
-  box.querySelectorAll("[data-cone]").forEach(b=>{
-    b.onclick = ()=>{
-      // ✅ confirmでも🗑は1つ減らす
-      decMaterialById(scanCtx.materials, b.getAttribute("data-cone"));
-      upsertDraft();
-      paintConfirmList();
-      refreshDiffBox();
-    };
-  });
-  box.querySelectorAll("[data-call]").forEach(b=>{
-    b.onclick = ()=>{
-      removeMaterialRowById(scanCtx.materials, b.getAttribute("data-call"));
-      upsertDraft();
-      paintConfirmList();
-      refreshDiffBox();
-    };
-  });
+  const afterChange = ()=>{
+    upsertDraft();
+    paintConfirmList();
+    refreshDiffBox();
+    updateSummaryUI();
+  };
+
+  box.querySelectorAll("[data-cdec]").forEach(b=> b.onclick=()=>{ decMaterialById(scanCtx.materials, b.getAttribute("data-cdec")); afterChange(); });
+  box.querySelectorAll("[data-cone]").forEach(b=> b.onclick=()=>{ decMaterialById(scanCtx.materials, b.getAttribute("data-cone")); afterChange(); });
+  box.querySelectorAll("[data-call]").forEach(b=> b.onclick=()=>{ removeMaterialRowById(scanCtx.materials, b.getAttribute("data-call")); afterChange(); });
 }
 
 function refreshDiffBox(){
@@ -1226,6 +1242,7 @@ function render(){
 
   if (!role || v === "/role"){
     app.innerHTML = screenRole();
+    updateSummaryUI();
     $("#role_doctor").onclick=()=>{ role="doctor"; save(); setView("/doctor/login"); renderWithGuard(); };
     $("#role_field").onclick =()=>{ role="field";  save(); setView("/"); renderWithGuard(); };
     $("#role_billing").onclick=()=>{ role="billing";save(); setView("/"); renderWithGuard(); };
@@ -1244,10 +1261,11 @@ function render(){
 
     if (v === "/doctor/login"){
       app.innerHTML = screenDoctorLogin();
+      updateSummaryUI();
+
       const deptSel = $("#doc_dept_sel");
       const docSel = $("#doc_id_sel");
 
-      // dept change: optionsだけ差し替え（再描画しない）
       deptSel.onchange = ()=>{
         doctorProfile.dept = deptSel.value || "";
         doctorProfile.doctorId = "";
@@ -1283,6 +1301,7 @@ function render(){
 
     if (v === "/" || v === ""){
       app.innerHTML = screenDoctorHome();
+      updateSummaryUI();
       $("#doc_logout").onclick=()=>{
         doctorProfile = {dept:"", doctorId:""};
         save();
@@ -1296,6 +1315,7 @@ function render(){
 
     if (v === "/doctor/approvals"){
       app.innerHTML = screenDoctorApprovals();
+      updateSummaryUI();
       $("#back_doc_home").onclick=()=>{ setView("/"); renderWithGuard(); };
 
       $("#bulk_approve").onclick=()=>{
@@ -1350,6 +1370,7 @@ function render(){
 
     if (v === "/doctor/docs"){
       app.innerHTML = screenDoctorDocs();
+      updateSummaryUI();
       $("#back_doc_home2").onclick=()=>{ setView("/"); renderWithGuard(); };
 
       const docsList=$("#docsList");
@@ -1434,8 +1455,13 @@ function render(){
 
   /* ---- field ---- */
   if (role==="field"){
+    // サマリーは field の全画面で表示
+    updateSummaryUI();
+
     if (v === "/" || v === ""){
       app.innerHTML = screenFieldHome();
+      updateSummaryUI();
+
       $("#go_field_scan").onclick=()=>{
         scanCtx=null;
         candidate={code:"",ts:0,count:0};
@@ -1450,6 +1476,7 @@ function render(){
 
     if (v === "/field/drafts"){
       app.innerHTML = screenDrafts();
+      updateSummaryUI();
       $("#back_field_home").onclick=()=>{ setView("/"); renderWithGuard(); };
 
       document.querySelectorAll("[data-resume]").forEach(b=>{
@@ -1472,6 +1499,7 @@ function render(){
             approverDept: d.approverDept || "ALL",
             _baseSnapshot: null
           };
+          updateSummaryUI();
           setView(`/field/scan/step/${scanCtx.step}`);
           renderWithGuard();
         };
@@ -1481,6 +1509,7 @@ function render(){
 
     if (v === "/field/done"){
       app.innerHTML = screenDone();
+      updateSummaryUI();
       $("#back_field_home2").onclick=()=>{ setView("/"); renderWithGuard(); };
 
       const todayItems = state.done.filter(x=>x.date===todayStr());
@@ -1494,6 +1523,7 @@ function render(){
           const box = $("#doneDetail");
           box.innerHTML = renderDoneDetail(item);
           box.style.display="block";
+
           $("#close_done_detail").onclick=()=>{ box.style.display="none"; };
 
           const editBtn = $("#done_edit");
@@ -1516,6 +1546,7 @@ function render(){
                 _baseSnapshot: deepClone(item)
               };
               upsertDraft();
+              updateSummaryUI();
               box.style.display="none";
               setView("/field/scan/step/5");
               renderWithGuard();
@@ -1542,18 +1573,21 @@ function render(){
     if (v.startsWith("/field/scan/step/")){
       const step = Number(v.split("/").pop());
       app.innerHTML = screenFieldStep(step);
+      updateSummaryUI();
 
       const saveDraftExit = ()=>{
         upsertDraft();
         stopScannerIfAny();
         toastShow({title:"下書き", sub:"保存"});
         scanCtx=null;
+        updateSummaryUI();
         setView("/field/drafts");
         renderWithGuard();
       };
       const cancel = ()=>{
         stopScannerIfAny();
         scanCtx=null;
+        updateSummaryUI();
         setView("/");
         renderWithGuard();
       };
@@ -1566,6 +1600,7 @@ function render(){
           ensureScanCtx();
           scanCtx.operatorId=$("#op_select").value||"";
           upsertDraft();
+          updateSummaryUI();
           setView("/field/scan/step/2");
           renderWithGuard();
         };
@@ -1576,6 +1611,7 @@ function render(){
           ensureScanCtx();
           scanCtx.patientId=$("#pt_select").value||"";
           upsertDraft();
+          updateSummaryUI();
           setView("/field/scan/step/3");
           renderWithGuard();
         };
@@ -1586,6 +1622,7 @@ function render(){
           ensureScanCtx();
           scanCtx.procedureId=$("#proc_select").value||"";
           upsertDraft();
+          updateSummaryUI();
           setView("/field/scan/step/4");
           renderWithGuard();
         };
@@ -1594,6 +1631,7 @@ function render(){
       if (step===4){
         ensureScanCtx();
         paintMatList();
+        updateSummaryUI();
 
         const startBtn=$("#scan_start"), stopBtn=$("#scan_stop"), target=$("#scannerTarget");
         const setBtns=(run)=>{ startBtn.disabled=!!run; stopBtn.disabled=!run; };
@@ -1613,6 +1651,7 @@ function render(){
         $("#to_confirm").onclick=()=>{
           stopScannerIfAny();
           upsertDraft();
+          updateSummaryUI();
           setView("/field/scan/step/5");
           renderWithGuard();
         };
@@ -1623,11 +1662,12 @@ function render(){
       ensureScanCtx();
       paintConfirmList();
       refreshDiffBox();
+      updateSummaryUI();
 
-      // onchangeでrenderしない（ちらつき防止）
-      $("#op_select2").onchange=()=>{ scanCtx.operatorId=$("#op_select2").value||""; upsertDraft(); refreshDiffBox(); };
-      $("#pt_select2").onchange=()=>{ scanCtx.patientId=$("#pt_select2").value||""; upsertDraft(); refreshDiffBox(); };
-      $("#proc_select2").onchange=()=>{ scanCtx.procedureId=$("#proc_select2").value||""; upsertDraft(); refreshDiffBox(); };
+      // onchangeでrenderしない：サマリーは即更新
+      $("#op_select2").onchange=()=>{ scanCtx.operatorId=$("#op_select2").value||""; upsertDraft(); refreshDiffBox(); updateSummaryUI(); };
+      $("#pt_select2").onchange=()=>{ scanCtx.patientId=$("#pt_select2").value||""; upsertDraft(); refreshDiffBox(); updateSummaryUI(); };
+      $("#proc_select2").onchange=()=>{ scanCtx.procedureId=$("#proc_select2").value||""; upsertDraft(); refreshDiffBox(); updateSummaryUI(); };
 
       $("#go_add_material").onclick=()=>{ upsertDraft(); setView("/field/scan/step/4"); renderWithGuard(); };
       $("#back_step4").onclick=()=>{ setView("/field/scan/step/4"); renderWithGuard(); };
@@ -1645,6 +1685,7 @@ function render(){
 
     if (v === "/field/approver"){
       app.innerHTML = screenApproverSelect();
+      updateSummaryUI();
 
       $("#approver_dept").onchange=()=>{
         scanCtx.approverDept = $("#approver_dept").value || "ALL";
@@ -1713,6 +1754,7 @@ function render(){
         save();
 
         scanCtx=null;
+        updateSummaryUI();
         setView("/field/done");
         renderWithGuard();
       };
@@ -1722,6 +1764,8 @@ function render(){
 
   /* ---- billing ---- */
   if (role==="billing"){
+    updateSummaryUI();
+
     if (v === "/" || v === ""){
       app.innerHTML = screenBillingHome();
       $("#go_bill_done").onclick=()=>{ setView("/billing/done"); renderWithGuard(); };
@@ -1732,6 +1776,7 @@ function render(){
     if (v === "/billing/done" || v === "/billing/pending"){
       const kind = v.endsWith("pending") ? "pending" : "done";
       app.innerHTML = screenBillingList(kind);
+
       $("#back_billing_home").onclick=()=>{ setView("/"); renderWithGuard(); };
 
       $("#bill_csv").onclick=()=>{
