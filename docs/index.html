@@ -63,7 +63,7 @@
     }
     .h1{margin:0 0 6px; font-size:20px; font-weight:900;}
     .h2{margin:0 0 8px; font-size:16px; font-weight:900;}
-    .muted{color:var(--muted); font-size:14px; line-height:1.35;}
+    .muted{color:var(--muted); font-size:14px; line-height:1.35; white-space:pre-wrap;}
     .row{display:flex; gap:10px; align-items:center; flex-wrap:wrap;}
     .btn{
       height:var(--btnH);
@@ -88,18 +88,19 @@
     }
     .btn.ghost{background:var(--pink);}
     .btn:disabled{opacity:.55; cursor:not-allowed;}
-    .input, .select{
+    .input, .select, textarea{
       width:100%;
-      height:54px;
       border-radius:16px;
       border:1px solid #f2d2dd;
-      padding:0 14px;
+      padding:12px 14px;
       font-size:18px;
       outline:none;
       background:#fff;
       touch-action: manipulation;
+      font-family:inherit;
     }
-    .select{appearance:none;}
+    .select{height:54px; padding:0 14px; appearance:none;}
+    textarea{min-height:110px;}
     .listItem{
       display:flex; justify-content:space-between; align-items:flex-start;
       gap:10px;
@@ -163,6 +164,7 @@
     <div class="brand">
       <b>LinQ VAL</b>
       <div class="pill" id="rolePill">職種：未選択</div>
+      <div class="muted" id="build" style="font-size:12px;">BUILD: v19</div>
     </div>
     <button class="btn small ghost" id="btnRole">職種変更</button>
   </div>
