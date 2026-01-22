@@ -100,7 +100,6 @@
       touch-action: manipulation;
       font-family:inherit;
     }
-
     /* ✅ iOS select安定：ネイティブ表示 */
     .select{
       height:54px;
@@ -175,7 +174,7 @@
       color:var(--text);
     }
     .chip.warn{
-      background: #ffe1e8;
+      background:#ffe1e8;
       border-color: rgba(255,59,107,.35);
       color: var(--red);
     }
@@ -215,7 +214,7 @@
     <div class="brand">
       <b>LinQ VAL</b>
       <div class="pill" id="rolePill">職種：未選択</div>
-      <div class="muted" style="font-size:12px;">BUILD: v23</div>
+      <div class="muted" style="font-size:12px;">BUILD: v24</div>
     </div>
     <button class="btn small ghost" id="btnRole">職種変更</button>
   </div>
@@ -231,6 +230,7 @@
     <div class="s" id="toastSub"></div>
   </div>
 
-  <script type="module" src="./app.js"></script>
+  <!-- ✅ cache bust -->
+  <script type="module" src="./app.js?v=20260122-v24"></script>
 </body>
 </html>
