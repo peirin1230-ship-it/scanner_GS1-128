@@ -1,182 +1,90 @@
-<!doctype html>
-<html lang="ja">
-<head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-  <meta name="theme-color" content="#ff3b6b" />
-  <title>LinQ VAL</title>
+// scan.js (Quagga2 wrapper for iPhone Safari)
 
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@400;700;900&display=swap" rel="stylesheet">
+export function parseGS1ForGTIN14(raw) {
+  const s = String(raw || "");
+  let m = s.match(/\(01\)\s*(\d{14})/);
+  if (m) return m[1];
+  m = s.match(/]C1\s*01(\d{14})/);
+  if (m) return m[1];
+  m = s.match(/01(\d{14})/);
+  if (m) return m[1];
+  return null;
+}
 
-  <style>
-    :root{
-      --pink:#ffe6ef;
-      --pink2:#fff3f7;
-      --red:#ff3b6b;
-      --red2:#ff6b8d;
-      --text:#1f2937;
-      --muted:#6b7280;
-      --line:#f1c6d4;
-      --card:#ffffff;
-      --shadow: 0 10px 30px rgba(255,59,107,.15);
-      --btnH:56px;
-    }
-    *{box-sizing:border-box}
-    body{
-      margin:0;background:linear-gradient(180deg,var(--pink2),#fff);
-      color:var(--text);
-      font-family:"M PLUS Rounded 1c", system-ui, -apple-system, "Segoe UI", sans-serif;
-      -webkit-tap-highlight-color: transparent;
-    }
-    .top{
-      position:sticky; top:0; z-index:10;
-      background:rgba(255,255,255,.92);
-      backdrop-filter: blur(10px);
-      border-bottom:1px solid #f2d2dd;
-      padding:10px 14px;
-      display:flex; align-items:center; justify-content:space-between;
-      gap:10px;
-    }
-    .brand{display:flex; flex-direction:column; gap:2px;}
-    .brand b{font-size:18px; font-weight:900; letter-spacing:.2px;}
-    .pill{
-      display:inline-flex; align-items:center; gap:8px;
-      font-size:13px; color:var(--muted);
-      background:var(--pink);
-      border:1px solid var(--line);
-      padding:6px 10px;
-      border-radius:999px;
-      max-width: 70vw;
-      overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
-      cursor:pointer;
-    }
-    .wrap{max-width:980px; margin:0 auto; padding:14px 14px 120px;}
-    .grid{display:grid; gap:12px;}
-    .card{
-      background:var(--card);
-      border:1px solid #f2d2dd;
-      border-radius:18px;
-      padding:14px;
-      box-shadow: var(--shadow);
-    }
-    .h1{margin:0 0 6px; font-size:20px; font-weight:900;}
-    .h2{margin:0 0 8px; font-size:16px; font-weight:900;}
-    .muted{color:var(--muted); font-size:14px; line-height:1.35;}
-    .row{display:flex; gap:10px; align-items:center; flex-wrap:wrap;}
-    .btn{
-      height:var(--btnH);
-      padding:0 16px;
-      border-radius:18px;
-      border:1px solid #f2d2dd;
-      background:#fff;
-      color:var(--text);
-      font-size:18px;
-      font-weight:900;
-      letter-spacing:.2px;
-      cursor:pointer;
-      width:100%;
-      box-shadow: 0 10px 20px rgba(0,0,0,.04);
-      touch-action: manipulation;
-    }
-    .btn.small{height:46px; font-size:16px; border-radius:16px; width:auto;}
-    .btn.primary{
-      background:linear-gradient(180deg,var(--red),var(--red2));
-      color:#fff; border-color:rgba(255,59,107,.3);
-      box-shadow: 0 12px 28px rgba(255,59,107,.25);
-    }
-    .btn.ghost{background:var(--pink);}
-    .btn:disabled{opacity:.55; cursor:not-allowed;}
-    .input, .select{
-      width:100%;
-      height:54px;
-      border-radius:16px;
-      border:1px solid #f2d2dd;
-      padding:0 14px;
-      font-size:18px;
-      outline:none;
-      background:#fff;
-      touch-action: manipulation;
-    }
-    .select{appearance:none;}
-    .listItem{
-      display:flex; justify-content:space-between; align-items:flex-start;
-      gap:10px;
-      padding:12px;
-      border-radius:16px;
-      border:1px solid #f2d2dd;
-      background:linear-gradient(180deg,#fff, #fff7fa);
-    }
-    .listItem b{font-size:16px;}
-    .tag{
-      font-size:13px;
-      padding:6px 10px;
-      border-radius:999px;
-      border:1px solid #f2d2dd;
-      background:var(--pink);
-      color:var(--muted);
-      white-space:nowrap;
-    }
-    .videoBox{
-      width:100%;
-      aspect-ratio: 3 / 4;
-      max-height: 64vh;
-      border-radius:22px;
-      overflow:hidden;
-      border:2px solid rgba(255,59,107,.25);
-      background:#000;
-      box-shadow: 0 12px 30px rgba(255,59,107,.18);
-      position:relative;
-    }
-    #scannerTarget video{width:100%; height:100%; object-fit:cover;}
-    .check{
-      width:26px; height:26px;
-      accent-color: var(--red);
-      transform: scale(1.25);
-      touch-action: manipulation;
-    }
-    .divider{height:1px; background:#f2d2dd; margin:10px 0;}
+export function normalizeJan13(raw) {
+  const s = String(raw || "").replace(/\D/g, "");
+  return s.length === 13 ? s : null;
+}
 
-    .toast{
-      position:fixed;
-      left:12px; right:12px; bottom:14px;
-      z-index:50;
-      background:linear-gradient(180deg,#fff, #fff4f8);
-      border:2px solid rgba(255,59,107,.22);
-      border-radius:22px;
-      padding:14px 14px;
-      box-shadow: 0 16px 40px rgba(255,59,107,.22);
-      display:none;
-      pointer-events:none;
+function sleep(ms){ return new Promise(r => setTimeout(r, ms)); }
+
+export class Scanner {
+  constructor({ targetEl, onDetected, onError }){
+    this.targetEl = targetEl;
+    this.onDetected = onDetected;
+    this.onError = onError;
+    this._running = false;
+    this._starting = false;
+    this._last = 0;
+    this._handler = null;
+  }
+  isRunning(){ return this._running; }
+
+  async start(){
+    if (this._running || this._starting) return;
+    if (!window.Quagga) { this.onError?.(new Error("Quagga2 not loaded")); return; }
+    this._starting = true;
+
+    const config = {
+      inputStream: {
+        name: "Live",
+        type: "LiveStream",
+        target: this.targetEl,
+        constraints: {
+          facingMode: "environment",
+          width: { ideal: 1280 },
+          height:{ ideal: 720 }
+        },
+        area: { top:"22%", right:"14%", left:"14%", bottom:"22%" }
+      },
+      locate: false,
+      numOfWorkers: 0,
+      frequency: 6,
+      decoder: { readers: ["ean_reader", "code_128_reader"], multiple: false }
+    };
+
+    try{
+      await new Promise((res, rej) => window.Quagga.init(config, (e)=> e?rej(e):res()));
+      this._handler = (r) => {
+        const code = r?.codeResult?.code;
+        if (!code) return;
+        const now = Date.now();
+        if (now - this._last < 120) return;
+        this._last = now;
+        this.onDetected?.(code);
+      };
+      window.Quagga.onDetected(this._handler);
+      window.Quagga.start();
+      await sleep(200);
+      this._running = true;
+    } catch(e){
+      this.onError?.(e);
+    } finally {
+      this._starting = false;
     }
-    .toast.show{display:block;}
-    .toast .t{font-size:22px; font-weight:900;}
-    .toast .price{font-size:16px; font-weight:900; color:var(--red); margin-top:6px;}
-    .toast .s{font-size:14px; color:var(--muted); margin-top:4px; line-height:1.3;}
-  </style>
+  }
 
-  <script src="https://unpkg.com/@ericblade/quagga2@1.12.1/dist/quagga.min.js"></script>
-</head>
-<body>
-  <div class="top">
-    <div class="brand">
-      <b>LinQ VAL</b>
-      <div class="pill" id="rolePill">職種：未選択</div>
-    </div>
-    <button class="btn small ghost" id="btnRole">職種変更</button>
-  </div>
-
-  <div class="wrap">
-    <div id="app"></div>
-  </div>
-
-  <div class="toast" id="toast">
-    <div class="t" id="toastTitle">OK</div>
-    <div class="price" id="toastPrice"></div>
-    <div class="s" id="toastSub"></div>
-  </div>
-
-  <script type="module" src="./app.js"></script>
-</body>
-</html>
+  stop(){
+    try{
+      if (!window.Quagga) return;
+      if (this._handler){
+        window.Quagga.offDetected(this._handler);
+        this._handler = null;
+      }
+      if (this._running) window.Quagga.stop();
+    } finally {
+      this._running = false;
+      this._starting = false;
+    }
+  }
+}
