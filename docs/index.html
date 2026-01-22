@@ -31,7 +31,7 @@
       -webkit-tap-highlight-color: transparent;
     }
     .top{
-      position:sticky; top:0; z-index:10;
+      position:sticky; top:0; z-index:20;
       background:rgba(255,255,255,.92);
       backdrop-filter: blur(10px);
       border-bottom:1px solid #f2d2dd;
@@ -101,7 +101,7 @@
       font-family:inherit;
     }
 
-    /* ✅ iOSのselectちらつき対策：ネイティブ表示に戻す */
+    /* ✅ iOS select安定：ネイティブ表示 */
     .select{
       height:54px;
       padding:0 14px;
@@ -149,6 +149,38 @@
     }
     .divider{height:1px; background:#f2d2dd; margin:10px 0;}
 
+    /* ✅ サマリー固定バー */
+    .summarySticky{
+      position: sticky;
+      top: 74px;          /* ヘッダー直下 */
+      z-index: 15;
+      margin-bottom: 12px;
+    }
+    .summaryCard{
+      background:linear-gradient(180deg,#fff, #fff4f8);
+      border:1px solid #f2d2dd;
+      border-radius:18px;
+      padding:10px 12px;
+      box-shadow: 0 12px 28px rgba(255,59,107,.12);
+    }
+    .chipRow{display:flex; gap:8px; flex-wrap:wrap; align-items:center;}
+    .chip{
+      display:inline-flex; align-items:center; gap:6px;
+      padding:8px 10px;
+      border-radius:999px;
+      border:1px solid #f2d2dd;
+      background:var(--pink);
+      font-size:14px;
+      font-weight:900;
+      color:var(--text);
+    }
+    .chip b{font-weight:900;}
+    .chip.warn{
+      background: #ffe1e8;
+      border-color: rgba(255,59,107,.35);
+      color: var(--red);
+    }
+
     .toast{
       position:fixed;
       left:12px; right:12px; bottom:14px;
@@ -174,12 +206,15 @@
     <div class="brand">
       <b>LinQ VAL</b>
       <div class="pill" id="rolePill">職種：未選択</div>
-      <div class="muted" style="font-size:12px;">BUILD: v21</div>
+      <div class="muted" style="font-size:12px;">BUILD: v22</div>
     </div>
     <button class="btn small ghost" id="btnRole">職種変更</button>
   </div>
 
   <div class="wrap">
+    <!-- ✅ 常時表示サマリーのホスト（fieldのみ表示） -->
+    <div id="summaryHost" class="summarySticky" style="display:none;"></div>
+
     <div id="app"></div>
   </div>
 
