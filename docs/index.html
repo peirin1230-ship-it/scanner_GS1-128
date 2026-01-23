@@ -234,3 +234,16 @@
   <script type="module" src="./app.js?v=20260122-v24"></script>
 </body>
 </html>
+/* =========================
+   scan中：固定サマリーだけ非表示
+   ========================= */
+body.scan-mode .summarySticky{
+  display: none !important;
+}
+
+/* =========================
+   scan画面の見切れ対策（最小）
+   ========================= */
+body.scan-mode .videoBox{
+  max-height: 52vh;   /* 端末差を吸収する安全値 */
+}
