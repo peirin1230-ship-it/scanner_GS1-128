@@ -1,84 +1,128 @@
-'use strict';
 
-(function () {
-  function $(id){ return document.getElementById(id); }
-
-  function setBuild(s){
-    var b = $('build');
-    if (b) b.textContent = s;
+/*
+ LinQ VAL PoC - Full Function Version (v1)
+ Safari compatible (no optional chaining, no catch omission)
+ Covers:
+ - Role switch (Field / Doctor / Billing)
+ - Field flow skeleton
+ - Doctor approval list
+ - Billing view
+ - Scan stub (Scanner optional)
+*/
+(function(){
+  'use strict';
+  function $(id){return document.getElementById(id);}
+  function bind(el,fn){
+    if(!el) return;
+    el.addEventListener('click',fn,false);
+    el.addEventListener('touchend',function(e){e.preventDefault();fn(e);},false);
   }
 
-  function fatal(title, err){
-    var el = $('fatal');
-    if (!el) { alert(title); return; }
-    el.style.display = 'block';
-    var msg = (err && err.stack) ? err.stack : String(err || '');
-    el.innerHTML =
-      '<div class="fatalTitle">' + title + '</div>' +
-      '<div class="fatalMsg">' + msg + '</div>';
-  }
+  var state={role:'field',items:[],approvals:[]};
 
-  function bindTap(el, fn){
-    if (!el) return;
-    var lock = false;
-
-    function run(e){
-      if (lock) return;
-      lock = true;
-      try { fn(e); } catch (ex) { fatal('UIイベントでエラー', ex); }
-      setTimeout(function(){ lock = false; }, 250);
+  function render(){
+    var v=$('view');
+    if(!v) return;
+    if(state.role==='field'){
+      v.innerHTML=
+        '<div class="card">'+
+        '<div class="h1">実施入力</div>'+
+        '<button class="btn primary" id="scanBtn">材料スキャン（ダミー）</button>'+
+        '<div class="divider"></div>'+
+        renderItems()+
+        '<div class="divider"></div>'+
+        '<button class="btn" id="sendBtn">承認依頼</button>'+
+        '</div>';
+      bind($('scanBtn'),addDummyItem);
+      bind($('sendBtn'),sendApproval);
+    }else if(state.role==='doctor'){
+      v.innerHTML=
+        '<div class="card">'+
+        '<div class="h1">医師 承認</div>'+
+        renderApprovals()+
+        '</div>';
+    }else{
+      v.innerHTML=
+        '<div class="card">'+
+        '<div class="h1">医事 閲覧</div>'+
+        renderApprovals(true)+
+        '</div>';
     }
-
-    el.addEventListener('click', run, false);
-    el.addEventListener('touchend', function(e){
-      e.preventDefault();
-      run(e);
-    }, false);
   }
 
-  window.addEventListener('error', function(e){
-    try { fatal('起動エラー', e.error || e.message || e); } catch (ex) {}
-  });
+  function renderItems(){
+    if(!state.items.length) return '<div class="muted">材料なし</div>';
+    var h='';
+    for(var i=0;i<state.items.length;i++){
+      h+='<div class="listItem"><b>'+state.items[i].name+'</b><span class="tag">'+state.items[i].price+'円</span></div>';
+    }
+    return h;
+  }
 
-  var state = { role:'field' };
-
-  function setRole(role){
-    state.role = role;
-
-    var b1=$('roleField'), b2=$('roleDoctor'), b3=$('roleBilling');
-    if (b1) b1.classList.remove('is-active');
-    if (b2) b2.classList.remove('is-active');
-    if (b3) b3.classList.remove('is-active');
-
-    if (role==='field' && b1) b1.classList.add('is-active');
-    if (role==='doctor' && b2) b2.classList.add('is-active');
-    if (role==='billing' && b3) b3.classList.add('is-active');
-
+  function addDummyItem(){
+    state.items.push({name:'テスト材料'+(state.items.length+1),price:1200});
     render();
   }
 
-  function render(){
-    var view = $('view');
-    if (!view) return;
-    if (state.role==='field') {
-      view.innerHTML = '<div class="card"><b>実施入力</b><div class="small">JS稼働中 / role切替OK</div></div>';
-    } else if (state.role==='doctor') {
-      view.innerHTML = '<div class="card"><b>医師</b><div class="small">JS稼働中 / role切替OK</div></div>';
-    } else {
-      view.innerHTML = '<div class="card"><b>医事</b><div class="small">JS稼働中 / role切替OK</div></div>';
+  function sendApproval(){
+    if(!state.items.length){alert('材料がありません');return;}
+    state.approvals.push({
+      id:Date.now(),
+      items:state.items.slice(),
+      status:'pending'
+    });
+    state.items=[];
+    alert('承認依頼を送信しました');
+    render();
+  }
+
+  function renderApprovals(readOnly){
+    if(!state.approvals.length) return '<div class="muted">承認待ちなし</div>';
+    var h='';
+    for(var i=0;i<state.approvals.length;i++){
+      var a=state.approvals[i];
+      h+='<div class="listItem">'+
+         '<div><b>ID '+a.id+'</b><div class="muted">'+a.items.length+'点</div></div>';
+      if(!readOnly && a.status==='pending'){
+        h+='<button class="btn small primary" data-id="'+a.id+'">承認</button>';
+      }
+      h+='</div>';
+    }
+    setTimeout(bindApprovalButtons,0);
+    return h;
+  }
+
+  function bindApprovalButtons(){
+    var btns=document.querySelectorAll('[data-id]');
+    for(var i=0;i<btns.length;i++){
+      (function(el){
+        bind(el,function(){
+          var id=el.getAttribute('data-id');
+          approve(id);
+        });
+      })(btns[i]);
     }
   }
 
-  function init(){
-    // ここが動けば「反応しない」は終わり
-    setBuild('BUILD: v26c_010 (JS OK)');
-
-    bindTap($('roleField'), function(){ setRole('field'); });
-    bindTap($('roleDoctor'), function(){ setRole('doctor'); });
-    bindTap($('roleBilling'), function(){ setRole('billing'); });
-
-    setRole('field');
+  function approve(id){
+    for(var i=0;i<state.approvals.length;i++){
+      if(String(state.approvals[i].id)===String(id)){
+        state.approvals[i].status='approved';
+      }
+    }
+    alert('承認しました');
+    render();
   }
 
-  init();
+  function setRole(r){
+    state.role=r;
+    render();
+  }
+
+  window.addEventListener('load',function(){
+    bind($('roleField'),function(){setRole('field');});
+    bind($('roleDoctor'),function(){setRole('doctor');});
+    bind($('roleBilling'),function(){setRole('billing');});
+    render();
+  });
 })();
