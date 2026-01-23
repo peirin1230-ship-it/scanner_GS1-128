@@ -14,8 +14,8 @@
 // IMPORTANT: index.html should load:
 // <script type="module" src="./app.js?v=20260122-v24"></script>
 
-const BUILD_ID = "20260122-v24";
-import { Scanner, parseGS1ForGTIN14, normalizeJan13 } from "./scan.js?v=20260122-v24";
+const BUILD_ID = "20260123-v25";
+import { Scanner, parseGS1ForGTIN14, normalizeJan13 } from "./scan.js?v=20260123-v25";
 
 /* =======================
    Settings / Storage keys
@@ -48,6 +48,8 @@ const uid = (p = "ID") => `${p}-${Math.random().toString(16).slice(2, 10)}-${Dat
 const fmtDT = (s) => { if (!s) return "—"; try { return new Date(s).toLocaleString("ja-JP"); } catch { return String(s); } };
 
 function toastShow({ title, price, sub }) {
+  if (window.__linq_scanMode) return; // ✅スキャン中はトーストを出さない
+
   const toast = $("#toast");
   if (!toast) return;
   const t = $("#toastTitle"), p = $("#toastPrice"), s = $("#toastSub");
@@ -354,6 +356,32 @@ let scannerInst = null;   // Quagga wrapper
 let lastScan = { anyTs: 0, raw: "", sameTs: 0 };
 let candidate = { code: "", ts: 0, count: 0 };
 
+
+
+/* ========= scan mode (UI hide during scanning) ========= */
+window.__linq_scanMode = false;
+
+function setScanMode(on){
+  window.__linq_scanMode = !!on;
+
+  // ✅ hide summary/suggest while scanning (reduces clutter)
+  const summaryHost = document.getElementById("summaryHost");
+  const sug4 = document.getElementById("suggestProcHost4");
+  if (summaryHost){
+    summaryHost.style.display = on ? "none" : "";
+  }
+  if (sug4){
+    sug4.style.display = on ? "none" : "";
+  }
+
+  document.body.classList.toggle("scan-mode", !!on);
+
+  // when turning OFF, repaint normal UI
+  if (!on){
+    try { updateSummaryUI(); } catch {}
+    try { updateSuggestionUI(); } catch {}
+  }
+}
 function ensureScanCtx() {
   if (!scanCtx) {
     scanCtx = {
@@ -379,8 +407,10 @@ function resetScanTiming() {
   lastScan = { anyTs: 0, raw: "", sameTs: 0 };
 }
 
-function stopScannerIfAny() {
+function stopScannerIfAny(){
   try { scannerInst?.stop?.(); } catch {}
+  try { setScanMode(false); } catch {}
+} catch {}
 }
 
 function upsertDraft() {
@@ -1116,7 +1146,7 @@ function screenFieldStep(step) {
         <div id="suggestProcHost4"></div>
         <div class="divider"></div>
 
-        <div class="videoBox" id="scannerTarget"></div>
+        <div class="videoBox" id="scannerTarget"><div class="roiOverlay" aria-hidden="true"></div></div>
 
         <div class="divider"></div>
         <div class="row">
@@ -1913,11 +1943,12 @@ function render() {
 
         setBtns(scannerInst.isRunning?.() || false);
 
-        startBtn.onclick = async () => { await scannerInst.start(); setBtns(true); };
-        stopBtn.onclick = () => { scannerInst.stop(); setBtns(false); };
+        startBtn.onclick=async()=>{ setScanMode(true); await scannerInst.start(); setBtns(true); };
+        stopBtn.onclick=()=>{ scannerInst.stop(); setBtns(false); setScanMode(false); };
 
         $("#to_confirm").onclick = () => {
           stopScannerIfAny();
+          setScanMode(false);
           upsertDraft();
           setView("/field/scan/step/5");
           renderWithGuard();
