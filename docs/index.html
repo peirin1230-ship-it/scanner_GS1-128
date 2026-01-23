@@ -5,43 +5,36 @@
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <title>LinQ VAL PoC</title>
-  <link rel="stylesheet" href="./styles.css?v=26c_001" />
+  <link rel="stylesheet" href="./styles.css?v=27_001" />
 </head>
-
 <body>
-  <header class="topbar">
+  <header class="top">
     <div class="brand">
-      <div class="brand__title">LinQ VAL PoC</div>
-      <div class="brand__build" id="build">BUILD: v26c_001</div>
+      <b>LinQ VAL PoC</b>
+      <div class="muted" id="build">BUILD: v27_001</div>
     </div>
-
-    <div class="rolebar">
-      <button class="rolebtn" id="roleField" type="button">実施入力</button>
-      <button class="rolebtn" id="roleDoctor" type="button">医師</button>
-      <button class="rolebtn" id="roleBilling" type="button">医事</button>
-    </div>
+    <div class="pill" id="rolePill">role: field</div>
   </header>
 
-  <main class="app">
-    <section class="panel" id="fatal" style="display:none;"></section>
+  <div class="wrap">
+    <div id="fatal" class="card" style="display:none;"></div>
+    <div class="summarySticky" id="summaryWrap" style="display:none;">
+      <div class="summaryCard" id="summary"></div>
+    </div>
+    <div id="view" class="grid"></div>
+  </div>
 
-    <!-- サマリー（scan-modeで隠れる） -->
-    <section class="summary" id="summary" style="display:none;"></section>
+  <div class="toast" id="toast">
+    <div class="t" id="toastTitle"></div>
+    <div class="price" id="toastPrice"></div>
+    <div class="s" id="toastSub"></div>
+  </div>
 
-    <!-- 画面本体 -->
-    <section class="view" id="view"></section>
-
-    <!-- トースト（scan-modeで隠れる） -->
-    <div class="toast" id="toast" style="display:none;"></div>
-  </main>
-
-  <!-- Quagga2 (UMD) -->
+  <!-- Quagga2 -->
   <script src="https://unpkg.com/@ericblade/quagga2@1.8.4/dist/quagga.min.js"></script>
-
-  <!-- scan.js はグローバル Scanner を提供 -->
-  <script src="./scan.js?v=26c_001"></script>
-
-  <!-- app.js は module でもOK（ただし中身は互換構文で） -->
-<script src="./app.js?v=26c_010"></script>
+  <!-- scan.js（window.Scanner） -->
+  <script src="./scan.js?v=27_001"></script>
+  <!-- app.js -->
+  <script src="./app.js?v=27_001"></script>
 </body>
 </html>
