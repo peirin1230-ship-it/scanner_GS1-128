@@ -14,8 +14,8 @@
 // IMPORTANT: index.html should load:
 // <script type="module" src="./app.js?v=20260122-v24"></script>
 
-const BUILD_ID = "20260123-v25";
-import { Scanner, parseGS1ForGTIN14, normalizeJan13 } from "./scan.js?v=20260123-v25";
+const BUILD_ID = "20260123-v25c";
+import { Scanner, parseGS1ForGTIN14, normalizeJan13 } from "./scan.js?v=20260123-v25c";
 
 /* =======================
    Settings / Storage keys
