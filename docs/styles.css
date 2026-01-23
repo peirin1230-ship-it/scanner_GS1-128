@@ -1,66 +1,77 @@
 :root{
-  --pad: 12px;
-  --radius: 12px;
-  --line: #e7e7e7;
-  --bg: #f7f7f7;
-  --card: #fff;
-  --text: #111;
-  --muted: #666;
-  --danger: #b00020;
+  --red:#e60033;
+  --pink:#fff1f5;
+  --white:#ffffff;
+
+  --bg: var(--pink);
+  --card: var(--white);
+  --line:#ffd0dc;
+
+  --text:#2b0b12;
+  --muted:#7a3a4a;
+
+  --danger:#b00020;
+
+  --radius:12px;
+  --pad:12px;
 }
 
-*{ box-sizing: border-box; }
+*{ box-sizing:border-box; }
 body{
   margin:0;
-  font-family: -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Noto Sans JP", Segoe UI, Roboto, Helvetica, Arial, sans-serif;
-  color: var(--text);
-  background: var(--bg);
+  font-family:-apple-system,BlinkMacSystemFont,"Hiragino Sans","Noto Sans JP",Segoe UI,Roboto,Helvetica,Arial,sans-serif;
+  background:var(--bg);
+  color:var(--text);
 }
 
+/* ===== header ===== */
 .topbar{
-  position: sticky;
-  top: 0;
-  z-index: 10;
-  background: #fff;
-  border-bottom: 1px solid var(--line);
+  position:sticky;
+  top:0;
+  z-index:10;
+  background: linear-gradient(180deg, var(--red), #ff2b5a);
+  color: var(--white);
   padding: calc(var(--pad) + env(safe-area-inset-top)) var(--pad) var(--pad) var(--pad);
+  border-bottom: 1px solid rgba(255,255,255,.18);
 }
 
 .brand{
   display:flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 12px;
+  justify-content:space-between;
+  gap:10px;
+  align-items:baseline;
 }
-
 .brand__title{
-  font-weight: 800;
-  letter-spacing: .2px;
+  font-weight:900;
+  letter-spacing:.2px;
 }
 .brand__build{
-  font-size: 12px;
-  color: var(--muted);
+  font-size:12px;
+  opacity:.9;
 }
 
+/* ===== role buttons ===== */
 .rolebar{
   display:flex;
-  gap: 8px;
-  margin-top: 10px;
+  gap:8px;
+  margin-top:10px;
 }
-
 .rolebtn{
   flex:1;
-  border: 1px solid var(--line);
-  background:#fff;
+  border: 1px solid rgba(255,255,255,.45);
+  background: rgba(255,255,255,.14);
+  color: var(--white);
   padding: 10px 8px;
   border-radius: 999px;
-  font-weight: 700;
+  font-weight: 900;
 }
-
 .rolebtn.is-active{
-  border-color:#111;
+  background: var(--white);
+  color: var(--red);
+  border-color: rgba(255,255,255,.0);
 }
 
+/* ===== layout ===== */
 .app{
   padding: var(--pad);
   padding-bottom: calc(120px + env(safe-area-inset-bottom));
@@ -68,83 +79,31 @@ body{
   margin: 0 auto;
 }
 
-.panel{
+.card,.summary,.panel{
   border:1px solid var(--line);
   background: var(--card);
   border-radius: var(--radius);
   padding: var(--pad);
   margin-bottom: 12px;
+  box-shadow: 0 6px 18px rgba(230,0,51,.06);
 }
 
-.summary{
-  border:1px solid var(--line);
-  background: var(--card);
-  border-radius: var(--radius);
-  padding: var(--pad);
-  margin-bottom: 12px;
+.label{
+  font-size:12px;
+  color: var(--muted);
+  margin-bottom: 6px;
 }
-
-.view{
-  display:block;
-}
-
-.card{
-  border:1px solid var(--line);
-  background: var(--card);
-  border-radius: var(--radius);
-  padding: var(--pad);
-  margin-bottom: 12px;
+.small{
+  font-size:12px;
+  color: var(--muted);
 }
 
 .row{
   display:flex;
-  gap: 10px;
+  gap:10px;
   align-items:center;
 }
 .row > *{ flex:1; }
-
-.label{
-  font-size: 12px;
-  color: var(--muted);
-  margin-bottom: 6px;
-}
-
-select, input, button, textarea{
-  font-size: 16px;
-}
-
-select, input, textarea{
-  width:100%;
-  padding: 10px;
-  border-radius: 10px;
-  border: 1px solid var(--line);
-  background: #fff;
-}
-
-textarea{ min-height: 84px; }
-
-.btn{
-  width:100%;
-  padding: 12px 10px;
-  border-radius: 12px;
-  border: 1px solid var(--line);
-  background: #fff;
-  font-weight: 800;
-}
-
-.btn.primary{
-  border-color:#111;
-}
-
-.btn.danger{
-  border-color: var(--danger);
-  color: var(--danger);
-}
-
-.small{
-  font-size: 12px;
-  color: var(--muted);
-}
 
 .hr{
   height:1px;
@@ -152,64 +111,50 @@ textarea{ min-height: 84px; }
   margin: 12px 0;
 }
 
-.list{
-  display:flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.itemline{
-  border:1px solid var(--line);
-  border-radius: 12px;
-  padding: 10px;
-  background:#fff;
-}
-
-.itemline__top{
-  display:flex;
-  gap: 10px;
-  align-items:flex-start;
-  justify-content: space-between;
-}
-.itemline__name{
-  font-weight: 800;
-}
-.itemline__sub{
-  font-size: 12px;
-  color: var(--muted);
-  margin-top: 4px;
-}
-
-.qtybox{
-  display:flex;
-  gap: 6px;
-  align-items:center;
-}
-.qtybox button{
-  width: 36px;
-  height: 36px;
-  border-radius: 10px;
+/* ===== inputs ===== */
+select,input,button,textarea{ font-size:16px; }
+select,input,textarea{
+  width:100%;
+  padding:10px;
+  border-radius:10px;
   border:1px solid var(--line);
   background:#fff;
-  font-weight: 900;
 }
-.qtybox .qty{
-  min-width: 28px;
-  text-align:center;
-  font-weight: 900;
+textarea{ min-height:84px; }
+
+/* ===== buttons ===== */
+.btn{
+  width:100%;
+  padding:12px 10px;
+  border-radius:12px;
+  border:1px solid var(--line);
+  background:#fff;
+  font-weight:900;
+  color: var(--text);
+}
+.btn.primary{
+  background: var(--red);
+  color: #fff;
+  border-color: transparent;
+}
+.btn.danger{
+  border-color: var(--danger);
+  color: var(--danger);
 }
 
+/* ===== toast ===== */
 .toast{
   position: fixed;
   left: 12px;
   right: 12px;
   bottom: calc(12px + env(safe-area-inset-bottom));
-  background:#111;
-  color:#fff;
+  background: var(--red);
+  color: #fff;
   padding: 12px 14px;
   border-radius: 14px;
-  font-weight: 800;
+  font-weight: 900;
   z-index: 20;
+  box-shadow: 0 10px 24px rgba(230,0,51,.22);
 }
 
 /* ===== scan area ===== */
@@ -219,26 +164,20 @@ textarea{ min-height: 84px; }
   border-radius: var(--radius);
   overflow:hidden;
 }
-
 #scannerTarget{
-  position: relative;
-  width: 100%;
-  /* 画面からはみ出さない：vh基準で制限 */
   max-height: 52vh;
   min-height: 42vh;
 }
-
 #scannerTarget video,
 #scannerTarget canvas{
-  width: 100% !important;
-  height: 100% !important;
+  width:100% !important;
+  height:100% !important;
   object-fit: cover;
 }
-
 .scanHint{
-  font-size: 12px;
-  color: #fff;
-  padding: 8px 10px;
+  font-size:12px;
+  color:#fff;
+  padding:8px 10px;
   background: rgba(0,0,0,.45);
 }
 
@@ -246,14 +185,14 @@ textarea{ min-height: 84px; }
 body.scan-mode .summary{ display:none !important; }
 body.scan-mode .toast{ display:none !important; }
 
-/* fatal */
+/* ===== fatal ===== */
 .fatalTitle{
-  font-weight: 900;
+  font-weight:900;
   color: var(--danger);
   margin-bottom: 8px;
 }
 .fatalMsg{
   white-space: pre-wrap;
-  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  font-family: ui-monospace, Menlo, monospace;
   font-size: 12px;
 }
