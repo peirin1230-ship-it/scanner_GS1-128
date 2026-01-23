@@ -1,0 +1,259 @@
+:root{
+  --pad: 12px;
+  --radius: 12px;
+  --line: #e7e7e7;
+  --bg: #f7f7f7;
+  --card: #fff;
+  --text: #111;
+  --muted: #666;
+  --danger: #b00020;
+}
+
+*{ box-sizing: border-box; }
+body{
+  margin:0;
+  font-family: -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Noto Sans JP", Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+  color: var(--text);
+  background: var(--bg);
+}
+
+.topbar{
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: #fff;
+  border-bottom: 1px solid var(--line);
+  padding: calc(var(--pad) + env(safe-area-inset-top)) var(--pad) var(--pad) var(--pad);
+}
+
+.brand{
+  display:flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.brand__title{
+  font-weight: 800;
+  letter-spacing: .2px;
+}
+.brand__build{
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.rolebar{
+  display:flex;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.rolebtn{
+  flex:1;
+  border: 1px solid var(--line);
+  background:#fff;
+  padding: 10px 8px;
+  border-radius: 999px;
+  font-weight: 700;
+}
+
+.rolebtn.is-active{
+  border-color:#111;
+}
+
+.app{
+  padding: var(--pad);
+  padding-bottom: calc(120px + env(safe-area-inset-bottom));
+  max-width: 860px;
+  margin: 0 auto;
+}
+
+.panel{
+  border:1px solid var(--line);
+  background: var(--card);
+  border-radius: var(--radius);
+  padding: var(--pad);
+  margin-bottom: 12px;
+}
+
+.summary{
+  border:1px solid var(--line);
+  background: var(--card);
+  border-radius: var(--radius);
+  padding: var(--pad);
+  margin-bottom: 12px;
+}
+
+.view{
+  display:block;
+}
+
+.card{
+  border:1px solid var(--line);
+  background: var(--card);
+  border-radius: var(--radius);
+  padding: var(--pad);
+  margin-bottom: 12px;
+}
+
+.row{
+  display:flex;
+  gap: 10px;
+  align-items:center;
+}
+.row > *{ flex:1; }
+
+.label{
+  font-size: 12px;
+  color: var(--muted);
+  margin-bottom: 6px;
+}
+
+select, input, button, textarea{
+  font-size: 16px;
+}
+
+select, input, textarea{
+  width:100%;
+  padding: 10px;
+  border-radius: 10px;
+  border: 1px solid var(--line);
+  background: #fff;
+}
+
+textarea{ min-height: 84px; }
+
+.btn{
+  width:100%;
+  padding: 12px 10px;
+  border-radius: 12px;
+  border: 1px solid var(--line);
+  background: #fff;
+  font-weight: 800;
+}
+
+.btn.primary{
+  border-color:#111;
+}
+
+.btn.danger{
+  border-color: var(--danger);
+  color: var(--danger);
+}
+
+.small{
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.hr{
+  height:1px;
+  background: var(--line);
+  margin: 12px 0;
+}
+
+.list{
+  display:flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.itemline{
+  border:1px solid var(--line);
+  border-radius: 12px;
+  padding: 10px;
+  background:#fff;
+}
+
+.itemline__top{
+  display:flex;
+  gap: 10px;
+  align-items:flex-start;
+  justify-content: space-between;
+}
+.itemline__name{
+  font-weight: 800;
+}
+.itemline__sub{
+  font-size: 12px;
+  color: var(--muted);
+  margin-top: 4px;
+}
+
+.qtybox{
+  display:flex;
+  gap: 6px;
+  align-items:center;
+}
+.qtybox button{
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  border:1px solid var(--line);
+  background:#fff;
+  font-weight: 900;
+}
+.qtybox .qty{
+  min-width: 28px;
+  text-align:center;
+  font-weight: 900;
+}
+
+.toast{
+  position: fixed;
+  left: 12px;
+  right: 12px;
+  bottom: calc(12px + env(safe-area-inset-bottom));
+  background:#111;
+  color:#fff;
+  padding: 12px 14px;
+  border-radius: 14px;
+  font-weight: 800;
+  z-index: 20;
+}
+
+/* ===== scan area ===== */
+.scannerWrap{
+  border:1px solid var(--line);
+  background:#000;
+  border-radius: var(--radius);
+  overflow:hidden;
+}
+
+#scannerTarget{
+  position: relative;
+  width: 100%;
+  /* 画面からはみ出さない：vh基準で制限 */
+  max-height: 52vh;
+  min-height: 42vh;
+}
+
+#scannerTarget video,
+#scannerTarget canvas{
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: cover;
+}
+
+.scanHint{
+  font-size: 12px;
+  color: #fff;
+  padding: 8px 10px;
+  background: rgba(0,0,0,.45);
+}
+
+/* scan-mode中：邪魔UIを隠す */
+body.scan-mode .summary{ display:none !important; }
+body.scan-mode .toast{ display:none !important; }
+
+/* fatal */
+.fatalTitle{
+  font-weight: 900;
+  color: var(--danger);
+  margin-bottom: 8px;
+}
+.fatalMsg{
+  white-space: pre-wrap;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  font-size: 12px;
+}
