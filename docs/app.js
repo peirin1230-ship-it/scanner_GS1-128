@@ -42,10 +42,10 @@ const $ = (s) => document.querySelector(s);
 const iso = () => new Date().toISOString();
 const todayStr = () => new Date().toISOString().slice(0, 10);
 const jpy = (n) => (Number(n || 0)).toLocaleString("ja-JP");
-const safeParse = (s, fb) => { try { return JSON.parse(s); } catch { return fb; } };
+const safeParse = (s, fb) => { try { return JSON.parse(s); } catch(e){ return fb; } };
 const deepClone = (v) => JSON.parse(JSON.stringify(v ?? null));
 const uid = (p = "ID") => `${p}-${Math.random().toString(16).slice(2, 10)}-${Date.now().toString(36)}`;
-const fmtDT = (s) => { if (!s) return "—"; try { return new Date(s).toLocaleString("ja-JP"); } catch { return String(s); } };
+const fmtDT = (s) => { if (!s) return "—"; try { return new Date(s).toLocaleString("ja-JP"); } catch(e){ return String(s); } };
 
 function toastShow({ title, price, sub }) {
   if (window.__linq_scanMode) return; // ✅スキャン中はトーストを出さない
@@ -148,7 +148,7 @@ async function loadJSON(path, fallback) {
     const r = await fetch(url, { cache: "no-store" });
     if (!r.ok) return fallback;
     return await r.json();
-  } catch {
+  } catch(e){
     return fallback;
   }
 }
@@ -378,8 +378,8 @@ function setScanMode(on){
 
   // when turning OFF, repaint normal UI
   if (!on){
-    try { updateSummaryUI(); } catch {}
-    try { updateSuggestionUI(); } catch {}
+    try { updateSummaryUI(); } catch(e){}
+    try { updateSuggestionUI(); } catch(e){}
   }
 }
 function ensureScanCtx() {
@@ -408,9 +408,9 @@ function resetScanTiming() {
 }
 
 function stopScannerIfAny(){
-  try { scannerInst?.stop?.(); } catch {}
-  try { setScanMode(false); } catch {}
-} catch {}
+  try { scannerInst?.stop?.(); } catch(e){}
+  try { setScanMode(false); } catch(e){}
+} catch(e){}
 }
 
 function upsertDraft() {
@@ -1997,7 +1997,7 @@ function render() {
         b.onclick = () => {
           scanCtx.assignedDoctorId = b.getAttribute("data-quick-approver");
           upsertDraft();
-          try { $("#approver_select").value = scanCtx.assignedDoctorId; } catch {}
+          try { $("#approver_select").value = scanCtx.assignedDoctorId; } catch(e){}
         };
       });
 
