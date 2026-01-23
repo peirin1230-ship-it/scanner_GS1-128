@@ -83,6 +83,60 @@
     <div class="s" id="toastSub"></div>
   </div>
 
-  <script type="module" src="./app.js?v=20260123-v25"></script>
+  <script>
+  // ① まず「読み込み中」を表示
+  const app = document.getElementById("app");
+  if (app) {
+    app.innerHTML = `
+      <div class="card">
+        <div class="h1">Loading...</div>
+        <div class="muted">app.js を読み込み中</div>
+      </div>
+    `;
+  }
+
+  // ② JSエラーを画面に出す
+  window.addEventListener("error", (e) => {
+    const a = document.getElementById("app");
+    if (a) a.innerHTML = `
+      <div class="card">
+        <div class="h1">起動エラー（error）</div>
+        <div class="muted">${String(e.message || e.error || e)}</div>
+        <div class="divider"></div>
+        <div class="muted">場所: ${String(e.filename || "")}:${String(e.lineno || "")}</div>
+      </div>
+    `;
+  });
+  window.addEventListener("unhandledrejection", (e) => {
+    const a = document.getElementById("app");
+    if (a) a.innerHTML = `
+      <div class="card">
+        <div class="h1">起動エラー（promise）</div>
+        <div class="muted">${String(e.reason || e)}</div>
+      </div>
+    `;
+  });
+</script>
+
+<script type="module">
+  import("./app.js?v=20260123-v25")
+    .then(() => {
+      // 成功したら何もせず（app.jsが描画する）
+    })
+    .catch((e) => {
+      const a = document.getElementById("app");
+      if (a) a.innerHTML = `
+        <div class="card">
+          <div class="h1">起動エラー（import失敗）</div>
+          <div class="muted">${String(e)}</div>
+          <div class="divider"></div>
+          <div class="muted">
+            ✅ ほぼ原因：scan.js が読めていない／パス違い／構文エラー<br/>
+            まず scan.js を直接開いて確認してください。
+          </div>
+        </div>
+      `;
+    });
+</script>
 </body>
 </html>
