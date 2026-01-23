@@ -1,5 +1,4 @@
-// scan.js (Quagga2 wrapper for iPhone Safari)
-
+// scan.js (Quagga2 wrapper for iPhone Safari) - v25
 export function parseGS1ForGTIN14(raw) {
   const s = String(raw || "");
   let m = s.match(/\(01\)\s*(\d{14})/);
@@ -10,14 +9,11 @@ export function parseGS1ForGTIN14(raw) {
   if (m) return m[1];
   return null;
 }
-
 export function normalizeJan13(raw) {
   const s = String(raw || "").replace(/\D/g, "");
   return s.length === 13 ? s : null;
 }
-
 function sleep(ms){ return new Promise(r => setTimeout(r, ms)); }
-
 export class Scanner {
   constructor({ targetEl, onDetected, onError }){
     this.targetEl = targetEl;
@@ -29,26 +25,24 @@ export class Scanner {
     this._handler = null;
   }
   isRunning(){ return this._running; }
-
   async start(){
     if (this._running || this._starting) return;
     if (!window.Quagga) { this.onError?.(new Error("Quagga2 not loaded")); return; }
     this._starting = true;
-
     const config = {
       inputStream: {
         name: "Live",
         type: "LiveStream",
         target: this.targetEl,
         constraints: { facingMode: "environment", width: { ideal: 1280 }, height:{ ideal: 720 } },
-        area: { top:"22%", right:"14%", left:"14%", bottom:"22%" }
+        // ✅中央帯（上下に複数バーコードがある時の誤読を減らす）
+        area: { top:"30%", right:"16%", left:"16%", bottom:"30%" }
       },
       locate: false,
       numOfWorkers: 0,
       frequency: 6,
       decoder: { readers: ["ean_reader", "code_128_reader"], multiple: false }
     };
-
     try{
       await new Promise((res, rej) => window.Quagga.init(config, (e)=> e?rej(e):res()));
       this._handler = (r) => {
@@ -69,7 +63,6 @@ export class Scanner {
       this._starting = false;
     }
   }
-
   stop(){
     try{
       if (!window.Quagga) return;
