@@ -3,138 +3,45 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-  <meta name="theme-color" content="#ff3b6b" />
-  <title>LinQ VAL</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@400;700;900&display=swap" rel="stylesheet">
-  <style>
-    :root{--pink:#ffe6ef;--pink2:#fff3f7;--red:#ff3b6b;--red2:#ff6b8d;--text:#1f2937;--muted:#6b7280;--line:#f1c6d4;--card:#ffffff;--shadow:0 10px 30px rgba(255,59,107,.15);--btnH:56px;}
-    *{box-sizing:border-box}
-    body{margin:0;background:linear-gradient(180deg,var(--pink2),#fff);color:var(--text);font-family:"M PLUS Rounded 1c",system-ui,-apple-system,"Segoe UI",sans-serif;-webkit-tap-highlight-color:transparent;}
-    .top{position:sticky;top:0;z-index:20;background:rgba(255,255,255,.92);backdrop-filter:blur(10px);border-bottom:1px solid #f2d2dd;padding:10px 14px;display:flex;align-items:center;justify-content:space-between;gap:10px;}
-    .brand{display:flex;flex-direction:column;gap:2px;}
-    .brand b{font-size:18px;font-weight:900;letter-spacing:.2px;}
-    .pill{display:inline-flex;align-items:center;gap:8px;font-size:13px;color:var(--muted);background:var(--pink);border:1px solid var(--line);padding:6px 10px;border-radius:999px;max-width:70vw;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;cursor:pointer;}
-    .wrap{max-width:980px;margin:0 auto;padding:14px 14px 120px;}
-    .grid{display:grid;gap:12px;}
-    .card{background:var(--card);border:1px solid #f2d2dd;border-radius:18px;padding:14px;box-shadow:var(--shadow);}
-    .h1{margin:0 0 6px;font-size:20px;font-weight:900;}
-    .h2{margin:0 0 8px;font-size:16px;font-weight:900;}
-    .muted{color:var(--muted);font-size:14px;line-height:1.35;white-space:pre-wrap;}
-    .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap;}
-    .btn{height:var(--btnH);padding:0 16px;border-radius:18px;border:1px solid #f2d2dd;background:#fff;color:var(--text);font-size:18px;font-weight:900;letter-spacing:.2px;cursor:pointer;width:100%;box-shadow:0 10px 20px rgba(0,0,0,.04);touch-action:manipulation;}
-    .btn.small{height:46px;font-size:16px;border-radius:16px;width:auto;}
-    .btn.primary{background:linear-gradient(180deg,var(--red),var(--red2));color:#fff;border-color:rgba(255,59,107,.3);box-shadow:0 12px 28px rgba(255,59,107,.25);}
-    .btn.ghost{background:var(--pink);}
-    .btn:disabled{opacity:.55;cursor:not-allowed;}
-    .input,.select,textarea{width:100%;border-radius:16px;border:1px solid #f2d2dd;padding:12px 14px;font-size:18px;outline:none;background:#fff;touch-action:manipulation;font-family:inherit;}
-    .select{height:54px;padding:0 14px;appearance:auto;-webkit-appearance:menulist;background:#fff;}
-    textarea{min-height:110px;}
-    .listItem{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;padding:12px;border-radius:16px;border:1px solid #f2d2dd;background:linear-gradient(180deg,#fff,#fff7fa);}
-    .listItem b{font-size:16px;}
-    .tag{font-size:13px;padding:6px 10px;border-radius:999px;border:1px solid #f2d2dd;background:var(--pink);color:var(--muted);white-space:nowrap;}
-
-    /* ✅ camera box: never overflow the screen */
-    .videoBox{width:100%;aspect-ratio:3/4;max-height:calc(100vh - 320px);border-radius:22px;overflow:hidden;border:2px solid rgba(255,59,107,.25);background:#000;box-shadow:0 12px 30px rgba(255,59,107,.18);position:relative;}
-    #scannerTarget video{width:100%;height:100%;object-fit:cover;}
-
-    /* ✅ ROI overlay (matches scan.js area) */
-    .roiOverlay{position:absolute;top:30%;bottom:30%;left:16%;right:16%;border:3px solid rgba(255,59,107,.75);border-radius:18px;box-shadow:inset 0 0 0 9999px rgba(0,0,0,.12);pointer-events:none;}
-    body.scan-mode .roiOverlay{border-width:4px;box-shadow:inset 0 0 0 9999px rgba(0,0,0,.18);}
-
-    .check{width:26px;height:26px;accent-color:var(--red);transform:scale(1.25);touch-action:manipulation;}
-    .divider{height:1px;background:#f2d2dd;margin:10px 0;}
-    .summarySticky{position:sticky;top:74px;z-index:15;margin-bottom:12px;}
-    .summaryCard{background:linear-gradient(180deg,#fff,#fff4f8);border:1px solid #f2d2dd;border-radius:18px;padding:10px 12px;box-shadow:0 12px 28px rgba(255,59,107,.12);}
-    .chipRow{display:flex;gap:8px;flex-wrap:wrap;align-items:center;}
-    .chip{display:inline-flex;align-items:center;gap:6px;padding:8px 10px;border-radius:999px;border:1px solid #f2d2dd;background:var(--pink);font-size:14px;font-weight:900;color:var(--text);}
-    .chip.warn{background:#ffe1e8;border-color:rgba(255,59,107,.35);color:var(--red);}
-    .sugBox{border:1px solid #f2d2dd;border-radius:16px;padding:10px;background:linear-gradient(180deg,#fff,#fff7fa);}
-    .sugRow{display:flex;gap:8px;flex-wrap:wrap;}
-    .sugNote{margin-top:8px;font-size:12px;color:var(--muted);line-height:1.3;}
-    .toast{position:fixed;left:12px;right:12px;bottom:14px;z-index:50;background:linear-gradient(180deg,#fff,#fff4f8);border:2px solid rgba(255,59,107,.22);border-radius:22px;padding:14px 14px;box-shadow:0 16px 40px rgba(255,59,107,.22);display:none;pointer-events:none;}
-    .toast.show{display:block;}
-    .toast .t{font-size:22px;font-weight:900;}
-    .toast .price{font-size:16px;font-weight:900;color:var(--red);margin-top:6px;}
-    .toast .s{font-size:14px;color:var(--muted);margin-top:4px;line-height:1.3;}
-    body.scan-mode .toast{display:none !important;}
-  </style>
-  <script src="https://unpkg.com/@ericblade/quagga2@1.12.1/dist/quagga.min.js"></script>
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <title>LinQ VAL PoC</title>
+  <link rel="stylesheet" href="./styles.css?v=26c_001" />
 </head>
+
 <body>
-  <div class="top">
+  <header class="topbar">
     <div class="brand">
-      <b>LinQ VAL</b>
-      <div class="pill" id="rolePill">職種：未選択</div>
-      <div class="muted" style="font-size:12px;">BUILD: v25</div>
+      <div class="brand__title">LinQ VAL PoC</div>
+      <div class="brand__build" id="build">BUILD: v26c_001</div>
     </div>
-    <button class="btn small ghost" id="btnRole">職種変更</button>
-  </div>
 
-  <div class="wrap">
-    <div id="summaryHost" class="summarySticky" style="display:none;"></div>
-    <div id="app"></div>
-  </div>
+    <div class="rolebar">
+      <button class="rolebtn" id="roleField" type="button">実施入力</button>
+      <button class="rolebtn" id="roleDoctor" type="button">医師</button>
+      <button class="rolebtn" id="roleBilling" type="button">医事</button>
+    </div>
+  </header>
 
-  <div class="toast" id="toast">
-    <div class="t" id="toastTitle">OK</div>
-    <div class="price" id="toastPrice"></div>
-    <div class="s" id="toastSub"></div>
-  </div>
+  <main class="app">
+    <section class="panel" id="fatal" style="display:none;"></section>
 
-  <script>
-  // ① まず「読み込み中」を表示
-  const app = document.getElementById("app");
-  if (app) {
-    app.innerHTML = `
-      <div class="card">
-        <div class="h1">Loading...</div>
-        <div class="muted">app.js を読み込み中</div>
-      </div>
-    `;
-  }
+    <!-- サマリー（scan-modeで隠れる） -->
+    <section class="summary" id="summary" style="display:none;"></section>
 
-  // ② JSエラーを画面に出す
-  window.addEventListener("error", (e) => {
-    const a = document.getElementById("app");
-    if (a) a.innerHTML = `
-      <div class="card">
-        <div class="h1">起動エラー（error）</div>
-        <div class="muted">${String(e.message || e.error || e)}</div>
-        <div class="divider"></div>
-        <div class="muted">場所: ${String(e.filename || "")}:${String(e.lineno || "")}</div>
-      </div>
-    `;
-  });
-  window.addEventListener("unhandledrejection", (e) => {
-    const a = document.getElementById("app");
-    if (a) a.innerHTML = `
-      <div class="card">
-        <div class="h1">起動エラー（promise）</div>
-        <div class="muted">${String(e.reason || e)}</div>
-      </div>
-    `;
-  });
-</script>
-<script type="module" src="./app.js?v=20260123-v25c"></script>
-     .then(() => {
-      // 成功したら何もせず（app.jsが描画する）
-    })
-    .catch((e) => {
-      const a = document.getElementById("app");
-      if (a) a.innerHTML = `
-        <div class="card">
-          <div class="h1">起動エラー（import失敗）</div>
-          <div class="muted">${String(e)}</div>
-          <div class="divider"></div>
-          <div class="muted">
-            ✅ ほぼ原因：scan.js が読めていない／パス違い／構文エラー<br/>
-            まず scan.js を直接開いて確認してください。
-          </div>
-        </div>
-      `;
-    });
-</script>
+    <!-- 画面本体 -->
+    <section class="view" id="view"></section>
+
+    <!-- トースト（scan-modeで隠れる） -->
+    <div class="toast" id="toast" style="display:none;"></div>
+  </main>
+
+  <!-- Quagga2 (UMD) -->
+  <script src="https://unpkg.com/@ericblade/quagga2@1.8.4/dist/quagga.min.js"></script>
+
+  <!-- scan.js はグローバル Scanner を提供 -->
+  <script src="./scan.js?v=26c_001"></script>
+
+  <!-- app.js は module でもOK（ただし中身は互換構文で） -->
+  <script type="module" src="./app.js?v=26c_001"></script>
 </body>
 </html>
