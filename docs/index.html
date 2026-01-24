@@ -305,7 +305,7 @@ Safariキャッシュ対策：URLに ?v=数字 を付けて開き直してくだ
     <div class="brand">
       <b>LinQ VAL</b>
       <div class="pill" id="rolePill">職種：未選択</div>
-        <div class="build" id="build">BUILD: (loading)</div>
+        <div class="build" id="build">BUILD: index v236f (waiting app.js)</div>
       </div>
     <button class="btn small ghost" id="btnRole">職種変更</button>
   </div>
@@ -328,7 +328,31 @@ Safariキャッシュ対策：URLに ?v=数字 を付けて開き直してくだ
     <div class="s" id="toastSub"></div>
   </div>
 
-  <script src="./scan.js?v=2410"></script>
-  <script src="./app.js?v=2410" onerror="(function(){var b=document.getElementById('build'); if(b){b.textContent='BUILD: app.js load failed (check commit/path)';} var a=document.getElementById('app'); if(a){a.innerHTML='<div class=\"card\"><div class=\"h1\">起動エラー</div><div class=\"muted\">app.jsが読み込めませんでした（404/コミット未反映/ファイル名違い）。Safariキャッシュ対策としてURLに ?v=数字 を付けて開き直してください。</div></div>';}})()"></script>
+  <script src="./scan.js?v=2412"></script>
+  <script src="./app.js?v=2412" onerror="(function(){var b=document.getElementById('build'); if(b){b.textContent='BUILD: app.js load failed (404/commit)';} var a=document.getElementById('app'); if(a){a.innerHTML='<div class=\"card\"><div class=\"h1\">起動エラー</div><div class=\"muted\">app.jsが読み込めませんでした（404/コミット未反映/配置ミス）。GitHubで docs/app.js が存在するか確認してください。
+Safariキャッシュ対策：URLに ?v=数字 を付けて開き直してください。</div></div>';}})()"></script>
+
+  <script>
+  (function(){
+    setTimeout(function(){
+      try{
+        var b=document.getElementById('build');
+        if(!b){return;}
+        if(String(b.textContent||'').indexOf('index v236f')>=0){
+          b.textContent = 'BUILD: app.js not running (stuck)';
+          var a=document.getElementById('app');
+          if(a){
+            a.innerHTML = '<div class="card"><div class="h1">起動できていません</div><div class="muted">'+
+              'index.html は反映されていますが、app.js が実行されていません。\n'+
+              '原因候補：①app.jsが古い/壊れている ②コミット未反映 ③Safariキャッシュ（URLに ?v=数字 を変更）\n\n'+
+              '確認：/scanner_GS1-128/app.js?v=999 を直接開いて BUILD 文字列が v236f-app になっているかを見る。'+
+              '</div></div>';
+          }
+        }
+      }catch(e){}
+    }, 2000);
+  })();
+  </script>
+
 </body>
 </html>
