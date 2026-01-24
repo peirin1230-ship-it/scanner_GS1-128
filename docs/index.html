@@ -52,7 +52,7 @@
       overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
       cursor:pointer;
     }
-    .wrap{max-width:980px; margin:0 auto; padding:14px 14px 14px;}
+    .wrap{max-width:980px; margin:0 auto; padding:14px 14px 120px;}
     .grid{display:grid; gap:12px;}
     .card{
       background:var(--card);
@@ -206,107 +206,42 @@
     .toast .t{font-size:22px; font-weight:900;}
     .toast .price{font-size:16px; font-weight:900; color:var(--red); margin-top:6px;}
     .toast .s{font-size:14px; color:var(--muted); margin-top:4px; line-height:1.3;}
-
-    /* ===== UX v235: 視認性/利便性UP（スクロールは許可） ===== */
-    html, body{height:auto; overflow:auto;}
-    .wrap{
-      max-width:980px;
-      margin:0 auto;
-      padding:14px 14px calc(90px + env(safe-area-inset-bottom));
-    }
-    .grid{ display:grid; gap:14px; }
-    .card{ padding:16px; }
-
-    /* ボタンが長文でも収まるように */
-    .btn{
-      height:auto;
-      min-height:56px;
-      padding:14px 16px;
-      line-height:1.15;
-      white-space:normal;
-      word-break:break-word;
-    }
-    .btn.small{ min-height:46px; padding:10px 14px; }
-
-    /* 入力の視認性 */
-    .input, .select, textarea{
-      font-size:18px;
-      line-height:1.25;
-      padding:14px 14px;
-    }
-    .select{ height:56px; }
-
-    /* スキャナ枠は画面内に収める（大きすぎ防止） */
-    .videoBox{
-      width:100%;
-      aspect-ratio: 3 / 4;
-      max-height: 52vh;
-    }
-
-    /* 下部の操作を見失わない（任意で #bottomBar を使える） */
-    .bottomBar{
-      position:fixed;
-      left:12px; right:12px;
-      bottom: calc(10px + env(safe-area-inset-bottom));
-      z-index:40;
-      display:none;
-    }
-    .bottomBar.show{ display:block; }
-    .bottomBar .card{
-      padding:10px;
-      border-radius:22px;
-      box-shadow: 0 16px 40px rgba(255,59,107,.22);
-    }
-    .bottomBar .row{ gap:10px; }
-    .bottomBar .btn{ min-height:54px; }
-
-  
-    /* ===== v236: 情報量を減らして即判断UI ===== */
-    .muted{ font-size:13px; }
-    .sugNote{ display:none; } /* noteは隠してシンプルに */
-    .listItem b{ font-size:16px; }
-    .chip{ cursor:pointer; }
-    .chip.warn{ font-size:14px; }
-
   </style>
+
+  <script src="https://unpkg.com/@ericblade/quagga2@1.12.1/dist/quagga.min.js"></script>
 
   <script>
   (function(){
-    function showFatal(msg, src, line){
+    function show(msg){
       try{
-        var b=document.getElementById('build');
-        if(b){ b.textContent = 'BUILD: fatal (see message)'; }
+        var b=document.getElementById('build'); if(b) b.textContent='BUILD: runtime error';
         var a=document.getElementById('app');
         if(a){
-          a.innerHTML = '<div class="card"><div class="h1">起動エラー</div><div class="muted">'+
-            (msg||'Unknown error')+'
-'+(src||'')+(line?(':'+line):'')+
-            '
-
-Safariキャッシュ対策：URLに ?v=数字 を付けて開き直してください。'+
+          a.innerHTML='<div class="card"><div class="h1">起動エラー</div><div class="muted" style="white-space:pre-wrap;">'+
+            (msg||'Unknown')+
+            '\n\nSafariキャッシュ対策：URLに ?v=数字 を変えて開き直してください。'+
             '</div></div>';
         }
       }catch(e){}
     }
     window.addEventListener('error', function(ev){
-      showFatal(ev.message, ev.filename, ev.lineno);
+      show((ev && ev.message ? ev.message : 'Error') + (ev && ev.filename ? ('\n'+ev.filename+':'+ev.lineno) : ''));
     });
     window.addEventListener('unhandledrejection', function(ev){
-      var msg = (ev.reason && (ev.reason.message||String(ev.reason))) || 'Unhandled rejection';
-      showFatal(msg, '', '');
+      var r=ev && ev.reason; var msg = (r && (r.stack||r.message)) ? (r.stack||r.message) : String(r||'Unhandled rejection');
+      show(msg);
     });
   })();
   </script>
 
-  <script src="https://unpkg.com/@ericblade/quagga2@1.12.1/dist/quagga.min.js"></script>
 </head>
 <body>
   <div class="top">
     <div class="brand">
       <b>LinQ VAL</b>
       <div class="pill" id="rolePill">職種：未選択</div>
-        <div class="build" id="build">BUILD: index v236g (xhr loading app.js)</div>
-      </div>
+      <div class="muted" style="font-size:12px;">BUILD: v23</div>
+    </div>
     <button class="btn small ghost" id="btnRole">職種変更</button>
   </div>
 
@@ -315,81 +250,12 @@ Safariキャッシュ対策：URLに ?v=数字 を付けて開き直してくだ
     <div id="app"></div>
   </div>
 
-
-  <div class="bottomBar" id="bottomBar">
-    <div class="card">
-      <div class="row" id="bottomBarRow"></div>
-    </div>
-  </div>
-
   <div class="toast" id="toast">
     <div class="t" id="toastTitle">OK</div>
     <div class="price" id="toastPrice"></div>
     <div class="s" id="toastSub"></div>
   </div>
 
-  <script src="./scan.js?v=2413"></script>
-<script>
-  (function(){
-    setTimeout(function(){
-      try{
-        var b=document.getElementById('build');
-        if(!b){return;}
-        if(String(b.textContent||'').indexOf('index v236f')>=0){
-          b.textContent = 'BUILD: app.js not running (stuck)';
-          var a=document.getElementById('app');
-          if(a){
-            a.innerHTML = '<div class="card"><div class="h1">起動できていません</div><div class="muted">'+
-              'index.html は反映されていますが、app.js が実行されていません。\n'+
-              '原因候補：①app.jsが古い/壊れている ②コミット未反映 ③Safariキャッシュ（URLに ?v=数字 を変更）\n\n'+
-              '確認：/scanner_GS1-128/app.js?v=999 を直接開いて BUILD 文字列が v236f-app になっているかを見る。'+
-              '</div></div>';
-          }
-        }
-      }catch(e){}
-    }, 2000);
-  })();
-  </script>
-
-
-  <script>
-  (function(){
-    function showFatal(msg){
-      try{
-        var b=document.getElementById('build');
-        if(b){ b.textContent = 'BUILD: app.js load/exec failed'; }
-        var a=document.getElementById('app');
-        if(a){
-          a.innerHTML = '<div class="card"><div class="h1">起動エラー</div><div class="muted" style="font-size:12px;white-space:pre-wrap;">'+
-            (msg||'Unknown')+
-            '\n\n対策：①GitHubの docs/app.js が最新か ②URLに ?v=数字 を変える ③Safariのタブを閉じて開き直す'+
-            '</div></div>';
-        }
-      }catch(e){}
-    }
-    // cache-bust: query + timestamp
-    var url = './app.js?v=2413&ts=' + (new Date().getTime());
-    var xhr = new XMLHttpRequest();
-    xhr.open('GET', url, true);
-    xhr.onreadystatechange = function(){
-      if(xhr.readyState !== 4) return;
-      if(xhr.status >= 200 && xhr.status < 300){
-        try{
-          // execute app.js
-          (new Function(xhr.responseText))();
-        }catch(e){
-          showFatal('app.js 実行エラー: ' + (e && (e.stack||e.message) ? (e.stack||e.message) : String(e)));
-        }
-      }else{
-        showFatal('app.js 取得失敗: HTTP ' + xhr.status + ' ' + url);
-      }
-    };
-    xhr.onerror = function(){
-      showFatal('app.js 取得失敗: network error ' + url);
-    };
-    try{ xhr.send(null); }catch(e){ showFatal('XHR send failed: '+String(e)); }
-  })();
-  </script>
-
+  <script type="module" src="./app.js?v=2414" onerror="(function(){var b=document.getElementById(\'build\');if(b) b.textContent=\'BUILD: app.js load failed (module)\';var a=document.getElementById(\'app\');if(a) a.innerHTML=\'<div class=&quot;card&quot;><div class=&quot;h1&quot;>起動エラー</div><div class=&quot;muted&quot;>app.jsが読み込めませんでした（404/コミット未反映/配置ミス）。URLに ?v=数字 を変えて再読み込みしてください。</div></div>\';})()"></script>
 </body>
 </html>
