@@ -206,6 +206,50 @@
     .toast .t{font-size:22px; font-weight:900;}
     .toast .price{font-size:16px; font-weight:900; color:var(--red); margin-top:6px;}
     .toast .s{font-size:14px; color:var(--muted); margin-top:4px; line-height:1.3;}
+  
+/* ===== 手技サジェストを目立たせる（デザイン踏襲・最小差分） ===== */
+.sugBox{
+  border:2px solid rgba(255,59,107,.28);
+  background:linear-gradient(180deg,#fff, #fff0f6);
+  box-shadow: 0 16px 40px rgba(255,59,107,.16);
+}
+.sugBox .h2{
+  font-size:18px;
+}
+.sugBox .chip.warn{
+  box-shadow: 0 10px 22px rgba(255,59,107,.18);
+}
+
+/* ===== scan中は固定サマリーのみ非表示 ===== */
+body.scan-mode .summarySticky{
+  display: none !important;
+}
+
+/* ===== scan画面の見切れ対策（最小） ===== */
+body.scan-mode .videoBox{
+  max-height: 52vh;
+}
+
+
+    /* ✅ モーダル（職種選択など） */
+    .modal{
+      position:fixed;
+      inset:0;
+      z-index:60;
+      background: rgba(0,0,0,.20);
+      display:flex;
+      align-items:stretch;
+      justify-content:center;
+      padding: 10px 10px calc(10px + env(safe-area-inset-bottom));
+    }
+    .modal .panel{
+      width: min(980px, 100%);
+      height: 100%;
+      display:flex;
+      flex-direction:column;
+      gap:12px;
+    }
+
   </style>
 
   <script src="https://unpkg.com/@ericblade/quagga2@1.12.1/dist/quagga.min.js"></script>
@@ -215,13 +259,11 @@
     function show(msg){
       try{
         var b=document.getElementById('build'); if(b) b.textContent='BUILD: runtime error';
-        var a=document.getElementById('app');
-        if(a){
-          a.innerHTML='<div class="card"><div class="h1">起動エラー</div><div class="muted" style="white-space:pre-wrap;">'+
-            (msg||'Unknown')+
-            '\n\nSafariキャッシュ対策：URLに ?v=数字 を変えて開き直してください。'+
-            '</div></div>';
-        }
+        var a=document.getElementById('app'); if(!a){ a=document.createElement('div'); a.id='app'; document.body.appendChild(a); }
+        a.innerHTML='<div class="card"><div class="h1" style="color:#ff3b6b">起動エラー</div><div class="muted" style="font-size:12px;white-space:pre-wrap;">'+
+          (msg||'Unknown')+
+          '\n\n確認：docs/app.js に "v237d resilient marker" が入っているか。\nSafari対策：URLの ?v=数字 を変えて開き直してください。'+
+          '</div></div>';
       }catch(e){}
     }
     window.addEventListener('error', function(ev){
@@ -256,6 +298,7 @@
     <div class="s" id="toastSub"></div>
   </div>
 
-  <script type="module" src="./app.js?v=2415" onerror="(function(){var b=document.getElementById(\'build\');if(b) b.textContent=\'BUILD: app.js load failed (module)\';var a=document.getElementById(\'app\');if(a) a.innerHTML=\'<div class=&quot;card&quot;><div class=&quot;h1&quot;>起動エラー</div><div class=&quot;muted&quot;>app.jsが読み込めませんでした（404/コミット未反映/配置ミス）。URLに ?v=数字 を変えて再読み込みしてください。</div></div>\';})()"></script>
+  <script src="./scan.js?v=2416"></script>
+  <script src="./app.js?v=2416"></script>
 </body>
 </html>
