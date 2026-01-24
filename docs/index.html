@@ -231,6 +231,37 @@ body.scan-mode .videoBox{
 }
 
 </style>
+/* ===== ページ全体をスクロールさせない（基本） ===== */
+html, body{
+  height: 100%;
+  overflow: hidden;
+}
+
+/* ヘッダー(top)を除いた領域を1画面に固定 */
+.wrap{
+  height: calc(100vh - 74px - env(safe-area-inset-bottom));
+  overflow: hidden;
+  padding-bottom: 14px; /* 既存の大きいpadding-bottomを抑える */
+}
+
+/* app領域を“画面内”に閉じ込める */
+#app{
+  height: 100%;
+  overflow: hidden;
+}
+
+/* カードが画面からはみ出さないようにする */
+.card{
+  max-height: 100%;
+  overflow: hidden;
+}
+
+/* 一覧（grid）だけ必要なら内部スクロール */
+.grid{
+  overflow: auto;
+  max-height: calc(100vh - 74px - 160px); /* ヘッダー＋カード内ボタン分のざっくり余白 */
+  -webkit-overflow-scrolling: touch;
+}
 
   <script src="https://unpkg.com/@ericblade/quagga2@1.12.1/dist/quagga.min.js"></script>
 </head>
