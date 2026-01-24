@@ -2,15 +2,11 @@
 <html lang="ja">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-  <meta name="theme-color" content="#ff3b6b" />
-  <title>LinQ VAL</title>
-
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@400;700;900&display=swap" rel="stylesheet">
-
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>LinQ VAL PoC</title>
+  <script src="https://unpkg.com/@ericblade/quagga2@1.8.4/dist/quagga.min.js"></script>
   <style>
+
     :root{
       --pink:#ffe6ef;
       --pink2:#fff3f7;
@@ -100,8 +96,6 @@
       touch-action: manipulation;
       font-family:inherit;
     }
-
-    /* ✅ iOS select安定：ネイティブ表示 */
     .select{
       height:54px;
       padding:0 14px;
@@ -149,7 +143,6 @@
     }
     .divider{height:1px; background:#f2d2dd; margin:10px 0;}
 
-    /* ✅ サマリー固定バー */
     .summarySticky{
       position: sticky;
       top: 74px;
@@ -175,12 +168,11 @@
       color:var(--text);
     }
     .chip.warn{
-      background: #ffe1e8;
+      background:#ffe1e8;
       border-color: rgba(255,59,107,.35);
       color: var(--red);
     }
 
-    /* ⭐おすすめ手技 */
     .sugBox{
       border:1px solid #f2d2dd;
       border-radius:16px;
@@ -206,31 +198,21 @@
     .toast .t{font-size:22px; font-weight:900;}
     .toast .price{font-size:16px; font-weight:900; color:var(--red); margin-top:6px;}
     .toast .s{font-size:14px; color:var(--muted); margin-top:4px; line-height:1.3;}
+
+    /* 合意済み：scan中は固定サマリーだけ非表示 */
+    body.scan-mode .summarySticky{ display:none !important; }
+
+    /* scan画面見切れ対策（最小） */
+    body.scan-mode .videoBox{ max-height:52vh; }
+
+    /* サジェストを目立たせる（最小差分） */
+    .sugBox{
+      border:2px solid rgba(255,59,107,.28);
+      background:linear-gradient(180deg,#fff, #fff0f6);
+      box-shadow: 0 16px 40px rgba(255,59,107,.16);
+    }
+
   
-/* ===== 手技サジェストを目立たせる（デザイン踏襲・最小差分） ===== */
-.sugBox{
-  border:2px solid rgba(255,59,107,.28);
-  background:linear-gradient(180deg,#fff, #fff0f6);
-  box-shadow: 0 16px 40px rgba(255,59,107,.16);
-}
-.sugBox .h2{
-  font-size:18px;
-}
-.sugBox .chip.warn{
-  box-shadow: 0 10px 22px rgba(255,59,107,.18);
-}
-
-/* ===== scan中は固定サマリーのみ非表示 ===== */
-body.scan-mode .summarySticky{
-  display: none !important;
-}
-
-/* ===== scan画面の見切れ対策（最小） ===== */
-body.scan-mode .videoBox{
-  max-height: 52vh;
-}
-
-
     /* ✅ モーダル（職種選択など） */
     .modal{
       position:fixed;
@@ -249,32 +231,45 @@ body.scan-mode .videoBox{
       flex-direction:column;
       gap:12px;
     }
-
+    
   </style>
-
-  <script src="https://unpkg.com/@ericblade/quagga2@1.12.1/dist/quagga.min.js"></script>
 </head>
 <body>
-  <div class="top">
+  <header class="top">
     <div class="brand">
       <b>LinQ VAL</b>
-      <div class="pill" id="rolePill">職種：未選択</div>
-      <div class="muted" style="font-size:12px;">BUILD: v23</div>
+      <div class="muted" style="font-size:12px" id="build">BUILD: stable-ui</div>
     </div>
-    <button class="btn small ghost" id="btnRole">職種変更</button>
-  </div>
+    <div class="pill" id="rolePill">職種：未選択</div>
+    <button id="roleChangeBtn" class="btn small ghost" style="width:auto;">職種変更</button>
+  </header>
 
   <div class="wrap">
-    <div id="summaryHost" class="summarySticky" style="display:none;"></div>
     <div id="app"></div>
   </div>
 
+  
+  <!-- 職種選択モーダル（必須） -->
+  <div id="roleModal" class="modal" hidden>
+    <div class="panel">
+      <div class="card">
+        <div class="h1">職種を選択</div>
+        <button class="btn primary" data-role="field">実施入力</button>
+        <button class="btn primary" data-role="doctor">医師</button>
+        <button class="btn primary" data-role="billing">医事</button>
+        <button class="btn ghost" data-role="close">閉じる</button>
+      </div>
+    </div>
+  </div>
+
+
   <div class="toast" id="toast">
-    <div class="t" id="toastTitle">OK</div>
+    <div class="t" id="toastTitle">読み取り</div>
     <div class="price" id="toastPrice"></div>
     <div class="s" id="toastSub"></div>
   </div>
 
-  <script type="module" src="./app.js"></script>
+  <script src="./scan.js?v=1"></script>
+  <script src="./app.js?v=1"></script>
 </body>
 </html>
