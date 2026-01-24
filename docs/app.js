@@ -67,6 +67,7 @@
     role: "linq_role",
     fieldDrafts: "linq_field_drafts",
     approvals: "linq_approvals"
+    ,procUsage: "linq_proc_usage"
   };
 
   // ---------- masters ----------
@@ -151,7 +152,43 @@
   }
   function saveDrafts(list){
     localStorage.setItem(KEY.fieldDrafts, JSON.stringify(list));
+  
+  function loadProcUsage(){
+    var u = safeJsonParse(localStorage.getItem(KEY.procUsage), {});
+    if(!u || typeof u!=="object") u = {};
+    return u;
   }
+  function saveProcUsage(u){
+    localStorage.setItem(KEY.procUsage, JSON.stringify(u||{}));
+  }
+  function bumpProcUsage(ids){
+    // ids: array of procedure ids
+    if(!ids || !ids.length) return;
+    var u = loadProcUsage();
+    for(var i=0;i<ids.length;i++){
+      var k = String(ids[i]);
+      u[k] = (u[k]||0)+1;
+    }
+    saveProcUsage(u);
+  }
+  function usageScore(id){
+    var u = loadProcUsage();
+    return u[String(id)] || 0;
+  }
+  function sortByUsageDesc(list){
+    // list: [{id,label}] or ids
+    var u = loadProcUsage();
+    return list.slice(0).sort(function(a,b){
+      var ai = (typeof a==="object") ? String(a.id) : String(a);
+      var bi = (typeof b==="object") ? String(b.id) : String(b);
+      var av = u[ai]||0;
+      var bv = u[bi]||0;
+      if(bv!==av) return bv-av;
+      return ai<bi ? -1 : (ai>bi ? 1 : 0);
+    });
+  }
+
+}
 
   // ---------- role ----------
   function setRole(role){
@@ -257,15 +294,16 @@
     }
     var sug = buildSuggest();
     var chips = '<div class="sugRow">';
+    sug = sortByUsageDesc(sug).slice(0,5);
     for(var i=0;i<sug.length;i++){
-      chips += '<span class="chip warn">'+esc(sug[i].label)+'</span>';
+      chips += '<button type="button" class="chip warn" data-sug="'+esc(sug[i].id)+'">'+esc(sug[i].label)+'</button>';
     }
     chips += '</div>';
     return (
       '<div class="sugBox">'+
         '<div class="h2">⭐ おすすめ手技</div>'+
         chips+
-        '<div class="sugNote">※ 材料から自動推定（PoC）</div>'+
+        '<div class="sugNote">※ タップで主手技に反映</div>'+
       '</div>'
     );
   }
@@ -403,7 +441,7 @@
           '</div>'+
           '<div class="videoBox"><div id="scannerTarget"></div></div>'+
           '<div class="row">'+
-            '<button class="btn" id="scanStop">停止</button>'+
+            '<button class="btn" id="scanStart">開始</button><button class="btn" id="scanStop">停止</button>'+
             '<button class="btn primary" id="scanClose2">確定</button>'+
           '</div>'+
         '</div>'
@@ -436,6 +474,21 @@
       );
     }
     if(step===3){
+          // suggest chips
+          var sugBtns = document.querySelectorAll("[data-sug]");
+          for(var si=0; si<sugBtns.length; si++){
+            (function(el){
+              bindTap(el, function(){
+                var pid = el.getAttribute("data-sug");
+                if(pid){
+                  state.field.procId = pid;
+                  if(prSel){ prSel.value = pid; }
+                  showToast("主手技に設定", "", el.textContent||"", 900);
+                }
+              });
+            })(sugBtns[si]);
+          }
+
       // procedure + assist(<=3)
       var assistLabels = [];
       for(var i=0;i<state.field.assistIds.length;i++){
@@ -591,7 +644,10 @@
     });
     saveApprovals(list);
 
-    // reset for next
+    
+    // usage tracking (for top5 suggestions)
+    bumpProcUsage([state.field.procId].concat(state.field.assistIds||[]));
+// reset for next
     state.field.step = 1;
     state.field.operatorId = "";
     state.field.patientId = "";
@@ -920,12 +976,23 @@
 
     if(state.modal.type==="assist"){
       var selected = state.field.assistIds.slice(0);
-      var list = M.procedures.slice(0);
+      var selected = state.field.assistIds.slice(0);
+      var listAll = M.procedures.slice(0);
+      // main 제외
+      var list = [];
+      for(var li=0; li<listAll.length; li++){
+        var pp = listAll[li];
+        if(String(pp.id)===String(state.field.procId)) continue;
+        list.push(pp);
+      }
+      // default: top5 by usage
+      var showAll = !!state.modal.showAll;
+      if(!showAll){ list = sortByUsageDesc(list).slice(0,5); }
+
 
       var items = "";
       for(var i=0;i<list.length;i++){
         var p = list[i];
-        if(String(p.id)===String(state.field.procId)) continue; // main 제외
         var checked = selected.indexOf(p.id)>=0;
         items +=
           '<label class="listItem" style="align-items:center;">'+
@@ -1187,6 +1254,21 @@
         }
 
         if(step===3){
+          // suggest chips
+          var sugBtns = document.querySelectorAll("[data-sug]");
+          for(var si=0; si<sugBtns.length; si++){
+            (function(el){
+              bindTap(el, function(){
+                var pid = el.getAttribute("data-sug");
+                if(pid){
+                  state.field.procId = pid;
+                  if(prSel){ prSel.value = pid; }
+                  showToast("主手技に設定", "", el.textContent||"", 900);
+                }
+              });
+            })(sugBtns[si]);
+          }
+
           var prSel = $("prSel");
           if(prSel) prSel.value = state.field.procId || "";
           bindTap($("back3"), function(){ state.field.step=2; render(); });
@@ -1205,6 +1287,7 @@
         }
 
         if(step===4){
+          bindTap($("scanStart"), function(){ startScanner(); showToast("開始", "", "", 700); });
           bindTap($("scanStop"), function(){ stopScanner(); showToast("停止", "", "", 900); });
           bindTap($("scanClose"), closeScan);
           bindTap($("scanClose2"), closeScan);
@@ -1319,7 +1402,7 @@
   // ---------- init ----------
   function init(){
     initToast();
-    $("build").textContent = "BUILD: v235 UX+fit (scroll ok)";
+    $("build").textContent = "BUILD: v236c compact+top5+scanStart";
 
     
     // header button (optional)
