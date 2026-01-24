@@ -260,6 +260,14 @@
     .bottomBar .row{ gap:10px; }
     .bottomBar .btn{ min-height:54px; }
 
+  
+    /* ===== v236: 情報量を減らして即判断UI ===== */
+    .muted{ font-size:13px; }
+    .sugNote{ display:none; } /* noteは隠してシンプルに */
+    .listItem b{ font-size:16px; }
+    .chip{ cursor:pointer; }
+    .chip.warn{ font-size:14px; }
+
   </style>
 
   <script src="https://unpkg.com/@ericblade/quagga2@1.12.1/dist/quagga.min.js"></script>
@@ -292,6 +300,6 @@
     <div class="s" id="toastSub"></div>
   </div>
 
-  <script src="./app.js?v=2405"></script>
+  <script src="./app.js?v=2408"></script>
 </body>
 </html>
