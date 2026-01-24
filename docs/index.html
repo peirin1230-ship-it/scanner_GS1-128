@@ -270,6 +270,34 @@
 
   </style>
 
+  <script>
+  (function(){
+    function showFatal(msg, src, line){
+      try{
+        var b=document.getElementById('build');
+        if(b){ b.textContent = 'BUILD: fatal (see message)'; }
+        var a=document.getElementById('app');
+        if(a){
+          a.innerHTML = '<div class="card"><div class="h1">起動エラー</div><div class="muted">'+
+            (msg||'Unknown error')+'
+'+(src||'')+(line?(':'+line):'')+
+            '
+
+Safariキャッシュ対策：URLに ?v=数字 を付けて開き直してください。'+
+            '</div></div>';
+        }
+      }catch(e){}
+    }
+    window.addEventListener('error', function(ev){
+      showFatal(ev.message, ev.filename, ev.lineno);
+    });
+    window.addEventListener('unhandledrejection', function(ev){
+      var msg = (ev.reason && (ev.reason.message||String(ev.reason))) || 'Unhandled rejection';
+      showFatal(msg, '', '');
+    });
+  })();
+  </script>
+
   <script src="https://unpkg.com/@ericblade/quagga2@1.12.1/dist/quagga.min.js"></script>
 </head>
 <body>
@@ -300,6 +328,7 @@
     <div class="s" id="toastSub"></div>
   </div>
 
-  <script src="./app.js?v=2408"></script>
+  <script src="./scan.js?v=2410"></script>
+  <script src="./app.js?v=2410" onerror="(function(){var b=document.getElementById('build'); if(b){b.textContent='BUILD: app.js load failed (check commit/path)';} var a=document.getElementById('app'); if(a){a.innerHTML='<div class=\"card\"><div class=\"h1\">起動エラー</div><div class=\"muted\">app.jsが読み込めませんでした（404/コミット未反映/ファイル名違い）。Safariキャッシュ対策としてURLに ?v=数字 を付けて開き直してください。</div></div>';}})()"></script>
 </body>
 </html>
