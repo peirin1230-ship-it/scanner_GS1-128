@@ -1317,7 +1317,7 @@
   // ---------- init ----------
   function init(){
     initToast();
-    $("build").textContent = "BUILD: no-scroll + suggest + assist(3)";
+    $("build").textContent = "BUILD: v23-verified (roleChangeBtn bound)";
 
     
     // header button (optional)
