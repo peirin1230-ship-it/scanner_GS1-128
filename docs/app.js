@@ -1402,7 +1402,7 @@
   // ---------- init ----------
   function init(){
     initToast();
-    $("build").textContent = "BUILD: v236f-app (buttons)";
+    $("build").textContent = "BUILD: v236g-app (xhr loader ok)";
 
     
     // header button (optional)
