@@ -206,42 +206,59 @@
     .toast .t{font-size:22px; font-weight:900;}
     .toast .price{font-size:16px; font-weight:900; color:var(--red); margin-top:6px;}
     .toast .s{font-size:14px; color:var(--muted); margin-top:4px; line-height:1.3;}
-  
-    /* ===== No-scroll shell ===== */
-    html, body{height:100%; overflow:hidden;}
+
+    /* ===== UX v235: 視認性/利便性UP（スクロールは許可） ===== */
+    html, body{height:auto; overflow:auto;}
     .wrap{
-      height: calc(100vh - 74px);
-      padding: 14px 14px 14px;
-      overflow:hidden;
+      max-width:980px;
+      margin:0 auto;
+      padding:14px 14px calc(90px + env(safe-area-inset-bottom));
     }
-    #app{
-      height:100%;
-      display:flex;
-      flex-direction:column;
-      gap:12px;
-      overflow:hidden;
+    .grid{ display:grid; gap:14px; }
+    .card{ padding:16px; }
+
+    /* ボタンが長文でも収まるように */
+    .btn{
+      height:auto;
+      min-height:56px;
+      padding:14px 16px;
+      line-height:1.15;
+      white-space:normal;
+      word-break:break-word;
     }
-    .card{
-      display:flex;
-      flex-direction:column;
-      flex:1 1 auto;
-      min-height:0;
+    .btn.small{ min-height:46px; padding:10px 14px; }
+
+    /* 入力の視認性 */
+    .input, .select, textarea{
+      font-size:18px;
+      line-height:1.25;
+      padding:14px 14px;
     }
-    .grow{
-      flex:1 1 auto;
-      min-height:0;
-      overflow:auto; /* internal scroll only */
-      -webkit-overflow-scrolling: touch;
-    }
-    .list{
-      max-height: 42vh;
-      overflow:auto;
-      -webkit-overflow-scrolling: touch;
-    }
+    .select{ height:56px; }
+
+    /* スキャナ枠は画面内に収める（大きすぎ防止） */
     .videoBox{
-      max-height: 48vh;
+      width:100%;
       aspect-ratio: 3 / 4;
+      max-height: 52vh;
     }
+
+    /* 下部の操作を見失わない（任意で #bottomBar を使える） */
+    .bottomBar{
+      position:fixed;
+      left:12px; right:12px;
+      bottom: calc(10px + env(safe-area-inset-bottom));
+      z-index:40;
+      display:none;
+    }
+    .bottomBar.show{ display:block; }
+    .bottomBar .card{
+      padding:10px;
+      border-radius:22px;
+      box-shadow: 0 16px 40px rgba(255,59,107,.22);
+    }
+    .bottomBar .row{ gap:10px; }
+    .bottomBar .btn{ min-height:54px; }
 
   </style>
 
@@ -260,6 +277,13 @@
   <div class="wrap">
     <div id="summaryHost" class="summarySticky" style="display:none;"></div>
     <div id="app"></div>
+  </div>
+
+
+  <div class="bottomBar" id="bottomBar">
+    <div class="card">
+      <div class="row" id="bottomBarRow"></div>
+    </div>
   </div>
 
   <div class="toast" id="toast">
