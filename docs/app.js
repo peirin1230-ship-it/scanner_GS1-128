@@ -384,7 +384,7 @@
         '<div class="divider"></div>'+
         (state.view==="scan" ? renderSummary() : "")+
         '<div class="divider"></div>'+
-        '<div style="flex:1; overflow:hidden;">'+body+'</div>'+
+        '<div class="grow">'+body+'</div>'+
       '</div>'
     );
   }
@@ -722,7 +722,7 @@
         '</div>'+
         menu+
         '<div class="divider"></div>'+
-        '<div style="flex:1; overflow:hidden;">'+body+'</div>'+
+        '<div class="grow">'+body+'</div>'+
       '</div>'
     );
   }
@@ -809,7 +809,7 @@
         '</div>'+
         menu+
         '<div class="divider"></div>'+
-        '<div style="flex:1; overflow:hidden;">'+body+'</div>'+
+        '<div class="grow">'+body+'</div>'+
       '</div>'
     );
   }
@@ -1064,7 +1064,9 @@
 
     if(state.role==="field") html = renderField();
     else if(state.role==="doctor") html = renderDoctor();
-    else html = renderBilling();
+    else if(state.role==="billing") html = renderBilling();
+    // else: keep startup view
+    
 
     // attach modal if any
     var modal = renderModal();
@@ -1317,7 +1319,7 @@
   // ---------- init ----------
   function init(){
     initToast();
-    $("build").textContent = "BUILD: v23-verified-233";
+    $("build").textContent = "BUILD: v234 no-scroll(all) + btnfix";
 
     
     // header button (optional)
