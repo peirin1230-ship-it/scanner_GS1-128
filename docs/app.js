@@ -1077,7 +1077,6 @@
 
     // bind global
     bindTap($("rolePill"), openRoleModal);
-    bindTap($("roleChangeBtn"), openRoleModal);
 
     // role modal binds
     if(state.modal && state.modal.type==="role"){
