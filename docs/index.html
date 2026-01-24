@@ -2,13 +2,11 @@
 <html lang="ja">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
-  <meta name="theme-color" content="#ff3b6b" />
-  <title>LinQ VAL</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>LinQ VAL PoC</title>
 
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@400;700;900&display=swap" rel="stylesheet">
+  <!-- Quagga2 (global Quagga) -->
+  <script src="https://unpkg.com/@ericblade/quagga2@1.8.4/dist/quagga.min.js"></script>
 
   <style>
     :root{
@@ -24,12 +22,18 @@
       --btnH:56px;
     }
     *{box-sizing:border-box}
+    html, body{
+      height:100%;
+      margin:0;
+      overflow:hidden; /* ✅ 全体スクロール禁止 */
+    }
     body{
-      margin:0;background:linear-gradient(180deg,var(--pink2),#fff);
+      background:linear-gradient(180deg,var(--pink2),#fff);
       color:var(--text);
       font-family:"M PLUS Rounded 1c", system-ui, -apple-system, "Segoe UI", sans-serif;
       -webkit-tap-highlight-color: transparent;
     }
+
     .top{
       position:sticky; top:0; z-index:20;
       background:rgba(255,255,255,.92);
@@ -38,9 +42,11 @@
       padding:10px 14px;
       display:flex; align-items:center; justify-content:space-between;
       gap:10px;
+      height:74px;
     }
     .brand{display:flex; flex-direction:column; gap:2px;}
     .brand b{font-size:18px; font-weight:900; letter-spacing:.2px;}
+    .brand .build{font-size:12px; color:var(--muted);}
     .pill{
       display:inline-flex; align-items:center; gap:8px;
       font-size:13px; color:var(--muted);
@@ -51,8 +57,22 @@
       max-width: 70vw;
       overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
       cursor:pointer;
+      user-select:none;
     }
-    .wrap{max-width:980px; margin:0 auto; padding:14px 14px 120px;}
+
+    /* ✅ ページ内は固定、内部スクロールのみ */
+    .wrap{
+      height: calc(100vh - 74px - env(safe-area-inset-bottom));
+      max-width:980px;
+      margin:0 auto;
+      padding:14px 14px 14px;
+      overflow:hidden;
+    }
+    #app{
+      height:100%;
+      overflow:hidden;
+    }
+
     .grid{display:grid; gap:12px;}
     .card{
       background:var(--card);
@@ -60,11 +80,22 @@
       border-radius:18px;
       padding:14px;
       box-shadow: var(--shadow);
+
+      /* ✅ 画面内に閉じ込める */
+      height:100%;
+      max-height:100%;
+      overflow:hidden;
+      display:flex;
+      flex-direction:column;
+      gap:10px;
     }
-    .h1{margin:0 0 6px; font-size:20px; font-weight:900;}
-    .h2{margin:0 0 8px; font-size:16px; font-weight:900;}
+
+    .h1{margin:0; font-size:20px; font-weight:900;}
+    .h2{margin:0; font-size:16px; font-weight:900;}
     .muted{color:var(--muted); font-size:14px; line-height:1.35; white-space:pre-wrap;}
+
     .row{display:flex; gap:10px; align-items:center; flex-wrap:wrap;}
+    .row.space{justify-content:space-between}
     .btn{
       height:var(--btnH);
       padding:0 16px;
@@ -100,8 +131,6 @@
       touch-action: manipulation;
       font-family:inherit;
     }
-
-    /* ✅ iOS select安定：ネイティブ表示 */
     .select{
       height:54px;
       padding:0 14px;
@@ -109,8 +138,10 @@
       -webkit-appearance:menulist;
       background:#fff;
     }
-
     textarea{min-height:110px;}
+
+    .divider{height:1px; background:#f2d2dd; margin:6px 0;}
+
     .listItem{
       display:flex; justify-content:space-between; align-items:flex-start;
       gap:10px;
@@ -129,33 +160,16 @@
       color:var(--muted);
       white-space:nowrap;
     }
-    .videoBox{
-      width:100%;
-      aspect-ratio: 3 / 4;
-      max-height: 64vh;
-      border-radius:22px;
-      overflow:hidden;
-      border:2px solid rgba(255,59,107,.25);
-      background:#000;
-      box-shadow: 0 12px 30px rgba(255,59,107,.18);
-      position:relative;
-    }
-    #scannerTarget video{width:100%; height:100%; object-fit:cover;}
-    .check{
-      width:26px; height:26px;
-      accent-color: var(--red);
-      transform: scale(1.25);
-      touch-action: manipulation;
-    }
-    .divider{height:1px; background:#f2d2dd; margin:10px 0;}
 
-    /* ✅ サマリー固定バー */
-    .summarySticky{
-      position: sticky;
-      top: 74px;
-      z-index: 15;
-      margin-bottom: 12px;
+    /* ✅ 内部スクロールエリア（一覧だけ） */
+    .scroll{
+      overflow:auto;
+      -webkit-overflow-scrolling:touch;
+      border-radius:16px;
     }
+
+    /* ✅ 固定サマリー（Fieldのみ） */
+    .summarySticky{ position: sticky; top:0; z-index: 15; }
     .summaryCard{
       background:linear-gradient(180deg,#fff, #fff4f8);
       border:1px solid #f2d2dd;
@@ -173,23 +187,44 @@
       font-size:14px;
       font-weight:900;
       color:var(--text);
+      white-space:nowrap;
     }
     .chip.warn{
-      background: #ffe1e8;
+      background:#ffe1e8;
       border-color: rgba(255,59,107,.35);
       color: var(--red);
     }
 
-    /* ⭐おすすめ手技 */
+    /* ⭐おすすめ手技（目立たせる：最小差分） */
     .sugBox{
-      border:1px solid #f2d2dd;
+      border:2px solid rgba(255,59,107,.28);
+      background:linear-gradient(180deg,#fff, #fff0f6);
+      box-shadow: 0 16px 40px rgba(255,59,107,.16);
       border-radius:16px;
       padding:10px;
-      background:linear-gradient(180deg,#fff,#fff7fa);
     }
     .sugRow{display:flex; gap:8px; flex-wrap:wrap;}
     .sugNote{margin-top:8px; font-size:12px; color:var(--muted); line-height:1.3;}
+    .sugBox .chip.warn{ box-shadow: 0 10px 22px rgba(255,59,107,.18); }
 
+    /* ✅ スキャン表示 */
+    .videoBox{
+      width:100%;
+      border-radius:22px;
+      overflow:hidden;
+      border:2px solid rgba(255,59,107,.25);
+      background:#000;
+      box-shadow: 0 12px 30px rgba(255,59,107,.18);
+      position:relative;
+
+      /* 見切れ防止 */
+      height: 52vh;
+      max-height: 52vh;
+    }
+    #scannerTarget{ width:100%; height:100%; }
+    #scannerTarget video, #scannerTarget canvas{width:100% !important; height:100% !important; object-fit:cover;}
+
+    /* ✅ ポップアップ（必要） */
     .toast{
       position:fixed;
       left:12px; right:12px; bottom:14px;
@@ -206,86 +241,51 @@
     .toast .t{font-size:22px; font-weight:900;}
     .toast .price{font-size:16px; font-weight:900; color:var(--red); margin-top:6px;}
     .toast .s{font-size:14px; color:var(--muted); margin-top:4px; line-height:1.3;}
-  
-/* ===== 手技サジェストを目立たせる（デザイン踏襲・最小差分） ===== */
-.sugBox{
-  border:2px solid rgba(255,59,107,.28);
-  background:linear-gradient(180deg,#fff, #fff0f6);
-  box-shadow: 0 16px 40px rgba(255,59,107,.16);
-}
-.sugBox .h2{
-  font-size:18px;
-}
-.sugBox .chip.warn{
-  box-shadow: 0 10px 22px rgba(255,59,107,.18);
-}
 
-/* ===== scan中は固定サマリーのみ非表示 ===== */
-body.scan-mode .summarySticky{
-  display: none !important;
-}
+    /* ✅ scan中は固定サマリーだけ削除（合意） */
+    body.scan-mode .summarySticky{ display:none !important; }
 
-/* ===== scan画面の見切れ対策（最小） ===== */
-body.scan-mode .videoBox{
-  max-height: 52vh;
-}
-
-</style>
-/* ===== ページ全体をスクロールさせない（基本） ===== */
-html, body{
-  height: 100%;
-  overflow: hidden;
-}
-
-/* ヘッダー(top)を除いた領域を1画面に固定 */
-.wrap{
-  height: calc(100vh - 74px - env(safe-area-inset-bottom));
-  overflow: hidden;
-  padding-bottom: 14px; /* 既存の大きいpadding-bottomを抑える */
-}
-
-/* app領域を“画面内”に閉じ込める */
-#app{
-  height: 100%;
-  overflow: hidden;
-}
-
-/* カードが画面からはみ出さないようにする */
-.card{
-  max-height: 100%;
-  overflow: hidden;
-}
-
-/* 一覧（grid）だけ必要なら内部スクロール */
-.grid{
-  overflow: auto;
-  max-height: calc(100vh - 74px - 160px); /* ヘッダー＋カード内ボタン分のざっくり余白 */
-  -webkit-overflow-scrolling: touch;
-}
-
-  <script src="https://unpkg.com/@ericblade/quagga2@1.12.1/dist/quagga.min.js"></script>
+    /* ✅ モーダル（役割選択/補助手技選択/詳細） */
+    .modal{
+      position:fixed; inset:0;
+      background: rgba(0,0,0,.20);
+      z-index:60;
+      display:flex;
+      align-items:stretch;
+      justify-content:center;
+      padding: 10px 10px calc(10px + env(safe-area-inset-bottom));
+    }
+    .modal .panel{
+      width: min(980px, 100%);
+      height: 100%;
+      background: transparent;
+      display:flex;
+      flex-direction:column;
+      gap:10px;
+    }
+  </style>
 </head>
+
 <body>
-  <div class="top">
+  <header class="top">
     <div class="brand">
       <b>LinQ VAL</b>
-      <div class="pill" id="rolePill">職種：未選択</div>
-      <div class="muted" style="font-size:12px;">BUILD: v23</div>
+      <div class="build" id="build">BUILD: baseline</div>
     </div>
-    <button class="btn small ghost" id="btnRole">職種変更</button>
-  </div>
+    <div class="pill" id="rolePill">職種：未選択</div>
+  </header>
 
   <div class="wrap">
-    <div id="summaryHost" class="summarySticky" style="display:none;"></div>
     <div id="app"></div>
   </div>
 
   <div class="toast" id="toast">
-    <div class="t" id="toastTitle">OK</div>
+    <div class="t" id="toastTitle">読み取り</div>
     <div class="price" id="toastPrice"></div>
     <div class="s" id="toastSub"></div>
   </div>
 
-  <script type="module" src="./app.js"></script>
+  <script src="./scan.js?v=1"></script>
+  <script src="./app.js?v=1"></script>
 </body>
 </html>
