@@ -1319,7 +1319,10 @@
     initToast();
     $("build").textContent = "BUILD: no-scroll + suggest + assist(3)";
 
-    // restore role
+    
+    // header button (optional)
+    if($("roleChangeBtn")) bindTap($("roleChangeBtn"), openRoleModal);
+// restore role
     var r = localStorage.getItem(KEY.role);
     if(r==="field" || r==="doctor" || r==="billing"){
       state.role = r;
