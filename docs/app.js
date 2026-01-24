@@ -1402,7 +1402,7 @@
   // ---------- init ----------
   function init(){
     initToast();
-    $("build").textContent = "BUILD: v236g-app (xhr loader ok)";
+    $("build").textContent = "BUILD: v237c fixed (module)";
 
     
     // header button (optional)
@@ -1432,10 +1432,6 @@
     });
   }
 
-  init();
-}
-
-
   function setBottomBar(buttons){
     // buttons: [{label, id, primary, onClick}]
     var bar = $("bottomBar");
@@ -1456,5 +1452,9 @@
     });
     bar.classList.add("show");
   }
+
+  init();
+}
+
 
 )();
