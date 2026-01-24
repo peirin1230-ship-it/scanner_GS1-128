@@ -232,17 +232,34 @@
       gap:12px;
     }
     
+  
+    /* ✅ ヘッダー右側（職種変更） */
+    .topRight{display:flex; align-items:center; justify-content:flex-end; gap:10px;}
+    /* ヘッダー内のボタンは幅100%にしない */
+    .top .btn{width:auto;}
+    /* pill はヘッダー内で収まるように */
+    .brand .pill{margin-top:8px;}
+    .build{margin-top:6px;}
+
+  
+    /* ✅ 職種選択モーダル：ボタン間の余白を増やす（元の雰囲気に寄せる） */
+    #roleModal .card{ padding:18px; }
+    #roleModal .roleBtns{ display:grid; gap:14px; }
+    #roleModal .roleBtns .btn{ width:100%; }
+
   </style>
 </head>
 <body>
   <header class="top">
-    <div class="brand">
-      <b>LinQ VAL</b>
-      <div class="muted" style="font-size:12px" id="build">BUILD: stable-ui</div>
-    </div>
+  <div class="brand">
+    <b>LinQ VAL</b>
     <div class="pill" id="rolePill">職種：未選択</div>
-    <button id="roleChangeBtn" class="btn small ghost" style="width:auto;">職種変更</button>
-  </header>
+    <div class="build" id="build">BUILD: v23</div>
+  </div>
+  <div class="topRight">
+    <button id="roleChangeBtn" class="btn small ghost">職種変更</button>
+  </div>
+</header>
 
   <div class="wrap">
     <div id="app"></div>
