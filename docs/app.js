@@ -1317,11 +1317,12 @@
   // ---------- init ----------
   function init(){
     initToast();
-    $("build").textContent = "BUILD: v23-verified (roleChangeBtn bound)";
+    $("build").textContent = "BUILD: v23-verified";
 
     
     // header button (optional)
     if($("roleChangeBtn")) bindTap($("roleChangeBtn"), openRoleModal);
+    if($("btnRole")) bindTap($("btnRole"), openRoleModal);
 // restore role
     var r = localStorage.getItem(KEY.role);
     if(r==="field" || r==="doctor" || r==="billing"){
