@@ -305,7 +305,7 @@ Safariキャッシュ対策：URLに ?v=数字 を付けて開き直してくだ
     <div class="brand">
       <b>LinQ VAL</b>
       <div class="pill" id="rolePill">職種：未選択</div>
-        <div class="build" id="build">BUILD: index v236f (waiting app.js)</div>
+        <div class="build" id="build">BUILD: index v236g (xhr loading app.js)</div>
       </div>
     <button class="btn small ghost" id="btnRole">職種変更</button>
   </div>
@@ -328,11 +328,8 @@ Safariキャッシュ対策：URLに ?v=数字 を付けて開き直してくだ
     <div class="s" id="toastSub"></div>
   </div>
 
-  <script src="./scan.js?v=2412"></script>
-  <script src="./app.js?v=2412" onerror="(function(){var b=document.getElementById('build'); if(b){b.textContent='BUILD: app.js load failed (404/commit)';} var a=document.getElementById('app'); if(a){a.innerHTML='<div class=\"card\"><div class=\"h1\">起動エラー</div><div class=\"muted\">app.jsが読み込めませんでした（404/コミット未反映/配置ミス）。GitHubで docs/app.js が存在するか確認してください。
-Safariキャッシュ対策：URLに ?v=数字 を付けて開き直してください。</div></div>';}})()"></script>
-
-  <script>
+  <script src="./scan.js?v=2413"></script>
+<script>
   (function(){
     setTimeout(function(){
       try{
@@ -351,6 +348,46 @@ Safariキャッシュ対策：URLに ?v=数字 を付けて開き直してくだ
         }
       }catch(e){}
     }, 2000);
+  })();
+  </script>
+
+
+  <script>
+  (function(){
+    function showFatal(msg){
+      try{
+        var b=document.getElementById('build');
+        if(b){ b.textContent = 'BUILD: app.js load/exec failed'; }
+        var a=document.getElementById('app');
+        if(a){
+          a.innerHTML = '<div class="card"><div class="h1">起動エラー</div><div class="muted" style="font-size:12px;white-space:pre-wrap;">'+
+            (msg||'Unknown')+
+            '\n\n対策：①GitHubの docs/app.js が最新か ②URLに ?v=数字 を変える ③Safariのタブを閉じて開き直す'+
+            '</div></div>';
+        }
+      }catch(e){}
+    }
+    // cache-bust: query + timestamp
+    var url = './app.js?v=2413&ts=' + (new Date().getTime());
+    var xhr = new XMLHttpRequest();
+    xhr.open('GET', url, true);
+    xhr.onreadystatechange = function(){
+      if(xhr.readyState !== 4) return;
+      if(xhr.status >= 200 && xhr.status < 300){
+        try{
+          // execute app.js
+          (new Function(xhr.responseText))();
+        }catch(e){
+          showFatal('app.js 実行エラー: ' + (e && (e.stack||e.message) ? (e.stack||e.message) : String(e)));
+        }
+      }else{
+        showFatal('app.js 取得失敗: HTTP ' + xhr.status + ' ' + url);
+      }
+    };
+    xhr.onerror = function(){
+      showFatal('app.js 取得失敗: network error ' + url);
+    };
+    try{ xhr.send(null); }catch(e){ showFatal('XHR send failed: '+String(e)); }
   })();
   </script>
 
