@@ -1319,7 +1319,7 @@
   // ---------- init ----------
   function init(){
     initToast();
-    $("build").textContent = "BUILD: v234 no-scroll(all) + btnfix";
+    $("build").textContent = "BUILD: v235 UX+fit (scroll ok)";
 
     
     // header button (optional)
@@ -1350,4 +1350,28 @@
   }
 
   init();
-})();
+}
+
+
+  function setBottomBar(buttons){
+    // buttons: [{label, id, primary, onClick}]
+    var bar = $("bottomBar");
+    var row = $("bottomBarRow");
+    if(!bar || !row){ return; }
+    row.innerHTML = "";
+    if(!buttons || !buttons.length){
+      bar.classList.remove("show");
+      return;
+    }
+    buttons.forEach(function(b){
+      var btn = document.createElement("button");
+      btn.className = "btn" + (b.primary ? " primary" : "");
+      btn.textContent = b.label;
+      btn.id = b.id;
+      row.appendChild(btn);
+      bindTap(btn, b.onClick);
+    });
+    bar.classList.add("show");
+  }
+
+)();
