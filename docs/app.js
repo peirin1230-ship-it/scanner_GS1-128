@@ -1059,10 +1059,8 @@
     var html = "";
     if(!state.role){
       html = '<div class="card"><div class="h1">起動</div><div class="muted">職種を選択してください</div><div class="divider"></div><button class="btn primary" id="goRole">職種選択</button></div>';
-      app.innerHTML = html;
-      bindTap($("goRole"), openRoleModal);
-      return;
     }
+
 
     if(state.role==="field") html = renderField();
     else if(state.role==="doctor") html = renderDoctor();
@@ -1072,7 +1070,9 @@
     var modal = renderModal();
     app.innerHTML = html + modal;
 
-    // top pill
+    
+    if($("goRole")) bindTap($("goRole"), openRoleModal);
+// top pill
     updateRolePill();
 
     // bind global
@@ -1317,7 +1317,7 @@
   // ---------- init ----------
   function init(){
     initToast();
-    $("build").textContent = "BUILD: v23-verified";
+    $("build").textContent = "BUILD: v23-verified-233";
 
     
     // header button (optional)
