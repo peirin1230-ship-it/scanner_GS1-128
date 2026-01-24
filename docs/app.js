@@ -1402,7 +1402,7 @@
   // ---------- init ----------
   function init(){
     initToast();
-    $("build").textContent = "BUILD: v236c compact+top5+scanStart";
+    $("build").textContent = "BUILD: v236d compact+top5+scanStart (loader)";
 
     
     // header button (optional)
