@@ -4,7 +4,15 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
   <meta name="theme-color" content="#ff3b6b" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="LinQ VAL" />
+  <meta name="description" content="バーコードスキャンで医療材料の使用実績を記録・承認・請求突合するアプリ" />
   <title>LinQ VAL</title>
+
+  <link rel="manifest" href="./manifest.json" />
+  <link rel="icon" type="image/svg+xml" href="./icons/icon.svg" />
+  <link rel="apple-touch-icon" href="./icons/icon.svg" />
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -206,6 +214,23 @@
     .toast .t{font-size:22px; font-weight:900;}
     .toast .price{font-size:16px; font-weight:900; color:var(--red); margin-top:6px;}
     .toast .s{font-size:14px; color:var(--muted); margin-top:4px; line-height:1.3;}
+
+    /* PWA install banner */
+    .pwa-banner{
+      position:fixed;
+      left:12px; right:12px; bottom:14px;
+      z-index:40;
+      background:linear-gradient(180deg,#fff, #fff4f8);
+      border:2px solid rgba(255,59,107,.22);
+      border-radius:22px;
+      padding:14px;
+      box-shadow: 0 16px 40px rgba(255,59,107,.22);
+      display:none;
+      text-align:center;
+    }
+    .pwa-banner.show{display:block;}
+    .pwa-banner .title{font-size:16px; font-weight:900; margin-bottom:8px;}
+    .pwa-banner .actions{display:flex; gap:8px; justify-content:center;}
   </style>
 
   <script src="https://unpkg.com/@ericblade/quagga2@1.12.1/dist/quagga.min.js"></script>
@@ -215,7 +240,7 @@
     <div class="brand">
       <b>LinQ VAL</b>
       <div class="pill" id="rolePill">職種：未選択</div>
-      <div class="muted" style="font-size:12px;">BUILD: v23</div>
+      <div class="muted" style="font-size:12px;">BUILD: v24-pwa</div>
     </div>
     <button class="btn small ghost" id="btnRole">職種変更</button>
   </div>
@@ -231,6 +256,37 @@
     <div class="s" id="toastSub"></div>
   </div>
 
+  <div class="pwa-banner" id="pwaBanner">
+    <div class="title">LinQ VALをホーム画面に追加</div>
+    <div class="muted" style="margin-bottom:10px;">アプリのように素早くアクセスできます</div>
+    <div class="actions">
+      <button class="btn small primary" id="pwaInstall">追加する</button>
+      <button class="btn small ghost" id="pwaDismiss">あとで</button>
+    </div>
+  </div>
+
   <script type="module" src="./app.js"></script>
+  <script>
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.register("./sw.js").catch(function(){});
+    }
+    /* PWA install prompt */
+    var deferredPrompt = null;
+    window.addEventListener("beforeinstallprompt", function(e) {
+      e.preventDefault();
+      deferredPrompt = e;
+      document.getElementById("pwaBanner").classList.add("show");
+    });
+    document.getElementById("pwaInstall").addEventListener("click", function() {
+      if (deferredPrompt) {
+        deferredPrompt.prompt();
+        deferredPrompt.userChoice.then(function() { deferredPrompt = null; });
+      }
+      document.getElementById("pwaBanner").classList.remove("show");
+    });
+    document.getElementById("pwaDismiss").addEventListener("click", function() {
+      document.getElementById("pwaBanner").classList.remove("show");
+    });
+  </script>
 </body>
 </html>

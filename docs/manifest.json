@@ -1,0 +1,32 @@
+{
+  "name": "LinQ VAL - 医療材料トレーサビリティ",
+  "short_name": "LinQ VAL",
+  "description": "バーコードスキャンで医療材料の使用実績を記録・承認・請求突合するアプリ",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#fff3f7",
+  "theme_color": "#ff3b6b",
+  "lang": "ja",
+  "icons": [
+    {
+      "src": "./icons/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "./icons/icon.svg",
+      "sizes": "192x192",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    },
+    {
+      "src": "./icons/icon.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    }
+  ],
+  "categories": ["medical", "business"]
+}

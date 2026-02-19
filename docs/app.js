@@ -722,8 +722,106 @@ async function handleDetected(raw){
   candidate = { code:"", ts:0, count:0 };
 }
 
+/* ========= demo data ========= */
+function generateDemoData(){
+  const demoMaterials = [
+    { product_name:"XIENCE Sierra 2.5x18mm", tokutei01_name:"冠動脈ステント", total_reimbursement_price_yen:298000, jan13:"4987350121234", dict_status:"hit" },
+    { product_name:"EMERGE 2.5x15mm", tokutei01_name:"バルーンカテーテル", total_reimbursement_price_yen:89000, jan13:"4987350125678", dict_status:"hit" },
+    { product_name:"Runthrough NS", tokutei01_name:"ガイドワイヤ", total_reimbursement_price_yen:18700, jan13:"4987350129012", dict_status:"hit" },
+    { product_name:"Launcher 6Fr JL4", tokutei01_name:"ガイディングカテーテル", total_reimbursement_price_yen:32000, jan13:"4987350133456", dict_status:"hit" },
+    { product_name:"TIG 5Fr JR4", tokutei01_name:"造影カテーテル", total_reimbursement_price_yen:8500, jan13:"4987350137890", dict_status:"hit" },
+    { product_name:"Glidesheath Slender 6Fr", tokutei01_name:"シースイントロデューサ", total_reimbursement_price_yen:6200, jan13:"4987350141234", dict_status:"hit" },
+    { product_name:"Angio-Seal VIP 6Fr", tokutei01_name:"止血デバイス", total_reimbursement_price_yen:38000, jan13:"4987350145678", dict_status:"hit" },
+    { product_name:"Eagle Eye Platinum", tokutei01_name:"IVUSカテーテル", total_reimbursement_price_yen:125000, jan13:"4987350149012", dict_status:"hit" },
+    { product_name:"Dragonfly OPTIS", tokutei01_name:"OCTカテーテル", total_reimbursement_price_yen:198000, jan13:"4987350153456", dict_status:"hit" },
+    { product_name:"PressureWire X", tokutei01_name:"FFRワイヤ", total_reimbursement_price_yen:156000, jan13:"4987350157890", dict_status:"hit" },
+    { product_name:"RotaLink Plus 1.5mm", tokutei01_name:"ロータブレーター用バー", total_reimbursement_price_yen:210000, jan13:"4987350161234", dict_status:"hit" },
+    { product_name:"Export Advance", tokutei01_name:"血栓吸引カテーテル", total_reimbursement_price_yen:52000, jan13:"4987350165678", dict_status:"hit" },
+    { product_name:"Sapien3 26mm", tokutei01_name:"TAVI弁デバイス", total_reimbursement_price_yen:4250000, jan13:"4987350169012", dict_status:"hit" },
+    { product_name:"CS100 Impella CP", tokutei01_name:"Impellaカテーテル", total_reimbursement_price_yen:3800000, jan13:"4987350173456", dict_status:"hit" },
+    { product_name:"TactiCath SE 8mm", tokutei01_name:"アブレーションカテーテル", total_reimbursement_price_yen:340000, jan13:"4987350177890", dict_status:"hit" },
+    { product_name:"Decanav", tokutei01_name:"マッピングカテーテル", total_reimbursement_price_yen:168000, jan13:"4987350181234", dict_status:"hit" },
+    { product_name:"Micra AV", tokutei01_name:"ペースメーカー本体", total_reimbursement_price_yen:1850000, jan13:"4987350185678", dict_status:"hit" },
+    { product_name:"Y-connector 3way", tokutei01_name:"", total_reimbursement_price_yen:3500, jan13:"4987350199999", dict_status:"hit" },
+    { product_name:"TriStar Multi-purpose", tokutei01_name:"", total_reimbursement_price_yen:12000, jan13:"4987350198765", dict_status:"hit" },
+  ];
+
+  const patientIds = ["PT-2026-0001","PT-2026-0002","PT-2026-0003","PT-2026-0004","PT-2026-0005","PT-2026-0006"];
+  const operatorIds = ["OP-NUR-001","OP-NUR-002","OP-CE-001","OP-CE-002","OP-RT-001"];
+  const procedureIds = ["PR-CATH-001","PR-PCI-001","PR-PCI-003","PR-EP-002","PR-CATH-005","PR-STR-001"];
+  const doctorIds = ["DR-CARD-001","DR-CARD-002","DR-CARD-003","DR-EP-001","DR-CVS-001"];
+
+  const pick = (arr)=> arr[Math.floor(Math.random()*arr.length)];
+  const items = [];
+  const baseDate = new Date();
+
+  for (let i=0; i<18; i++){
+    const dayOffset = Math.floor(Math.random()*14);
+    const dt = new Date(baseDate);
+    dt.setDate(dt.getDate() - dayOffset);
+    dt.setHours(8 + Math.floor(Math.random()*10), Math.floor(Math.random()*60));
+
+    const matCount = 2 + Math.floor(Math.random()*4);
+    const mats = [];
+    const used = new Set();
+    for (let j=0; j<matCount; j++){
+      let m;
+      do { m = pick(demoMaterials); } while(used.has(m.product_name) && used.size < demoMaterials.length);
+      used.add(m.product_name);
+      mats.push({
+        id: uid("MAT"),
+        raw: m.jan13,
+        jan13: m.jan13,
+        gtin14: null,
+        dict_status: m.dict_status,
+        product_name: m.product_name,
+        product_no: "",
+        product_sta: "",
+        total_reimbursement_price_yen: m.total_reimbursement_price_yen,
+        tokutei01_name: m.tokutei01_name,
+        qty: 1 + Math.floor(Math.random()*2)
+      });
+    }
+
+    const isApproved = Math.random() > 0.3;
+    const docId = pick(doctorIds);
+    const item = {
+      id: uid("DONE"),
+      date: dt.toISOString().slice(0,10),
+      confirmedAt: dt.toISOString(),
+      status: isApproved ? "approved" : "pending",
+      patientId: pick(patientIds),
+      operatorId: pick(operatorIds),
+      procedureId: pick(procedureIds),
+      place: "CATH-1",
+      materials: mats,
+      assignedDoctorId: docId,
+      approved_by: isApproved ? docId : "",
+      approved_at: isApproved ? new Date(dt.getTime() + 3600000).toISOString() : "",
+      doctor_comment: isApproved && Math.random()>0.5 ? "確認済み。問題なし。" : "",
+      history: [{
+        at: dt.toISOString(),
+        actor: operatorLabel(pick(operatorIds)),
+        type: "作成",
+        changes: ["新規登録"]
+      }]
+    };
+    if (isApproved){
+      item.history.unshift({
+        at: new Date(dt.getTime()+3600000).toISOString(),
+        actor: doctorLabelById(docId),
+        type: "承認",
+        changes: ["承認: " + fmtDT(item.approved_at)]
+      });
+    }
+    items.push(item);
+  }
+  return items;
+}
+
 /* ========= UI screens ========= */
 function screenRole(){
+  const hasDemoData = state.done.length > 0;
   return `
     <div class="grid"><div class="card">
       <div class="h1">職種</div><div class="divider"></div>
@@ -731,6 +829,13 @@ function screenRole(){
         ${btn("👨‍⚕️ 医師","role_doctor","primary")}
         ${btn("📶 実施入力","role_field","primary")}
         ${btn("🧾 医事","role_billing","primary")}
+      </div>
+      <div class="divider"></div>
+      <div class="muted" style="font-size:12px;text-align:center;">デモ用</div>
+      <div style="height:6px;"></div>
+      <div class="grid" style="gap:6px;">
+        ${hasDemoData ? "" : btn("🎯 デモデータ投入","load_demo","ghost")}
+        ${hasDemoData ? btn("🗑 データリセット","reset_data","ghost") : ""}
       </div>
     </div></div>`;
 }
@@ -879,6 +984,7 @@ function screenFieldHome(){
         ${btn("📶 スキャン","go_field_scan","primary")}
         ${btn("📄 下書き","go_field_drafts","primary")}
         ${btn("✅ 実施済み","go_field_done","primary")}
+        ${btn("📊 ダッシュボード","go_field_dashboard","ghost")}
       </div>
     </div></div>
   `;
@@ -1149,6 +1255,8 @@ function screenBillingHome(){
     <div class="grid">
       ${btn("📄 実施入力済み（承認済み）","go_bill_done","primary")}
       ${btn("⏳ 承認待ち","go_bill_pending","primary")}
+      ${btn("🔍 UKE突合","go_bill_uke","primary")}
+      ${btn("📊 ダッシュボード","go_bill_dashboard","primary")}
     </div>
   </div></div>`;
 }
@@ -1250,6 +1358,457 @@ function screenBillingList(kind){
     </div>
 
     <div class="card" id="billDetail" style="display:none;"></div>
+  </div>`;
+}
+
+/* ========= UKE突合画面 ========= */
+function buildUkeData(periodFilter){
+  const now = Date.now();
+  const startOfToday = new Date();
+  startOfToday.setHours(0,0,0,0);
+
+  let items = state.done.slice();
+  if (periodFilter && periodFilter !== "ALL"){
+    items = items.filter(x=>{
+      const t = x.confirmedAt ? new Date(x.confirmedAt).getTime() : 0;
+      if (!t) return false;
+      if (periodFilter === "TODAY") return t >= startOfToday.getTime();
+      if (periodFilter === "7D") return (now - t) <= 7*24*3600000;
+      if (periodFilter === "30D") return (now - t) <= 30*24*3600000;
+      if (periodFilter === "90D") return (now - t) <= 90*24*3600000;
+      return true;
+    });
+  }
+
+  const approved = items.filter(x=>x.status==="approved");
+  const pending = items.filter(x=>x.status==="pending");
+  const allItems = items;
+  const rows = [];
+  allItems.forEach(item=>{
+    const assignedDoc = DOCTORS.find(d=>d.id===item.assignedDoctorId);
+    const dept = assignedDoc ? assignedDoc.dept : "";
+    (item.materials||[]).forEach(m=>{
+      const code = billingMapCode(m);
+      const price = Number(m.total_reimbursement_price_yen || 0);
+      const qty = Number(m.qty || 1);
+      rows.push({
+        itemId: item.id,
+        itemStatus: item.status,
+        dept: dept,
+        patientId: item.patientId,
+        patient: patientLabel(item.patientId),
+        procedureId: item.procedureId,
+        procedure: procedureLabel(item.procedureId),
+        operatorId: item.operatorId,
+        operator: operatorLabel(item.operatorId),
+        confirmedAt: item.confirmedAt,
+        materialName: m.product_name || "(不明)",
+        tokutei: m.tokutei01_name || "",
+        jan13: m.jan13 || "",
+        billingCode: code,
+        price: price,
+        qty: qty,
+        lineTotal: price * qty,
+        hasBillingCode: code !== "—",
+        approved_by: item.approved_by || "",
+        doctor_comment: item.doctor_comment || ""
+      });
+    });
+  });
+  return { rows, approvedCount: approved.length, pendingCount: pending.length, totalItems: allItems.length };
+}
+
+function renderUkeResults(periodFilter, deptFilter){
+  const { rows: allRows, approvedCount, pendingCount, totalItems } = buildUkeData(periodFilter);
+
+  /* 診療科フィルター適用 */
+  const rows = (deptFilter && deptFilter !== "ALL") ? allRows.filter(r=>r.dept===deptFilter) : allRows;
+
+  const matched = rows.filter(r=>r.hasBillingCode);
+  const unmatched = rows.filter(r=>!r.hasBillingCode);
+  const totalPrice = rows.reduce((s,r)=>s+r.lineTotal, 0);
+  const matchedPrice = matched.reduce((s,r)=>s+r.lineTotal, 0);
+  const unmatchedPrice = unmatched.reduce((s,r)=>s+r.lineTotal, 0);
+  const matchRate = rows.length ? Math.round(matched.length / rows.length * 100) : 0;
+  const lostRevenue = unmatchedPrice;
+
+  /* --- 診療科別サマリー集計 --- */
+  const deptStats = new Map();
+  allRows.forEach(r=>{
+    const d = r.dept || "(未設定)";
+    if (!deptStats.has(d)) deptStats.set(d, { total:0, matched:0, unmatched:0, totalPrice:0, unmatchedPrice:0 });
+    const s = deptStats.get(d);
+    s.total++;
+    s.totalPrice += r.lineTotal;
+    if (r.hasBillingCode){ s.matched++; }
+    else { s.unmatched++; s.unmatchedPrice += r.lineTotal; }
+  });
+  const deptSummaryHtml = Array.from(deptStats.entries())
+    .sort((a,b)=>b[1].unmatchedPrice - a[1].unmatchedPrice)
+    .map(([dept, s])=>{
+      const rate = s.total ? Math.round(s.matched / s.total * 100) : 0;
+      const isActive = deptFilter === dept;
+      const border = isActive ? "2px solid var(--red)" : "1px solid #f2d2dd";
+      return `<div data-dept-card="${dept}" style="border:${border};border-radius:16px;padding:10px;background:linear-gradient(180deg,#fff,#fff7fa);cursor:pointer;">
+        <div style="display:flex;justify-content:space-between;align-items:center;">
+          <div style="font-weight:900;font-size:14px;">${dept}</div>
+          <div style="font-weight:900;font-size:14px;color:${rate>=80?'#059669':'#ff3b6b'};">${rate}%</div>
+        </div>
+        <div style="display:flex;gap:10px;margin-top:4px;">
+          <div class="muted" style="font-size:12px;">${s.total}材料</div>
+          <div style="font-size:12px;font-weight:900;color:#059669;">${s.matched}紐付</div>
+          <div style="font-size:12px;font-weight:900;color:#ff3b6b;">${s.unmatched}漏れ</div>
+        </div>
+        ${s.unmatchedPrice > 0 ? `<div style="font-size:12px;font-weight:900;color:#ff3b6b;margin-top:2px;">漏れ額: ${jpy(s.unmatchedPrice)}円</div>` : ""}
+      </div>`;
+    }).join("");
+
+  /* --- 商品名でグルーピング --- */
+  function groupByProduct(list){
+    const map = new Map();
+    list.forEach(r=>{
+      const key = r.materialName;
+      if (!map.has(key)) map.set(key, { name:key, tokutei:r.tokutei, jan13:r.jan13, unitPrice:r.price, totalQty:0, totalPrice:0, items:[] });
+      const g = map.get(key);
+      g.totalQty += r.qty;
+      g.totalPrice += r.lineTotal;
+      g.items.push(r);
+    });
+    return Array.from(map.values()).sort((a,b)=>b.totalPrice - a.totalPrice);
+  }
+
+  /* --- 未マッチ：商品別グループ＋折り畳み --- */
+  const unmatchedGroups = groupByProduct(unmatched);
+  const unmatchedHtml = unmatchedGroups.length ? unmatchedGroups.map((g,gi)=>{
+    const detailRows = g.items.map(r=>{
+      const statusTag = r.itemStatus==="pending"
+        ? `<span class="tag" style="background:#fef3c7;color:#92400e;border-color:#fde68a;font-size:11px;">承認待ち</span>`
+        : `<span class="tag" style="background:#ffe1e8;color:#ff3b6b;border-color:rgba(255,59,107,.35);font-size:11px;">未マッチ</span>`;
+      return `<div style="padding:8px 0;border-top:1px solid #f9e2ec;">
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:6px;">
+          <div style="flex:1;min-width:0;">
+            <div class="muted" style="font-size:12px;">${r.dept ? `${r.dept} / ` : ""}${r.patient} / ${r.procedure}</div>
+            <div class="muted" style="font-size:11px;">x${r.qty} / ${fmtDT(r.confirmedAt)}</div>
+          </div>
+          <div style="text-align:right;white-space:nowrap;">
+            <div style="font-size:13px;font-weight:900;color:#ff3b6b;">${jpy(r.lineTotal)}円</div>
+            ${statusTag}
+          </div>
+        </div>
+      </div>`;
+    }).join("");
+
+    return `<div style="border:1px solid rgba(255,59,107,.3);border-radius:16px;overflow:hidden;background:linear-gradient(180deg,#fff,#fff0f4);">
+      <div style="padding:12px;">
+        <div style="display:flex;justify-content:space-between;align-items:start;">
+          <div style="flex:1;min-width:0;">
+            <div style="font-weight:900;font-size:15px;color:#ff3b6b;">${g.name}</div>
+            <div class="muted" style="font-size:13px;">${g.tokutei || "(特定保険医療材料名なし)"}</div>
+            <div class="muted" style="font-size:12px;">JAN: ${g.jan13 || "—"}</div>
+          </div>
+          <div style="text-align:right;white-space:nowrap;">
+            <div style="font-size:18px;font-weight:900;color:#ff3b6b;">${jpy(g.totalPrice)}円</div>
+            <div style="font-size:14px;font-weight:900;">x${g.totalQty}</div>
+          </div>
+        </div>
+      </div>
+      <details style="border-top:1px solid #f9e2ec;">
+        <summary style="padding:8px 12px;font-size:13px;font-weight:900;color:var(--muted);cursor:pointer;user-select:none;">明細（${g.items.length}件）</summary>
+        <div style="padding:0 12px 10px;">${detailRows}</div>
+      </details>
+    </div>`;
+  }).join("") : `<div class="muted">未マッチ材料なし（全件UKEコード紐付済み）</div>`;
+
+  /* --- マッチ済み：商品別グループ＋折り畳み --- */
+  const matchedGroups = groupByProduct(matched);
+  const matchedHtml = matchedGroups.length ? matchedGroups.map((g,gi)=>{
+    const code = g.items[0]?.billingCode || "—";
+    const detailRows = g.items.map(r=>`<div style="padding:6px 0;border-top:1px solid #f2d2dd;">
+      <div class="muted" style="font-size:12px;">${r.dept ? `${r.dept} / ` : ""}${r.patient} / ${r.procedure} / x${r.qty} / ${fmtDT(r.confirmedAt)}</div>
+    </div>`).join("");
+
+    return `<div style="border:1px solid #f2d2dd;border-radius:16px;overflow:hidden;background:#fff;">
+      <div style="padding:10px 12px;display:flex;justify-content:space-between;align-items:center;">
+        <div style="flex:1;min-width:0;">
+          <div style="font-weight:900;font-size:14px;">${g.name}</div>
+          <div class="muted" style="font-size:12px;">${g.tokutei}</div>
+        </div>
+        <div style="text-align:right;white-space:nowrap;">
+          <div style="font-weight:900;">${jpy(g.totalPrice)}円</div>
+          <div style="font-size:13px;font-weight:900;">x${g.totalQty}</div>
+          <span class="tag">${code}</span>
+        </div>
+      </div>
+      ${g.items.length > 1 ? `<details style="border-top:1px solid #f2d2dd;">
+        <summary style="padding:6px 12px;font-size:12px;color:var(--muted);cursor:pointer;user-select:none;">明細（${g.items.length}件）</summary>
+        <div style="padding:0 12px 8px;">${detailRows}</div>
+      </details>` : ""}
+    </div>`;
+  }).join("") : `<div class="muted">マッチ済み材料なし</div>`;
+
+  const deptLabel = (deptFilter && deptFilter !== "ALL") ? ` [${deptFilter}]` : "";
+
+  const host = $("#ukeResults");
+  if (!host) return;
+
+  host.innerHTML = `
+    <div class="card">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+        <div style="border:1px solid #f2d2dd;border-radius:16px;padding:12px;background:linear-gradient(180deg,#fff,#fff7fa);text-align:center;">
+          <div class="muted" style="font-size:12px;">対象材料数${deptLabel}</div>
+          <div style="font-size:28px;font-weight:900;">${rows.length}</div>
+          <div class="muted" style="font-size:11px;">実施${totalItems}件中</div>
+        </div>
+        <div style="border:1px solid ${matchRate>=80?'#d1fae5':'rgba(255,59,107,.35)'};border-radius:16px;padding:12px;background:linear-gradient(180deg,#fff,${matchRate>=80?'#f0fdf4':'#fff0f4'});text-align:center;">
+          <div class="muted" style="font-size:12px;">マッチ率</div>
+          <div style="font-size:28px;font-weight:900;color:${matchRate>=80?'#059669':'#ff3b6b'};">${matchRate}%</div>
+          <div class="muted" style="font-size:11px;">${rows.length}材料中</div>
+        </div>
+        <div style="border:1px solid #d1fae5;border-radius:16px;padding:12px;background:linear-gradient(180deg,#fff,#f0fdf4);text-align:center;">
+          <div class="muted" style="font-size:12px;">請求可能（コード紐付済み）</div>
+          <div style="font-size:20px;font-weight:900;color:#059669;">${matched.length}件</div>
+          <div style="font-size:14px;font-weight:900;color:#059669;">${jpy(matchedPrice)}円</div>
+        </div>
+        <div style="border:1px solid rgba(255,59,107,.35);border-radius:16px;padding:12px;background:linear-gradient(180deg,#fff,#fff0f4);text-align:center;">
+          <div class="muted" style="font-size:12px;">請求漏れ候補</div>
+          <div style="font-size:20px;font-weight:900;color:#ff3b6b;">${unmatched.length}件</div>
+          <div style="font-size:14px;font-weight:900;color:#ff3b6b;">${jpy(unmatchedPrice)}円</div>
+        </div>
+      </div>
+
+      <div class="divider"></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+        <div style="border:1px solid #f2d2dd;border-radius:16px;padding:12px;background:#fff;text-align:center;">
+          <div class="muted" style="font-size:12px;">償還価格合計</div>
+          <div style="font-size:22px;font-weight:900;">${jpy(totalPrice)}円</div>
+        </div>
+        <div style="border:1px solid ${lostRevenue>0?'rgba(255,59,107,.4)':'#d1fae5'};border-radius:16px;padding:12px;background:linear-gradient(180deg,#fff,${lostRevenue>0?'#fff0f4':'#f0fdf4'});text-align:center;">
+          <div class="muted" style="font-size:12px;">潜在的な請求漏れ額</div>
+          <div style="font-size:22px;font-weight:900;color:${lostRevenue>0?'#ff3b6b':'#059669'};">${jpy(lostRevenue)}円</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="h2">診療科別サマリー</div>
+      <div class="muted" style="font-size:12px;margin-bottom:8px;">カードをタップすると、その診療科のみに絞り込みます。</div>
+      <div class="grid" style="gap:8px;" id="ukeDeptCards">${deptSummaryHtml}</div>
+    </div>
+
+    ${lostRevenue > 0 ? `
+    <div class="card" style="border-color:rgba(255,59,107,.3);background:linear-gradient(180deg,#fff,#fff5f8);">
+      <div style="font-weight:900;font-size:15px;color:#ff3b6b;margin-bottom:4px;">ブラックボックスの可視化</div>
+      <div class="muted" style="font-size:13px;line-height:1.5;">算定要件を満たさず請求されなかった材料は、従来は査定もされず見過ごされていました。LinQ VALは使用実績を全件記録し、請求コードとの突合で「請求できていない材料」を自動検出します。</div>
+      <div style="margin-top:8px;font-weight:900;font-size:14px;color:#ff3b6b;">推定損失額：${jpy(lostRevenue)}円（対象期間内）</div>
+    </div>` : ""}
+
+    <div class="card">
+      <div class="h2" style="color:#ff3b6b;">請求漏れ候補（${unmatched.length}件）${deptLabel}</div>
+      <div class="muted" style="font-size:12px;margin-bottom:8px;">UKE請求コードが紐付いていない材料。算定要件の確認またはbilling_mapへの追加が必要です。</div>
+      <div class="grid" style="gap:8px;">${unmatchedHtml}</div>
+    </div>
+
+    <div class="card">
+      <div class="h2" style="color:#059669;">コード紐付済み（${matched.length}件）${deptLabel}</div>
+      <div class="grid" style="gap:6px;">${matchedHtml}</div>
+    </div>`;
+}
+
+function screenUkeReconciliation(){
+  const deptOpts = [`<option value="ALL">全診療科</option>`]
+    .concat(doctorDeptList().map(d=>`<option value="${d}">${d}</option>`))
+    .join("");
+
+  return `<div class="grid">
+    <div class="card">
+      <div class="h1">UKE突合チェック</div>
+      <div class="muted" style="line-height:1.5;">実施記録の材料をUKE請求コード（billing_map）と突合し、「ズレ」と「請求漏れ」を検出します。</div>
+      <div class="divider"></div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+        <div>
+          <div class="h2">対象期間</div>
+          <select class="select" id="uke_period">
+            <option value="TODAY">今日</option>
+            <option value="7D">直近7日</option>
+            <option value="30D" selected>直近30日</option>
+            <option value="90D">直近90日</option>
+            <option value="ALL">全期間</option>
+          </select>
+        </div>
+        <div>
+          <div class="h2">診療科</div>
+          <select class="select" id="uke_dept">${deptOpts}</select>
+        </div>
+      </div>
+      <div style="height:6px;"></div>
+      <div class="muted" style="font-size:12px;">カスタム期間</div>
+      <div style="display:flex;gap:8px;margin-top:4px;">
+        <input type="date" class="input" id="uke_from" style="font-size:15px;">
+        <span style="align-self:center;">〜</span>
+        <input type="date" class="input" id="uke_to" style="font-size:15px;">
+      </div>
+      <div style="height:6px;"></div>
+      ${btn("カスタム期間で絞り込み","uke_custom_apply","ghost")}
+    </div>
+
+    <div id="ukeResults"></div>
+
+    <div class="card">
+      ${btn("⬇ UKE突合CSV出力","uke_csv","ghost")}
+      <div style="height:8px;"></div>
+      ${btn("⬅ 戻る","back_uke","ghost")}
+    </div>
+  </div>`;
+}
+
+/* ========= ダッシュボード画面 ========= */
+function buildDashboardData(){
+  const all = state.done || [];
+  const approved = all.filter(x=>x.status==="approved");
+  const pending = all.filter(x=>x.status==="pending");
+
+  // 材料集計
+  const matMap = new Map();
+  const procMap = new Map();
+  const doctorMap = new Map();
+  const dailyMap = new Map();
+
+  all.forEach(item=>{
+    // 手技別
+    const proc = procedureLabel(item.procedureId);
+    procMap.set(proc, (procMap.get(proc)||0)+1);
+
+    // 承認医師別
+    if (item.approved_by) {
+      const doc = doctorLabelById(item.approved_by);
+      doctorMap.set(doc, (doctorMap.get(doc)||0)+1);
+    }
+
+    // 日別
+    const day = (item.confirmedAt||"").slice(0,10) || "不明";
+    dailyMap.set(day, (dailyMap.get(day)||0)+1);
+
+    // 材料別
+    (item.materials||[]).forEach(m=>{
+      const key = m.product_name || m.tokutei01_name || "(不明)";
+      const prev = matMap.get(key) || { count:0, totalPrice:0 };
+      const qty = Number(m.qty||1);
+      prev.count += qty;
+      prev.totalPrice += Number(m.total_reimbursement_price_yen||0) * qty;
+      matMap.set(key, prev);
+    });
+  });
+
+  // 総額
+  let totalPrice = 0;
+  matMap.forEach(v=>{ totalPrice += v.totalPrice; });
+
+  // ソート: 使用数TOP
+  const matTop = Array.from(matMap.entries())
+    .sort((a,b)=>b[1].count-a[1].count)
+    .slice(0,10);
+  const procTop = Array.from(procMap.entries())
+    .sort((a,b)=>b[1]-a[1])
+    .slice(0,8);
+  const doctorTop = Array.from(doctorMap.entries())
+    .sort((a,b)=>b[1]-a[1])
+    .slice(0,8);
+  const dailySorted = Array.from(dailyMap.entries())
+    .sort((a,b)=>a[0].localeCompare(b[0]))
+    .slice(-14);
+
+  return { all, approved, pending, matTop, procTop, doctorTop, dailySorted, totalPrice };
+}
+
+function barChart(entries, maxVal, colorFn){
+  if (!entries.length) return `<div class="muted">データなし</div>`;
+  return entries.map(([label, val])=>{
+    const pct = maxVal > 0 ? Math.max(4, Math.round(val / maxVal * 100)) : 4;
+    const color = colorFn ? colorFn(label, val) : "var(--red)";
+    return `<div style="margin-bottom:6px;">
+      <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:2px;">
+        <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:70%;">${label}</span>
+        <span style="font-weight:900;">${val}</span>
+      </div>
+      <div style="width:100%;height:18px;background:#f9e2ec;border-radius:9px;overflow:hidden;">
+        <div style="width:${pct}%;height:100%;background:${color};border-radius:9px;transition:width .3s;"></div>
+      </div>
+    </div>`;
+  }).join("");
+}
+
+function screenDashboard(){
+  const d = buildDashboardData();
+  const matMax = d.matTop.length ? d.matTop[0][1].count : 1;
+  const procMax = d.procTop.length ? d.procTop[0][1] : 1;
+  const doctorMax = d.doctorTop.length ? d.doctorTop[0][1] : 1;
+  const dailyMax = d.dailySorted.length ? Math.max(...d.dailySorted.map(x=>x[1])) : 1;
+
+  return `<div class="grid">
+    <div class="card">
+      <div class="h1">ダッシュボード</div>
+      <div class="muted">実施記録データの統計サマリー</div>
+      <div class="divider"></div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;">
+        <div style="border:1px solid #f2d2dd;border-radius:16px;padding:10px;background:#fff;text-align:center;">
+          <div class="muted" style="font-size:11px;">全件</div>
+          <div style="font-size:24px;font-weight:900;">${d.all.length}</div>
+        </div>
+        <div style="border:1px solid #d1fae5;border-radius:16px;padding:10px;background:linear-gradient(180deg,#fff,#f0fdf4);text-align:center;">
+          <div class="muted" style="font-size:11px;">承認済</div>
+          <div style="font-size:24px;font-weight:900;color:#059669;">${d.approved.length}</div>
+        </div>
+        <div style="border:1px solid rgba(255,59,107,.35);border-radius:16px;padding:10px;background:linear-gradient(180deg,#fff,#fff0f4);text-align:center;">
+          <div class="muted" style="font-size:11px;">承認待ち</div>
+          <div style="font-size:24px;font-weight:900;color:#ff3b6b;">${d.pending.length}</div>
+        </div>
+      </div>
+
+      <div style="margin-top:12px;border:1px solid #f2d2dd;border-radius:16px;padding:12px;background:#fff;text-align:center;">
+        <div class="muted" style="font-size:12px;">償還価格累計</div>
+        <div style="font-size:26px;font-weight:900;">${jpy(d.totalPrice)}円</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="h2">材料使用ランキング（TOP10）</div>
+      <div class="divider"></div>
+      ${barChart(d.matTop.map(([k,v])=>[k,v.count]), matMax, ()=>"linear-gradient(90deg,#ff3b6b,#ff6b8d)")}
+    </div>
+
+    <div class="card">
+      <div class="h2">材料コストランキング（TOP10）</div>
+      <div class="divider"></div>
+      ${(()=>{
+        const costTop = d.matTop.slice().sort((a,b)=>b[1].totalPrice-a[1].totalPrice);
+        const costMax = costTop.length ? costTop[0][1].totalPrice : 1;
+        return barChart(costTop.map(([k,v])=>[k+` (${jpy(v.totalPrice)}円)`,v.totalPrice]), costMax, ()=>"linear-gradient(90deg,#f59e0b,#fbbf24)");
+      })()}
+    </div>
+
+    <div class="card">
+      <div class="h2">手技別件数</div>
+      <div class="divider"></div>
+      ${barChart(d.procTop, procMax, ()=>"linear-gradient(90deg,#3b82f6,#60a5fa)")}
+    </div>
+
+    <div class="card">
+      <div class="h2">承認医師別件数</div>
+      <div class="divider"></div>
+      ${barChart(d.doctorTop, doctorMax, ()=>"linear-gradient(90deg,#8b5cf6,#a78bfa)")}
+    </div>
+
+    <div class="card">
+      <div class="h2">日別実施件数（直近14日）</div>
+      <div class="divider"></div>
+      ${barChart(d.dailySorted, dailyMax, ()=>"linear-gradient(90deg,#059669,#34d399)")}
+    </div>
+
+    <div class="card">
+      ${btn("⬅ 戻る","back_dashboard","ghost")}
+    </div>
   </div>`;
 }
 
@@ -1394,6 +1953,24 @@ if (!role || v === "/role"){
     role = "billing";
     save();
     setView("/");
+    renderWithGuard();
+  };
+
+  const demoBtn = $("#load_demo");
+  if (demoBtn) demoBtn.onclick = ()=>{
+    const items = generateDemoData();
+    state.done = state.done.concat(items);
+    save();
+    toastShow({title:"デモデータ投入", sub:`${items.length}件の実施記録を追加`});
+    renderWithGuard();
+  };
+
+  const resetBtn = $("#reset_data");
+  if (resetBtn) resetBtn.onclick = ()=>{
+    if (!confirm("全データをリセットしますか？")) return;
+    state = defaultState();
+    save();
+    toastShow({title:"リセット完了", sub:"全データを削除しました"});
     renderWithGuard();
   };
 
@@ -1623,6 +2200,14 @@ if (!role || v === "/role"){
       };
       $("#go_field_drafts").onclick=()=>{ setView("/field/drafts"); renderWithGuard(); };
       $("#go_field_done").onclick=()=>{ setView("/field/done"); renderWithGuard(); };
+      $("#go_field_dashboard").onclick=()=>{ setView("/field/dashboard"); renderWithGuard(); };
+      return;
+    }
+
+    if (v === "/field/dashboard"){
+      app.innerHTML = screenDashboard();
+      updateSummaryUI();
+      $("#back_dashboard").onclick=()=>{ setView("/"); renderWithGuard(); };
       return;
     }
 
@@ -1932,6 +2517,125 @@ if (!role || v === "/role"){
       app.innerHTML = screenBillingHome();
       $("#go_bill_done").onclick=()=>{ setView("/billing/done"); renderWithGuard(); };
       $("#go_bill_pending").onclick=()=>{ setView("/billing/pending"); renderWithGuard(); };
+      $("#go_bill_uke").onclick=()=>{ setView("/billing/uke"); renderWithGuard(); };
+      $("#go_bill_dashboard").onclick=()=>{ setView("/billing/dashboard"); renderWithGuard(); };
+      return;
+    }
+
+    if (v === "/billing/uke"){
+      app.innerHTML = screenUkeReconciliation();
+
+      let currentPeriod = "30D";
+      let currentDept = "ALL";
+      let customFrom = "";
+      let customTo = "";
+
+      const periodSel = $("#uke_period");
+      const deptSel = $("#uke_dept");
+      const fromInput = $("#uke_from");
+      const toInput = $("#uke_to");
+
+      /* 共通の再描画関数 */
+      const origRender = renderUkeResults;
+      const refresh = ()=>{
+        if (currentPeriod === "CUSTOM"){
+          const fTs = customFrom ? new Date(customFrom + "T00:00:00").getTime() : 0;
+          const tTs = customTo ? new Date(customTo + "T23:59:59").getTime() : Infinity;
+          const backup = state.done;
+          state.done = backup.filter(x=>{
+            const t = x.confirmedAt ? new Date(x.confirmedAt).getTime() : 0;
+            return t >= fTs && t <= tTs;
+          });
+          origRender("ALL", currentDept);
+          state.done = backup;
+        } else {
+          origRender(currentPeriod, currentDept);
+        }
+        /* 診療科カードのクリックイベントをバインド */
+        bindDeptCards();
+      };
+
+      const bindDeptCards = ()=>{
+        document.querySelectorAll("[data-dept-card]").forEach(el=>{
+          el.onclick = ()=>{
+            const dept = el.getAttribute("data-dept-card");
+            if (currentDept === dept){
+              /* 同じ診療科を再タップ → 全診療科に戻す */
+              currentDept = "ALL";
+              deptSel.value = "ALL";
+            } else {
+              currentDept = dept;
+              deptSel.value = dept;
+              /* プルダウンに無い場合もあるので念のため */
+              if (deptSel.value !== dept) deptSel.value = "ALL";
+            }
+            refresh();
+          };
+        });
+      };
+
+      /* プリセット期間 */
+      periodSel.onchange = ()=>{
+        currentPeriod = periodSel.value;
+        customFrom = "";
+        customTo = "";
+        fromInput.value = "";
+        toInput.value = "";
+        refresh();
+      };
+
+      /* 診療科プルダウン */
+      deptSel.onchange = ()=>{
+        currentDept = deptSel.value;
+        refresh();
+      };
+
+      /* カスタム期間 */
+      $("#uke_custom_apply").onclick = ()=>{
+        customFrom = fromInput.value || "";
+        customTo = toInput.value || "";
+        if (!customFrom && !customTo){
+          toastShow({title:"期間未指定", sub:"開始日または終了日を入力してください"});
+          return;
+        }
+        periodSel.value = "ALL";
+        currentPeriod = "CUSTOM";
+        refresh();
+        toastShow({title:"カスタム期間", sub:`${customFrom || "—"} 〜 ${customTo || "—"}`});
+      };
+
+      /* 初回描画 */
+      refresh();
+
+      $("#back_uke").onclick=()=>{ setView("/"); renderWithGuard(); };
+      $("#uke_csv").onclick=()=>{
+        const { rows } = buildUkeData(currentPeriod === "CUSTOM" ? "ALL" : currentPeriod);
+        let filtered = (currentDept && currentDept !== "ALL") ? rows.filter(r=>r.dept===currentDept) : rows;
+        if (currentPeriod === "CUSTOM"){
+          const fTs = customFrom ? new Date(customFrom + "T00:00:00").getTime() : 0;
+          const tTs = customTo ? new Date(customTo + "T23:59:59").getTime() : Infinity;
+          filtered = filtered.filter(r=>{
+            const t = r.confirmedAt ? new Date(r.confirmedAt).getTime() : 0;
+            return t >= fTs && t <= tTs;
+          });
+        }
+        const headers = ["dept","patient","procedure","operator","confirmedAt","materialName","tokutei","jan13","billingCode","price","qty","lineTotal","hasBillingCode","itemStatus"];
+        const lines = filtered.map(r=> headers.map(h=> escapeCSV(r[h])).join(","));
+        const csv = "\uFEFF" + headers.join(",") + "\n" + lines.join("\n");
+        const blob = new Blob([csv], {type:"text/csv;charset=utf-8"});
+        const a = document.createElement("a");
+        a.href = URL.createObjectURL(blob);
+        a.download = `linqval_uke_${todayStr()}.csv`;
+        a.click();
+        URL.revokeObjectURL(a.href);
+        toastShow({title:"CSV出力", sub:`UKE突合 ${filtered.length}件`});
+      };
+      return;
+    }
+
+    if (v === "/billing/dashboard"){
+      app.innerHTML = screenDashboard();
+      $("#back_dashboard").onclick=()=>{ setView("/"); renderWithGuard(); };
       return;
     }
 
