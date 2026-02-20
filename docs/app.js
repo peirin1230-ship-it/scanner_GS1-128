@@ -268,7 +268,7 @@ function renderHistory(it){
     h.map(e=>{
       const tag = e.type ? `<span class="tag">${e.type}</span>` : "";
       const lines = (e.changes||[]).map(x=>`<div class="muted">${x}</div>`).join("");
-      return `<div style="border:1px solid #e2e8f0;border-radius:16px;padding:10px;background:#fff;">
+      return `<div style="border:1px solid var(--line);border-radius:16px;padding:10px;background:var(--card);">
         <div style="display:flex;justify-content:space-between;gap:10px;align-items:center;">
           <b>${e.actor||"—"}</b>${tag}
         </div>
@@ -1222,7 +1222,7 @@ function renderApprovalDetail(item){
         const cls = "billing-check billing-check--confirm";
         return `<div class="${cls}">
           <div class="billing-check-msg">${c.message}</div>
-          <select data-billing-chk="${idx}-${ci}" style="width:100%;padding:5px;border:1px solid #ddd;border-radius:6px;font-size:12px;margin-top:4px;">
+          <select data-billing-chk="${idx}-${ci}" aria-label="条件判定" style="width:100%;padding:5px;border:1px solid var(--line);border-radius:6px;font-size:12px;margin-top:4px;">
             <option value=""${curDec===""?" selected":""}> -- 選択 -- </option>
             <option value="met"${curDec==="met"?" selected":""}>条件を満たしている</option>
             <option value="not_met"${curDec==="not_met"?" selected":""}>条件を満たしていない</option>
@@ -1232,12 +1232,12 @@ function renderApprovalDetail(item){
       const cls = c.status === "ng" ? "billing-check billing-check--ng" : "billing-check billing-check--warn";
       return `<div class="${cls}">
         <div class="billing-check-msg">${c.message}</div>
-        <select data-billing-chk="${idx}-${ci}" style="width:100%;padding:5px;border:1px solid #ddd;border-radius:6px;font-size:12px;margin-top:4px;">
+        <select data-billing-chk="${idx}-${ci}" aria-label="請求判断" style="width:100%;padding:5px;border:1px solid var(--line);border-radius:6px;font-size:12px;margin-top:4px;">
           <option value=""${curDec===""?" selected":""}> -- 選択 -- </option>
           <option value="bill"${curDec==="bill"?" selected":""}>請求する</option>
           <option value="no_bill"${curDec==="no_bill"?" selected":""}>請求しない</option>
         </select>
-        <input type="text" data-billing-chk-note="${idx}-${ci}" value="${(curNote||"").replace(/"/g,"&quot;")}" placeholder="理由（必要時）" aria-label="算定判断の理由" style="width:100%;margin-top:3px;padding:5px;border:1px solid #ddd;border-radius:6px;font-size:12px;box-sizing:border-box;">
+        <input type="text" data-billing-chk-note="${idx}-${ci}" value="${(curNote||"").replace(/"/g,"&quot;")}" placeholder="理由（必要時）" aria-label="算定判断の理由" style="width:100%;margin-top:3px;padding:5px;border:1px solid var(--line);border-radius:6px;font-size:12px;box-sizing:border-box;">
       </div>`;
     }).join("");
 
@@ -1340,7 +1340,7 @@ function screenDone(){
     <div class="card">
       <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;">
         <div><div class="h1">実施済み</div><div class="muted">当日分</div></div>
-        <button class="btn small ghost" id="field_csv">⬇ CSV</button>
+        <button class="btn small ghost" id="field_csv" aria-label="CSV形式でエクスポート">⬇ CSV</button>
       </div>
       <div class="divider"></div>
       <div class="grid">${list}</div>
@@ -1355,7 +1355,7 @@ function renderDoneDetail(item){
   const st = item.status==="pending" ? "承認待ち" : "承認済み";
   const approver = doctorLabelById(item.assignedDoctorId);
   const comment = item.doctor_comment ? `
-    <div style="border:1px solid #e2e8f0;border-radius:16px;padding:10px;background:#fff;margin:10px 0;">
+    <div style="border:1px solid var(--line);border-radius:16px;padding:10px;background:var(--card);margin:10px 0;">
       <div class="h2">医師コメント</div>
       <div class="muted">${item.doctor_comment}</div>
     </div>` : "";
@@ -1463,9 +1463,9 @@ function screenFieldStep(step){
       <div class="videoBox" id="scannerTarget"></div>
       <div class="divider"></div>
       <div class="row">
-        <button class="btn primary" id="scan_start">▶ Start</button>
-        <button class="btn ghost" id="scan_stop" disabled>■ Stop</button>
-        <button class="btn ghost" id="to_confirm">✅ 確定</button>
+        <button class="btn primary" id="scan_start" aria-label="スキャン開始">▶ Start</button>
+        <button class="btn ghost" id="scan_stop" disabled aria-label="スキャン停止">■ Stop</button>
+        <button class="btn ghost" id="to_confirm" aria-label="材料を確定して次へ">✅ 確定</button>
       </div>
       <div class="divider"></div>
       <div class="grid" id="matList"></div>
@@ -1691,7 +1691,7 @@ function screenBillingReqEdit(name, data, isNew){
     <div class="h1">${title}</div>
     <div style="margin-bottom:12px;">
       <label style="font-size:13px;font-weight:700;display:block;margin-bottom:4px;">材料名（特定保険医療材料名）</label>
-      <input class="input" id="reqEditName" value="${name}" ${isNew?"":"readonly"} style="${isNew?"":"background:#f5f5f5;"}">
+      <input class="input" id="reqEditName" value="${name}" ${isNew?"":"readonly"} style="${isNew?"":"background:var(--bg);opacity:.8;"}">
     </div>
     <div style="margin-bottom:12px;">
       <label style="font-size:13px;font-weight:700;display:block;margin-bottom:4px;">セクションID</label>
@@ -1730,7 +1730,7 @@ function billingMaterialCard(m){
   const tok = tokuteiDisplay(m.tokutei01_name);
   const price = m.total_reimbursement_price_yen ? `${jpy(m.total_reimbursement_price_yen)}円` : "";
   return `
-    <div style="position:relative;border:1px solid #e2e8f0;border-radius:16px;padding:12px;background:linear-gradient(180deg,#fff,#F0F9FF);">
+    <div style="position:relative;border:1px solid var(--line);border-radius:16px;padding:12px;background:linear-gradient(180deg,#fff,#F0F9FF);">
       <div class="tag" style="position:absolute;top:10px;right:10px;">${code}</div>
       <div style="font-weight:900;font-size:16px;line-height:1.25;padding-right:86px;">${line1}</div>
       <div class="muted" style="margin-top:6px;">${tok}</div>
@@ -1750,7 +1750,7 @@ function renderBillingDetail(item){
     ${listItem(`<b>承認日時</b><div class="muted">${item.approved_at?fmtDT(item.approved_at):"—"}</div>`)}
   `;
   const comment = item.doctor_comment ? `
-    <div style="border:1px solid #e2e8f0;border-radius:16px;padding:10px;background:#fff;margin-top:10px;">
+    <div style="border:1px solid var(--line);border-radius:16px;padding:10px;background:var(--card);margin-top:10px;">
       <div class="h2">医師コメント</div>
       <div class="muted">${item.doctor_comment}</div>
     </div>` : "";
@@ -1787,7 +1787,7 @@ function screenBillingList(kind){
     <div class="card">
       <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;">
         <div><div class="h1">${isPending ? "承認待ち" : "実施入力済み（承認済み）"}</div></div>
-        <button class="btn small ghost" id="bill_csv">⬇ CSV</button>
+        <button class="btn small ghost" id="bill_csv" aria-label="CSV形式でエクスポート">⬇ CSV</button>
       </div>
 
       <div class="divider"></div>
@@ -1966,19 +1966,19 @@ function renderUkeResults(periodFilter, deptFilter){
   const unmatchedHtml = unmatchedGroups.length ? unmatchedGroups.map((g,gi)=>{
     const detailRows = g.items.map(r=>{
       const statusTag = r.itemStatus==="pending"
-        ? `<span class="tag" style="background:#fef3c7;color:#92400e;border-color:#fde68a;font-size:11px;">承認待ち</span>`
+        ? `<span class="tag" style="background:var(--amber-bg);color:var(--amber-text);border-color:var(--amber-border);font-size:11px;">承認待ち</span>`
         : `<span class="tag" style="background:#FEE2E2;color:#DC2626;border-color:rgba(220,38,38,.35);font-size:11px;">未マッチ</span>`;
       const reqTag = r.billingReqStatus === "ng"
         ? `<span class="tag" style="background:#FEF2F2;color:#DC2626;border-color:rgba(220,38,38,.25);font-size:10px;">算定NG</span>`
         : r.billingReqStatus === "warn"
-        ? `<span class="tag" style="background:#fffbeb;color:#d97706;border-color:#fde68a;font-size:10px;">要確認</span>`
+        ? `<span class="tag" style="background:var(--amber-light);color:var(--amber);border-color:var(--amber-border);font-size:10px;">要確認</span>`
         : r.billingReqStatus === "confirm"
         ? `<span class="tag" style="background:#eff6ff;color:#2563eb;border-color:#bfdbfe;font-size:10px;">条件確認</span>`
         : r.billingReqStatus === "ok"
-        ? `<span class="tag" style="background:#f0fdf4;color:#059669;border-color:#d1fae5;font-size:10px;">算定OK</span>`
+        ? `<span class="tag" style="background:var(--green-bg);color:var(--green);border-color:var(--green-border);font-size:10px;">算定OK</span>`
         : "";
       const decTag = r.billingDecision === "no_bill"
-        ? `<span class="tag" style="background:#fef3c7;color:#92400e;border-color:#fde68a;font-size:10px;">請求しない</span>`
+        ? `<span class="tag" style="background:var(--amber-bg);color:var(--amber-text);border-color:var(--amber-border);font-size:10px;">請求しない</span>`
         : r.billingDecision === "bill"
         ? `<span class="tag" style="background:#dbeafe;color:#1d4ed8;border-color:#93c5fd;font-size:10px;">請求する</span>`
         : "";
@@ -2028,7 +2028,7 @@ function renderUkeResults(periodFilter, deptFilter){
       const reqTag = r.billingReqStatus === "ng"
         ? `<span class="tag" style="background:#FEF2F2;color:#DC2626;border-color:rgba(220,38,38,.25);font-size:10px;">算定NG</span>`
         : r.billingReqStatus === "warn"
-        ? `<span class="tag" style="background:#fffbeb;color:#d97706;border-color:#fde68a;font-size:10px;">要確認</span>`
+        ? `<span class="tag" style="background:var(--amber-light);color:var(--amber);border-color:var(--amber-border);font-size:10px;">要確認</span>`
         : r.billingReqStatus === "confirm"
         ? `<span class="tag" style="background:#eff6ff;color:#2563eb;border-color:#bfdbfe;font-size:10px;">条件確認</span>`
         : "";
@@ -2042,9 +2042,9 @@ function renderUkeResults(periodFilter, deptFilter){
     }).join("");
 
     const checkBadges = (ngCnt > 0 ? `<span class="tag" style="background:#FEF2F2;color:#DC2626;border-color:rgba(220,38,38,.25);font-size:10px;">NG ${ngCnt}</span> ` : "")
-      + (warnCnt > 0 ? `<span class="tag" style="background:#fffbeb;color:#d97706;border-color:#fde68a;font-size:10px;">要確認 ${warnCnt}</span>` : "");
+      + (warnCnt > 0 ? `<span class="tag" style="background:var(--amber-light);color:var(--amber);border-color:var(--amber-border);font-size:10px;">要確認 ${warnCnt}</span>` : "");
 
-    return `<div style="border:1px solid #e2e8f0;border-radius:16px;overflow:hidden;background:#fff;">
+    return `<div style="border:1px solid var(--line);border-radius:16px;overflow:hidden;background:var(--card);">
       <div style="padding:10px 12px;display:flex;justify-content:space-between;align-items:center;">
         <div style="flex:1;min-width:0;">
           <div style="font-weight:900;font-size:14px;">${g.name} ${checkBadges}</div>
@@ -2071,7 +2071,7 @@ function renderUkeResults(periodFilter, deptFilter){
   host.innerHTML = `
     <div class="card">
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
-        <div style="border:1px solid #e2e8f0;border-radius:16px;padding:12px;background:linear-gradient(180deg,#fff,#F0F9FF);text-align:center;">
+        <div style="border:1px solid var(--line);border-radius:16px;padding:12px;background:linear-gradient(180deg,#fff,#F0F9FF);text-align:center;">
           <div class="muted" style="font-size:12px;">対象材料数${deptLabel}</div>
           <div style="font-size:28px;font-weight:900;">${rows.length}</div>
           <div class="muted" style="font-size:11px;">実施${totalItems}件中</div>
@@ -2095,7 +2095,7 @@ function renderUkeResults(periodFilter, deptFilter){
 
       <div class="divider"></div>
       <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;">
-        <div style="border:1px solid #e2e8f0;border-radius:16px;padding:12px;background:#fff;text-align:center;">
+        <div style="border:1px solid var(--line);border-radius:16px;padding:12px;background:var(--card);text-align:center;">
           <div class="muted" style="font-size:12px;">償還価格合計</div>
           <div style="font-size:22px;font-weight:900;">${jpy(totalPrice)}円</div>
         </div>
@@ -2129,17 +2129,17 @@ function renderUkeResults(periodFilter, deptFilter){
     <div class="card" style="border-color:rgba(245,158,11,.4);background:linear-gradient(180deg,#fff,#fffbeb);">
       <div class="h2" style="color:#d97706;">算定要件チェック</div>
       <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;">
-        <div style="border:1px solid rgba(220,38,38,.35);border-radius:16px;padding:10px;background:#fff;text-align:center;">
+        <div style="border:1px solid rgba(220,38,38,.35);border-radius:16px;padding:10px;background:var(--card);text-align:center;">
           <div class="muted" style="font-size:11px;">算定要件NG</div>
           <div style="font-size:20px;font-weight:900;color:#DC2626;">${billingNgRows.length}件</div>
           <div style="font-size:13px;font-weight:900;color:#DC2626;">${jpy(billingNgPrice)}円</div>
         </div>
-        <div style="border:1px solid #fde68a;border-radius:16px;padding:10px;background:#fff;text-align:center;">
+        <div style="border:1px solid #fde68a;border-radius:16px;padding:10px;background:var(--card);text-align:center;">
           <div class="muted" style="font-size:11px;">要確認</div>
           <div style="font-size:20px;font-weight:900;color:#d97706;">${billingWarnRows.length}件</div>
           <div style="font-size:13px;font-weight:900;color:#d97706;">${jpy(billingWarnPrice)}円</div>
         </div>
-        <div style="border:1px solid #e2e8f0;border-radius:16px;padding:10px;background:#fff;text-align:center;">
+        <div style="border:1px solid var(--line);border-radius:16px;padding:10px;background:var(--card);text-align:center;">
           <div class="muted" style="font-size:11px;">請求しない</div>
           <div style="font-size:20px;font-weight:900;">${billingNoBillRows.length}件</div>
         </div>
@@ -2154,10 +2154,10 @@ function renderUkeResults(periodFilter, deptFilter){
               const overallColor = r.billingReqStatus === "ng" ? "#DC2626" : r.billingReqStatus === "warn" ? "#d97706" : "#2563eb";
               const overallLabel = r.billingReqStatus === "ng" ? "NG" : r.billingReqStatus === "warn" ? "要確認" : "条件確認";
               const decTag = r.billingDecision === "no_bill"
-                ? `<span class="tag" style="background:#fef3c7;color:#92400e;border-color:#fde68a;font-size:10px;">請求しない</span>`
+                ? `<span class="tag" style="background:var(--amber-bg);color:var(--amber-text);border-color:var(--amber-border);font-size:10px;">請求しない</span>`
                 : r.billingDecision === "bill"
                 ? `<span class="tag" style="background:#dbeafe;color:#1d4ed8;border-color:#93c5fd;font-size:10px;">請求する</span>` : "";
-              return `<div style="border:1px solid rgba(0,0,0,.08);border-radius:12px;padding:10px;background:#fff;">
+              return `<div style="border:1px solid var(--line);border-radius:12px;padding:10px;background:var(--card);">
                 <div style="display:flex;justify-content:space-between;align-items:start;gap:6px;">
                   <div style="flex:1;min-width:0;">
                     <div style="font-weight:900;font-size:13px;">${r.materialName}</div>
@@ -2474,7 +2474,7 @@ function screenDashboard(){
       <div class="divider"></div>
 
       <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;">
-        <div style="border:1px solid #e2e8f0;border-radius:16px;padding:10px;background:#fff;text-align:center;">
+        <div style="border:1px solid var(--line);border-radius:16px;padding:10px;background:var(--card);text-align:center;">
           <div class="muted" style="font-size:11px;">全件</div>
           <div style="font-size:24px;font-weight:900;">${d.all.length}</div>
         </div>
@@ -2488,7 +2488,7 @@ function screenDashboard(){
         </div>
       </div>
 
-      <div style="margin-top:12px;border:1px solid #e2e8f0;border-radius:16px;padding:12px;background:#fff;text-align:center;">
+      <div style="margin-top:12px;border:1px solid var(--line);border-radius:16px;padding:12px;background:var(--card);text-align:center;">
         <div class="muted" style="font-size:12px;">償還価格累計</div>
         <div style="font-size:26px;font-weight:900;">${jpy(d.totalPrice)}円</div>
       </div>
@@ -2532,19 +2532,19 @@ function screenDashboard(){
       <div class="h2" style="color:#DC2626;">算定要件チェック</div>
       <div class="divider"></div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
-        <div style="border:1px solid rgba(220,38,38,.35);border-radius:16px;padding:10px;background:#fff;text-align:center;">
+        <div style="border:1px solid rgba(220,38,38,.35);border-radius:16px;padding:10px;background:var(--card);text-align:center;">
           <div class="muted" style="font-size:11px;">算定要件NG</div>
           <div style="font-size:22px;font-weight:900;color:#DC2626;">${d.billingNgCount}件</div>
           <div style="font-size:13px;font-weight:900;color:#DC2626;">${jpy(d.billingNgPrice)}円</div>
         </div>
-        <div style="border:1px solid #fde68a;border-radius:16px;padding:10px;background:#fff;text-align:center;">
+        <div style="border:1px solid #fde68a;border-radius:16px;padding:10px;background:var(--card);text-align:center;">
           <div class="muted" style="font-size:11px;">要確認（warn/条件）</div>
           <div style="font-size:22px;font-weight:900;color:#d97706;">${d.billingWarnCount}件</div>
           <div style="font-size:13px;font-weight:900;color:#d97706;">${jpy(d.billingWarnPrice)}円</div>
         </div>
       </div>
       <div style="display:grid;grid-template-columns:1fr;gap:8px;margin-top:8px;">
-        <div style="border:1px solid #e2e8f0;border-radius:16px;padding:10px;background:#fff;text-align:center;">
+        <div style="border:1px solid var(--line);border-radius:16px;padding:10px;background:var(--card);text-align:center;">
           <div class="muted" style="font-size:11px;">医師判断「請求しない」</div>
           <div style="font-size:22px;font-weight:900;">${d.billingNoBillCount}件</div>
           <div style="font-size:13px;font-weight:900;">${jpy(d.billingNoBillPrice)}円</div>
@@ -2562,9 +2562,9 @@ function screenDashboard(){
           ${d.billingDetailItems.map(it=>{
             const overallColor = it.overall === "ng" ? "#DC2626" : it.overall === "warn" ? "#d97706" : "#2563eb";
             const overallLabel = it.overall === "ng" ? "NG" : it.overall === "warn" ? "要確認" : "条件確認";
-            const decLabel = it.decision === "no_bill" ? `<span class="tag" style="background:#fef3c7;color:#92400e;border-color:#fde68a;font-size:10px;">請求しない</span>`
+            const decLabel = it.decision === "no_bill" ? `<span class="tag" style="background:var(--amber-bg);color:var(--amber-text);border-color:var(--amber-border);font-size:10px;">請求しない</span>`
               : it.decision === "bill" ? `<span class="tag" style="background:#dbeafe;color:#1d4ed8;border-color:#93c5fd;font-size:10px;">請求する</span>` : "";
-            return `<div style="border:1px solid rgba(0,0,0,.08);border-radius:12px;padding:10px;background:#fff;">
+            return `<div style="border:1px solid var(--line);border-radius:12px;padding:10px;background:var(--card);">
               <div style="display:flex;justify-content:space-between;align-items:start;gap:6px;">
                 <div style="flex:1;min-width:0;">
                   <div style="font-weight:900;font-size:13px;">${it.name}</div>
@@ -2607,7 +2607,7 @@ function screenDashboard(){
       const leakItemHtml = (it)=>{
         const typeColor = it.leakType === "nocode" ? "#d97706" : "#DC2626";
         const typeLabel = it.leakType === "nocode" ? "コードなし" : "NG未判断";
-        return `<div style="border:1px solid rgba(0,0,0,.08);border-radius:12px;padding:10px;background:#fff;">
+        return `<div style="border:1px solid var(--line);border-radius:12px;padding:10px;background:var(--card);">
           <div style="display:flex;justify-content:space-between;align-items:start;gap:6px;">
             <div style="flex:1;min-width:0;">
               <div style="font-weight:900;font-size:13px;line-height:1.3;">${it.name}</div>
@@ -2621,7 +2621,7 @@ function screenDashboard(){
               <div class="muted" style="font-size:10px;">UKE: ${it.ukeCode}</div>
             </div>
           </div>
-          ${it.rule ? `<div class="muted" style="font-size:11px;margin-top:4px;padding:4px 6px;background:#fffbeb;border-radius:6px;">💡 ${it.rule}</div>` : ""}
+          ${it.rule ? `<div class="muted" style="font-size:11px;margin-top:4px;padding:4px 6px;background:var(--amber-light);border-radius:6px;">💡 ${it.rule}</div>` : ""}
           ${billingCheckDetailHtml(it.checks)}
         </div>`;
       };
@@ -2632,18 +2632,18 @@ function screenDashboard(){
       <div class="muted" style="font-size:13px;line-height:1.5;margin-bottom:8px;">UKE請求コードが紐付かない材料、または算定要件NGで医師が請求可否を未判断の材料です。</div>
 
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
-        <div style="border:1px solid rgba(245,158,11,.35);border-radius:16px;padding:10px;background:#fff;text-align:center;">
+        <div style="border:1px solid rgba(245,158,11,.35);border-radius:16px;padding:10px;background:var(--card);text-align:center;">
           <div class="muted" style="font-size:11px;">リスク件数合計</div>
           <div style="font-size:22px;font-weight:900;color:#d97706;">${totalLeakCount}件</div>
         </div>
-        <div style="border:1px solid rgba(245,158,11,.35);border-radius:16px;padding:10px;background:#fff;text-align:center;">
+        <div style="border:1px solid rgba(245,158,11,.35);border-radius:16px;padding:10px;background:var(--card);text-align:center;">
           <div class="muted" style="font-size:11px;">推定損失額合計</div>
           <div style="font-size:22px;font-weight:900;color:#d97706;">${jpy(totalLeakPrice)}円</div>
         </div>
       </div>
 
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px;">
-        <div style="border:1px solid rgba(217,119,6,.25);border-radius:12px;padding:8px 10px;background:#fffbeb;">
+        <div style="border:1px solid rgba(217,119,6,.25);border-radius:12px;padding:8px 10px;background:var(--amber-light);">
           <div class="muted" style="font-size:10px;">UKEコードなし</div>
           <div style="font-weight:900;color:#d97706;">${d.billingNoCodeCount}件 / ${jpy(d.billingNoCodePrice)}円</div>
         </div>
