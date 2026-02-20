@@ -1,5 +1,5 @@
 /* Service Worker for LinQ VAL PWA */
-const CACHE_NAME = "linqval-v1";
+const CACHE_NAME = "linqval-v5";
 
 /* Core files to cache for offline use */
 const CORE_ASSETS = [
@@ -14,7 +14,8 @@ const CORE_ASSETS = [
   "./data/procedures.json",
   "./data/doctors.json",
   "./data/billing_map.json",
-  "./data/standard_builder.json"
+  "./data/standard_builder.json",
+  "./data/billing_requirements.json"
 ];
 
 /* Install: cache core assets */

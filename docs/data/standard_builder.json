@@ -1,6 +1,6 @@
 {
-  "version": "2026-01-22",
-  "domain": "cathlab",
+  "version": "2026-02-21",
+  "domain": "general",
   "defaultProcedureCandidates": ["PR-CATH-001","PR-PCI-001","PR-ACC-001"],
   "rules": [
     {
@@ -107,6 +107,31 @@
       "name": "末梢PTA",
       "matchAny": ["下肢", "末梢", "PTA", "EVT", "シャント"],
       "suggest": ["PR-PER-001","PR-PER-004","PR-PER-002"]
+    },
+    {
+      "name": "人工関節/骨セメント",
+      "matchAny": ["人工関節","Joint","Implant","セメント","Cement"],
+      "suggest": ["PR-ORTH-001","PR-ORTH-002"]
+    },
+    {
+      "name": "消化管ステント",
+      "matchAny": ["食道ステント","消化管ステント","GI Stent"],
+      "suggest": ["PR-GI-002"]
+    },
+    {
+      "name": "内視鏡",
+      "matchAny": ["クリップ","EMR","ESD","内視鏡","Hemoclip"],
+      "suggest": ["PR-GI-003"]
+    },
+    {
+      "name": "脳血管塞栓/血栓回収",
+      "matchAny": ["脳動脈瘤","コイル塞栓","Coil Neuro","血栓回収","Solitaire"],
+      "suggest": ["PR-NEURO-001","PR-NEURO-003"]
+    },
+    {
+      "name": "頸動脈ステント",
+      "matchAny": ["CAS","頸動脈ステント","CAS Stent"],
+      "suggest": ["PR-NEURO-002"]
     }
   ]
 }

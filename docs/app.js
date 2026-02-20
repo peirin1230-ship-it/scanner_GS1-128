@@ -5,7 +5,8 @@ const LS = {
   role: "linqval_role_v3",
   state: "linqval_state_v23",
   doctor: "linqval_doctor_profile_v2",
-  recentApprovers: "linqval_recent_approvers_v1"
+  recentApprovers: "linqval_recent_approvers_v1",
+  billingReqOverrides: "linqval_billing_req_overrides_v1"
 };
 const TOAST_MS = 5400;
 const ANY_SCAN_COOLDOWN_MS = 3500;
@@ -65,11 +66,13 @@ let role = localStorage.getItem(LS.role) || "";
 let state = safeParse(localStorage.getItem(LS.state), null) || defaultState();
 let doctorProfile = safeParse(localStorage.getItem(LS.doctor), null) || { dept:"", doctorId:"" };
 let recentApprovers = safeParse(localStorage.getItem(LS.recentApprovers), null) || {};
+let billingReqOverrides = safeParse(localStorage.getItem(LS.billingReqOverrides), null) || { additions: {}, deletions: [] };
 function save(){
   localStorage.setItem(LS.role, role);
   localStorage.setItem(LS.state, JSON.stringify(state));
   localStorage.setItem(LS.doctor, JSON.stringify(doctorProfile));
   localStorage.setItem(LS.recentApprovers, JSON.stringify(recentApprovers));
+  localStorage.setItem(LS.billingReqOverrides, JSON.stringify(billingReqOverrides));
 }
 
 /* ========= data ========= */
@@ -88,9 +91,10 @@ const FALLBACK_DOCTORS = [
   { id:"dr101", name:"医師C", dept:"心臓血管外科" },
 ];
 const FALLBACK_BILLMAP = { byTokuteiName:{}, byProductName:{} };
+const FALLBACK_BILLING_REQ = { requirements: {} };
 const FALLBACK_STANDARD_BUILDER = {
   version: "fallback",
-  domain: "cathlab",
+  domain: "general",
   defaultProcedureCandidates: ["pr2","pr1"],
   rules: [
     { name:"ステント", matchAny:["ステント","DES","BMS"], suggest:["pr1","pr3"] },
@@ -103,7 +107,7 @@ async function loadJSON(path, fallback){
   catch{ return fallback; }
 }
 
-let OPERATORS=[], PATIENTS=[], PROCEDURES=[], DOCTORS=[], BILLMAP={}, STANDARD_BUILDER=FALLBACK_STANDARD_BUILDER;
+let OPERATORS=[], PATIENTS=[], PROCEDURES=[], DOCTORS=[], BILLMAP={}, STANDARD_BUILDER=FALLBACK_STANDARD_BUILDER, BILLING_REQ=FALLBACK_BILLING_REQ;
 
 async function bootData(){
   OPERATORS = await loadJSON("./data/operators.json", FALLBACK_OPERATORS);
@@ -112,6 +116,7 @@ async function bootData(){
   DOCTORS   = await loadJSON("./data/doctors.json", FALLBACK_DOCTORS);
   BILLMAP   = await loadJSON("./data/billing_map.json", FALLBACK_BILLMAP);
   STANDARD_BUILDER = await loadJSON("./data/standard_builder.json", FALLBACK_STANDARD_BUILDER);
+  BILLING_REQ = await loadJSON("./data/billing_requirements.json", FALLBACK_BILLING_REQ);
 
   if (!Array.isArray(OPERATORS)||!OPERATORS.length) OPERATORS=FALLBACK_OPERATORS;
   if (!Array.isArray(PATIENTS)||!PATIENTS.length) PATIENTS=FALLBACK_PATIENTS;
@@ -133,6 +138,93 @@ function doctorLabelById(id){
 function doctorDeptList(){
   const s = new Set(DOCTORS.map(d=>d.dept).filter(Boolean));
   return Array.from(s).sort();
+}
+
+/* ========= billing requirement check (rule-based) ========= */
+function evaluateCheck(chk, material, allMaterials) {
+  switch (chk.type) {
+    case "maxQty": {
+      const qty = Number(material.qty || 1);
+      if (qty > chk.limit) {
+        const desc = chk.description || `${chk.limit}${chk.unit ? "（" + chk.unit + "）" : "個"}を限度として算定`;
+        return chk.overrideWithNote
+          ? { type: "maxQty", status: "warn", message: desc }
+          : { type: "maxQty", status: "ng", message: desc };
+      }
+      return { type: "maxQty", status: "ok", message: "" };
+    }
+    case "simultaneousNg": {
+      const others = (allMaterials || []).filter(m => m !== material);
+      const conflict = others.find(m => {
+        const n = resolveOfficialName(m.tokutei01_name || "");
+        return (chk.targets || []).includes(n) || (chk.targets || []).includes(m.tokutei01_name || "");
+      });
+      if (conflict) {
+        return chk.overrideWithNote
+          ? { type: "simultaneousNg", status: "warn", message: chk.message || `${conflict.product_name || conflict.tokutei01_name}との同時算定不可` }
+          : { type: "simultaneousNg", status: "ng", message: chk.message || `同時算定不可` };
+      }
+      return { type: "simultaneousNg", status: "ok", message: "" };
+    }
+    case "includedIn": {
+      const others = (allMaterials || []).filter(m => m !== material);
+      const parentExists = others.some(m => {
+        const n = resolveOfficialName(m.tokutei01_name || "");
+        return n === chk.parent || (m.tokutei01_name || "") === chk.parent;
+      });
+      if (parentExists) {
+        return { type: "includedIn", status: "ng", message: chk.message || `${chk.parent}に含まれるため別途算定不可` };
+      }
+      return { type: "includedIn", status: "ok", message: "" };
+    }
+    case "condition": {
+      return { type: "condition", status: "confirm", message: chk.description || "医師確認が必要" };
+    }
+    default:
+      return { type: chk.type, status: "ok", message: "" };
+  }
+}
+
+function runBillingChecks(material, allMaterials) {
+  const tokutei = material?.tokutei01_name || "";
+  const official = resolveOfficialName(tokutei);
+  const merged = getMergedBillingReq();
+  const req = merged[official] || merged[tokutei];
+  if (!req) return { overall: "unknown", checks: [], rule: "", sectionId: "", requiresNote: false };
+
+  const checks = req.checks || [];
+  const ruleSummary = (typeof req.rule === "string" && req.rule.length > 100) ? req.rule.slice(0, 100) + "…" : (req.rule || "");
+
+  if (checks.length === 0) {
+    return { overall: "ok", checks: [], rule: ruleSummary, fullRule: req.rule || "", sectionId: req.sectionId || "", requiresNote: req.requiresNote || false };
+  }
+
+  const results = checks.map(chk => evaluateCheck(chk, material, allMaterials));
+  const overall = results.some(r => r.status === "ng") ? "ng"
+    : results.some(r => r.status === "warn") ? "warn"
+    : results.some(r => r.status === "confirm") ? "confirm"
+    : "ok";
+
+  return { overall, checks: results, rule: ruleSummary, fullRule: req.rule || "", sectionId: req.sectionId || "", requiresNote: req.requiresNote || false };
+}
+
+function billingCheckDetailHtml(checks) {
+  const items = (checks || []).filter(c => c.status !== "ok");
+  if (!items.length) return "";
+  return items.map(c => {
+    const cls = c.status === "ng" ? "billing-check--ng"
+      : c.status === "warn" ? "billing-check--warn"
+      : "billing-check--confirm";
+    return `<div class="billing-check ${cls}">${c.message}</div>`;
+  }).join("");
+}
+
+/* ========= merged billing requirements ========= */
+function getMergedBillingReq() {
+  const base = JSON.parse(JSON.stringify(BILLING_REQ.requirements || {}));
+  for (const key of (billingReqOverrides.deletions || [])) delete base[key];
+  for (const [key, val] of Object.entries(billingReqOverrides.additions || {})) base[key] = val;
+  return base;
 }
 
 /* ========= recent approvers ========= */
@@ -194,7 +286,21 @@ function materialSig(m){
 function materialLabel(m){
   const n = m?.product_name || "(不明)";
   const t = m?.tokutei01_name || "";
-  return t ? `${n} / ${t}` : n;
+  if (!t) return n;
+  const official = resolveOfficialName(t);
+  const common = resolveCommonName(official);
+  if (common && common !== t && official !== t) return `${n} / ${official}（${common}）`;
+  if (official !== t) return `${n} / ${official}（${t}）`;
+  return `${n} / ${t}`;
+}
+function tokuteiDisplay(tokuteiName){
+  if (!tokuteiName) return "";
+  const official = resolveOfficialName(tokuteiName);
+  const common = resolveCommonName(official);
+  if (common && common !== tokuteiName && official !== tokuteiName) return `${official}（${common}）`;
+  if (official !== tokuteiName) return `${official}（${tokuteiName}）`;
+  if (common) return `${tokuteiName}（${common}）`;
+  return tokuteiName;
 }
 function countBySig(mats){
   const map = new Map();
@@ -313,10 +419,24 @@ async function lookupJanFromGtin14(gtin14){
     return { status:"dict_fetch_error", error:e.message };
   }
 }
+function resolveOfficialName(tokuteiName){
+  if (!tokuteiName) return "";
+  if (BILLMAP.byTokuteiName?.[tokuteiName]) return tokuteiName;
+  return BILLMAP.commonNameMap?.[tokuteiName] || tokuteiName;
+}
+function resolveCommonName(tokuteiName){
+  if (!tokuteiName) return "";
+  const cmap = BILLMAP.commonNameMap || {};
+  for (const [common, official] of Object.entries(cmap)){
+    if (official === tokuteiName) return common;
+  }
+  return "";
+}
 function billingMapCode(material){
   const t = material?.tokutei01_name || "";
   const p = material?.product_name || "";
-  return BILLMAP.byTokuteiName?.[t] || BILLMAP.byProductName?.[p] || "—";
+  const official = resolveOfficialName(t);
+  return BILLMAP.byTokuteiName?.[official] || BILLMAP.byTokuteiName?.[t] || BILLMAP.byProductName?.[p] || "—";
 }
 
 /* ========= CSV ========= */
@@ -367,9 +487,11 @@ function exportDoneCSV(items, filename){
     };
     const mats = Array.isArray(it.materials) ? it.materials : [];
     if (!mats.length){
-      rows.push({...base, qty:"", mat_product_name:"", mat_tokutei01_name:"", mat_total_reimbursement_price_yen:"", mat_jan13:"", mat_gtin14:"", mat_raw:"", mat_dict_status:"", billingmap_code:""});
+      rows.push({...base, qty:"", mat_product_name:"", mat_tokutei01_name:"", mat_total_reimbursement_price_yen:"", mat_jan13:"", mat_gtin14:"", mat_raw:"", mat_dict_status:"", billingmap_code:"", billing_req_status:"", billing_checks_summary:"", billing_decision:"", billing_note:""});
     } else {
       for (const m of mats){
+        const chk = runBillingChecks(m, mats);
+        const chkSummary = chk.checks.filter(c => c.status !== "ok").map(c => `[${c.type}]${c.message}`).join("; ");
         rows.push({
           ...base,
           qty: m.qty || 1,
@@ -383,6 +505,10 @@ function exportDoneCSV(items, filename){
           mat_raw: m.raw || "",
           mat_dict_status: m.dict_status || "",
           billingmap_code: billingMapCode(m),
+          billing_req_status: chk.overall,
+          billing_checks_summary: chkSummary,
+          billing_decision: m.billing_decision || "",
+          billing_note: m.billing_note || "",
         });
       }
     }
@@ -394,7 +520,8 @@ function exportDoneCSV(items, filename){
     "doctor_comment",
     "qty",
     "mat_product_name","mat_product_no","mat_product_sta","mat_tokutei01_name","mat_total_reimbursement_price_yen",
-    "mat_jan13","mat_gtin14","mat_raw","mat_dict_status","billingmap_code"
+    "mat_jan13","mat_gtin14","mat_raw","mat_dict_status","billingmap_code",
+    "billing_req_status","billing_checks_summary","billing_decision","billing_note"
   ];
   downloadText(filename, toCSV(headers, rows));
 }
@@ -724,97 +851,223 @@ async function handleDetected(raw){
 
 /* ========= demo data ========= */
 function generateDemoData(){
-  const demoMaterials = [
-    { product_name:"XIENCE Sierra 2.5x18mm", tokutei01_name:"冠動脈ステント", total_reimbursement_price_yen:298000, jan13:"4987350121234", dict_status:"hit" },
-    { product_name:"EMERGE 2.5x15mm", tokutei01_name:"バルーンカテーテル", total_reimbursement_price_yen:89000, jan13:"4987350125678", dict_status:"hit" },
-    { product_name:"Runthrough NS", tokutei01_name:"ガイドワイヤ", total_reimbursement_price_yen:18700, jan13:"4987350129012", dict_status:"hit" },
-    { product_name:"Launcher 6Fr JL4", tokutei01_name:"ガイディングカテーテル", total_reimbursement_price_yen:32000, jan13:"4987350133456", dict_status:"hit" },
-    { product_name:"TIG 5Fr JR4", tokutei01_name:"造影カテーテル", total_reimbursement_price_yen:8500, jan13:"4987350137890", dict_status:"hit" },
-    { product_name:"Glidesheath Slender 6Fr", tokutei01_name:"シースイントロデューサ", total_reimbursement_price_yen:6200, jan13:"4987350141234", dict_status:"hit" },
-    { product_name:"Angio-Seal VIP 6Fr", tokutei01_name:"止血デバイス", total_reimbursement_price_yen:38000, jan13:"4987350145678", dict_status:"hit" },
-    { product_name:"Eagle Eye Platinum", tokutei01_name:"IVUSカテーテル", total_reimbursement_price_yen:125000, jan13:"4987350149012", dict_status:"hit" },
-    { product_name:"Dragonfly OPTIS", tokutei01_name:"OCTカテーテル", total_reimbursement_price_yen:198000, jan13:"4987350153456", dict_status:"hit" },
-    { product_name:"PressureWire X", tokutei01_name:"FFRワイヤ", total_reimbursement_price_yen:156000, jan13:"4987350157890", dict_status:"hit" },
-    { product_name:"RotaLink Plus 1.5mm", tokutei01_name:"ロータブレーター用バー", total_reimbursement_price_yen:210000, jan13:"4987350161234", dict_status:"hit" },
-    { product_name:"Export Advance", tokutei01_name:"血栓吸引カテーテル", total_reimbursement_price_yen:52000, jan13:"4987350165678", dict_status:"hit" },
-    { product_name:"Sapien3 26mm", tokutei01_name:"TAVI弁デバイス", total_reimbursement_price_yen:4250000, jan13:"4987350169012", dict_status:"hit" },
-    { product_name:"CS100 Impella CP", tokutei01_name:"Impellaカテーテル", total_reimbursement_price_yen:3800000, jan13:"4987350173456", dict_status:"hit" },
-    { product_name:"TactiCath SE 8mm", tokutei01_name:"アブレーションカテーテル", total_reimbursement_price_yen:340000, jan13:"4987350177890", dict_status:"hit" },
-    { product_name:"Decanav", tokutei01_name:"マッピングカテーテル", total_reimbursement_price_yen:168000, jan13:"4987350181234", dict_status:"hit" },
-    { product_name:"Micra AV", tokutei01_name:"ペースメーカー本体", total_reimbursement_price_yen:1850000, jan13:"4987350185678", dict_status:"hit" },
-    { product_name:"Y-connector 3way", tokutei01_name:"", total_reimbursement_price_yen:3500, jan13:"4987350199999", dict_status:"hit" },
-    { product_name:"TriStar Multi-purpose", tokutei01_name:"", total_reimbursement_price_yen:12000, jan13:"4987350198765", dict_status:"hit" },
+  /* ── 診療科別シナリオ定義 ──
+     各シナリオは「どの診療科で、どんな材料・手技・医師・場所を使うか」をセットで定義。
+     これにより、整形外科の手術に脳外科の材料が混ざるような不自然なデモを防ぐ。 */
+  const scenarios = [
+    /* ─── 循環器（カテーテル室）─── */
+    {
+      dept: "cardiology",
+      materials: [
+        { product_name:"XIENCE Sierra 2.5x18mm", tokutei01_name:"冠動脈ステント", total_reimbursement_price_yen:298000, jan13:"4987350121234", dict_status:"hit" },
+        { product_name:"EMERGE 2.5x15mm", tokutei01_name:"バルーンカテーテル", total_reimbursement_price_yen:89000, jan13:"4987350125678", dict_status:"hit" },
+        { product_name:"Runthrough NS", tokutei01_name:"ガイドワイヤ", total_reimbursement_price_yen:18700, jan13:"4987350129012", dict_status:"hit" },
+        { product_name:"Launcher 6Fr JL4", tokutei01_name:"ガイディングカテーテル", total_reimbursement_price_yen:32000, jan13:"4987350133456", dict_status:"hit" },
+        { product_name:"TIG 5Fr JR4", tokutei01_name:"造影カテーテル", total_reimbursement_price_yen:8500, jan13:"4987350137890", dict_status:"hit" },
+        { product_name:"Glidesheath Slender 6Fr", tokutei01_name:"シースイントロデューサ", total_reimbursement_price_yen:6200, jan13:"4987350141234", dict_status:"hit" },
+        { product_name:"Angio-Seal VIP 6Fr", tokutei01_name:"止血デバイス", total_reimbursement_price_yen:38000, jan13:"4987350145678", dict_status:"hit" },
+        { product_name:"Eagle Eye Platinum", tokutei01_name:"IVUSカテーテル", total_reimbursement_price_yen:125000, jan13:"4987350149012", dict_status:"hit" },
+        { product_name:"Dragonfly OPTIS", tokutei01_name:"OCTカテーテル", total_reimbursement_price_yen:198000, jan13:"4987350153456", dict_status:"hit" },
+        { product_name:"PressureWire X", tokutei01_name:"FFRワイヤ", total_reimbursement_price_yen:156000, jan13:"4987350157890", dict_status:"hit" },
+        { product_name:"RotaLink Plus 1.5mm", tokutei01_name:"ロータブレーター用バー", total_reimbursement_price_yen:210000, jan13:"4987350161234", dict_status:"hit" },
+        { product_name:"Export Advance", tokutei01_name:"血栓吸引カテーテル", total_reimbursement_price_yen:52000, jan13:"4987350165678", dict_status:"hit" },
+        { product_name:"Sapien3 26mm", tokutei01_name:"TAVI弁デバイス", total_reimbursement_price_yen:4250000, jan13:"4987350169012", dict_status:"hit" },
+        { product_name:"CS100 Impella CP", tokutei01_name:"Impellaカテーテル", total_reimbursement_price_yen:3800000, jan13:"4987350173456", dict_status:"hit" },
+        { product_name:"TactiCath SE 8mm", tokutei01_name:"アブレーションカテーテル", total_reimbursement_price_yen:340000, jan13:"4987350177890", dict_status:"hit" },
+        { product_name:"Decanav", tokutei01_name:"マッピングカテーテル", total_reimbursement_price_yen:168000, jan13:"4987350181234", dict_status:"hit" },
+        { product_name:"Micra AV", tokutei01_name:"ペースメーカー本体", total_reimbursement_price_yen:1850000, jan13:"4987350185678", dict_status:"hit" },
+        { product_name:"Y-connector 3way", tokutei01_name:"", total_reimbursement_price_yen:3500, jan13:"4987350199999", dict_status:"hit" },
+        { product_name:"TriStar Multi-purpose", tokutei01_name:"", total_reimbursement_price_yen:12000, jan13:"4987350198765", dict_status:"hit" },
+      ],
+      patientIds: ["PT-2026-0001","PT-2026-0002","PT-2026-0003","PT-2026-0004","PT-2026-0005","PT-2026-0006"],
+      operatorIds: ["OP-NUR-001","OP-NUR-002","OP-CE-001","OP-CE-002","OP-RT-001"],
+      procedureIds: ["PR-CATH-001","PR-PCI-001","PR-PCI-003","PR-EP-002","PR-CATH-005","PR-STR-001"],
+      doctorIds: ["DR-CARD-001","DR-CARD-002","DR-CARD-003","DR-EP-001","DR-CVS-001"],
+      places: ["CATH-1","CATH-2"],
+      count: 10
+    },
+    /* ─── 整形外科（手術室）─── */
+    {
+      dept: "orthopedics",
+      materials: [
+        { product_name:"Triathlon CR Total Knee", tokutei01_name:"人工関節", total_reimbursement_price_yen:896000, jan13:"4987350201001", dict_status:"hit" },
+        { product_name:"Persona Knee System", tokutei01_name:"人工関節", total_reimbursement_price_yen:920000, jan13:"4987350201002", dict_status:"hit" },
+        { product_name:"G7 Acetabular Cup", tokutei01_name:"人工関節", total_reimbursement_price_yen:485000, jan13:"4987350201003", dict_status:"hit" },
+        { product_name:"Taperloc Complete Hip Stem", tokutei01_name:"人工関節", total_reimbursement_price_yen:530000, jan13:"4987350201004", dict_status:"hit" },
+        { product_name:"Palacos R+G 40g", tokutei01_name:"骨セメント", total_reimbursement_price_yen:18500, jan13:"4987350201005", dict_status:"hit" },
+        { product_name:"Simplex P SpeedSet", tokutei01_name:"骨セメント", total_reimbursement_price_yen:16800, jan13:"4987350201006", dict_status:"hit" },
+        { product_name:"Neofix Locking Plate 8H", tokutei01_name:"", total_reimbursement_price_yen:186000, jan13:"4987350201007", dict_status:"hit" },
+        { product_name:"Synthes LCP 3.5mm 10H", tokutei01_name:"", total_reimbursement_price_yen:192000, jan13:"4987350201008", dict_status:"hit" },
+        { product_name:"Cannulated Screw 6.5mm", tokutei01_name:"", total_reimbursement_price_yen:28000, jan13:"4987350201009", dict_status:"hit" },
+        { product_name:"SMITH&NEPHEW FAST-FIX 360", tokutei01_name:"", total_reimbursement_price_yen:148000, jan13:"4987350201010", dict_status:"hit" },
+        { product_name:"Arthrex BioComposite SwiveLock", tokutei01_name:"", total_reimbursement_price_yen:95000, jan13:"4987350201011", dict_status:"hit" },
+        { product_name:"OSferion 60 10g", tokutei01_name:"", total_reimbursement_price_yen:52000, jan13:"4987350201012", dict_status:"hit" },
+      ],
+      patientIds: ["PT-2026-0007","PT-2026-0001","PT-2026-0003"],
+      operatorIds: ["OP-NUR-004","OP-CE-003"],
+      procedureIds: ["PR-ORTH-001","PR-ORTH-002","PR-ORTH-003"],
+      doctorIds: ["DR-ORTH-001","DR-ORTH-002"],
+      places: ["OR-1","OR-2"],
+      count: 5
+    },
+    /* ─── 消化器（内視鏡室 / 手術室）─── */
+    {
+      dept: "gastro",
+      materials: [
+        { product_name:"Niti-S Esophageal Stent 18x100mm", tokutei01_name:"食道ステント", total_reimbursement_price_yen:248000, jan13:"4987350301001", dict_status:"hit" },
+        { product_name:"WallFlex Duodenal Stent 22x90mm", tokutei01_name:"食道ステント", total_reimbursement_price_yen:265000, jan13:"4987350301002", dict_status:"hit" },
+        { product_name:"Evolution Biliary Stent 10x80mm", tokutei01_name:"食道ステント", total_reimbursement_price_yen:198000, jan13:"4987350301003", dict_status:"hit" },
+        { product_name:"QuickClip Pro", tokutei01_name:"止血クリップ", total_reimbursement_price_yen:4800, jan13:"4987350301004", dict_status:"hit" },
+        { product_name:"SureClip", tokutei01_name:"止血クリップ", total_reimbursement_price_yen:5200, jan13:"4987350301005", dict_status:"hit" },
+        { product_name:"Instinct Endoscopic Clip", tokutei01_name:"止血クリップ", total_reimbursement_price_yen:4500, jan13:"4987350301006", dict_status:"hit" },
+        { product_name:"DualKnife J 1.5mm", tokutei01_name:"", total_reimbursement_price_yen:68000, jan13:"4987350301007", dict_status:"hit" },
+        { product_name:"FlushKnife BT-S 2.0mm", tokutei01_name:"", total_reimbursement_price_yen:72000, jan13:"4987350301008", dict_status:"hit" },
+        { product_name:"Coagrasper Hemostatic Forceps", tokutei01_name:"", total_reimbursement_price_yen:38000, jan13:"4987350301009", dict_status:"hit" },
+        { product_name:"VisiGlide2 Guidewire 0.025", tokutei01_name:"", total_reimbursement_price_yen:15600, jan13:"4987350301010", dict_status:"hit" },
+        { product_name:"EZ Clip HX-610-090L", tokutei01_name:"止血クリップ", total_reimbursement_price_yen:3800, jan13:"4987350301011", dict_status:"hit" },
+        { product_name:"Soehendra Biliary Dilator", tokutei01_name:"", total_reimbursement_price_yen:42000, jan13:"4987350301012", dict_status:"hit" },
+      ],
+      patientIds: ["PT-2026-0008","PT-2026-0002","PT-2026-0005"],
+      operatorIds: ["OP-NUR-005","OP-NUR-004"],
+      procedureIds: ["PR-GI-001","PR-GI-002","PR-GI-003"],
+      doctorIds: ["DR-GI-001","DR-GI-002"],
+      places: ["ENDO-1","OR-1"],
+      count: 5
+    },
+    /* ─── 脳神経外科（カテ室 / 手術室）─── */
+    {
+      dept: "neuro",
+      materials: [
+        { product_name:"Target Detachable Coil 360 3x8mm", tokutei01_name:"脳動脈瘤コイル", total_reimbursement_price_yen:182000, jan13:"4987350401001", dict_status:"hit" },
+        { product_name:"Axium Prime Coil 4x10mm", tokutei01_name:"脳動脈瘤コイル", total_reimbursement_price_yen:175000, jan13:"4987350401002", dict_status:"hit" },
+        { product_name:"Deltamaxx Coil 2x6mm", tokutei01_name:"脳動脈瘤コイル", total_reimbursement_price_yen:168000, jan13:"4987350401003", dict_status:"hit" },
+        { product_name:"CASPER Rx 10x30mm", tokutei01_name:"頸動脈ステント", total_reimbursement_price_yen:385000, jan13:"4987350401004", dict_status:"hit" },
+        { product_name:"Wallstent Carotid 10x24mm", tokutei01_name:"頸動脈ステント", total_reimbursement_price_yen:358000, jan13:"4987350401005", dict_status:"hit" },
+        { product_name:"Solitaire X 6x30mm", tokutei01_name:"血栓回収デバイス", total_reimbursement_price_yen:520000, jan13:"4987350401006", dict_status:"hit" },
+        { product_name:"Trevo XP ProVue 4x20mm", tokutei01_name:"血栓回収デバイス", total_reimbursement_price_yen:498000, jan13:"4987350401007", dict_status:"hit" },
+        { product_name:"Embotrap III 5x33mm", tokutei01_name:"血栓回収デバイス", total_reimbursement_price_yen:510000, jan13:"4987350401008", dict_status:"hit" },
+        { product_name:"Excelsior SL-10 Microcatheter", tokutei01_name:"", total_reimbursement_price_yen:86000, jan13:"4987350401009", dict_status:"hit" },
+        { product_name:"Synchro2 Microguidewire 0.014", tokutei01_name:"", total_reimbursement_price_yen:52000, jan13:"4987350401010", dict_status:"hit" },
+        { product_name:"Headway 17 Microcatheter", tokutei01_name:"", total_reimbursement_price_yen:78000, jan13:"4987350401011", dict_status:"hit" },
+        { product_name:"FilterWire EZ 3.5mm", tokutei01_name:"", total_reimbursement_price_yen:145000, jan13:"4987350401012", dict_status:"hit" },
+      ],
+      patientIds: ["PT-2026-0009","PT-2026-0004","PT-2026-0006"],
+      operatorIds: ["OP-NUR-004","OP-CE-003","OP-RT-001"],
+      procedureIds: ["PR-NEURO-001","PR-NEURO-002","PR-NEURO-003"],
+      doctorIds: ["DR-NEURO-001"],
+      places: ["CATH-1","OR-1"],
+      count: 4
+    },
+    /* ─── 泌尿器科（手術室）─── */
+    {
+      dept: "urology",
+      materials: [
+        { product_name:"Resonance Ureteral Stent 6Fr 26cm", tokutei01_name:"尿管ステント", total_reimbursement_price_yen:42000, jan13:"4987350501001", dict_status:"hit" },
+        { product_name:"Percuflex Plus 6Fr 24cm", tokutei01_name:"尿管ステント", total_reimbursement_price_yen:18500, jan13:"4987350501002", dict_status:"hit" },
+        { product_name:"Polaris Ultra Loop 2.4Fr", tokutei01_name:"", total_reimbursement_price_yen:65000, jan13:"4987350501003", dict_status:"hit" },
+        { product_name:"LithoVue Single-Use Ureteroscope", tokutei01_name:"", total_reimbursement_price_yen:198000, jan13:"4987350501004", dict_status:"hit" },
+        { product_name:"Ho:YAG Laser Fiber 200μm", tokutei01_name:"", total_reimbursement_price_yen:85000, jan13:"4987350501005", dict_status:"hit" },
+        { product_name:"Cook Flexor Ureteral Access Sheath 12/14Fr", tokutei01_name:"", total_reimbursement_price_yen:48000, jan13:"4987350501006", dict_status:"hit" },
+        { product_name:"NiTinol Stone Basket 1.7Fr", tokutei01_name:"", total_reimbursement_price_yen:56000, jan13:"4987350501007", dict_status:"hit" },
+        { product_name:"Amplatz Renal Dilator Set", tokutei01_name:"", total_reimbursement_price_yen:32000, jan13:"4987350501008", dict_status:"hit" },
+      ],
+      patientIds: ["PT-2026-0007","PT-2026-0003"],
+      operatorIds: ["OP-NUR-004","OP-CE-003"],
+      procedureIds: ["PR-URO-001","PR-URO-002"],
+      doctorIds: ["DR-URO-001"],
+      places: ["OR-2"],
+      count: 3
+    },
+    /* ─── 呼吸器外科（手術室）─── */
+    {
+      dept: "respiratory",
+      materials: [
+        { product_name:"Ultraflex Tracheobronchial Stent 14x40mm", tokutei01_name:"気管支ステント", total_reimbursement_price_yen:295000, jan13:"4987350601001", dict_status:"hit" },
+        { product_name:"AERO Tracheobronchial Stent 16x40mm", tokutei01_name:"気管支ステント", total_reimbursement_price_yen:310000, jan13:"4987350601002", dict_status:"hit" },
+        { product_name:"Dumon Silicone Stent 14mm", tokutei01_name:"気管支ステント", total_reimbursement_price_yen:268000, jan13:"4987350601003", dict_status:"hit" },
+        { product_name:"Aspira Pleural Drainage Kit", tokutei01_name:"", total_reimbursement_price_yen:42000, jan13:"4987350601004", dict_status:"hit" },
+        { product_name:"Thal-Quick Chest Tube 28Fr", tokutei01_name:"", total_reimbursement_price_yen:8500, jan13:"4987350601005", dict_status:"hit" },
+        { product_name:"PleurX Drainage Catheter 15.5Fr", tokutei01_name:"", total_reimbursement_price_yen:62000, jan13:"4987350601006", dict_status:"hit" },
+        { product_name:"Olympus BF-1TH190 Biopsy Forceps", tokutei01_name:"", total_reimbursement_price_yen:35000, jan13:"4987350601007", dict_status:"hit" },
+        { product_name:"Cryoprobe 1.9mm", tokutei01_name:"", total_reimbursement_price_yen:128000, jan13:"4987350601008", dict_status:"hit" },
+      ],
+      patientIds: ["PT-2026-0008","PT-2026-0009"],
+      operatorIds: ["OP-NUR-004","OP-CE-003"],
+      procedureIds: ["PR-RESP-001","PR-RESP-002"],
+      doctorIds: ["DR-RESP-001"],
+      places: ["OR-1"],
+      count: 3
+    }
   ];
-
-  const patientIds = ["PT-2026-0001","PT-2026-0002","PT-2026-0003","PT-2026-0004","PT-2026-0005","PT-2026-0006"];
-  const operatorIds = ["OP-NUR-001","OP-NUR-002","OP-CE-001","OP-CE-002","OP-RT-001"];
-  const procedureIds = ["PR-CATH-001","PR-PCI-001","PR-PCI-003","PR-EP-002","PR-CATH-005","PR-STR-001"];
-  const doctorIds = ["DR-CARD-001","DR-CARD-002","DR-CARD-003","DR-EP-001","DR-CVS-001"];
 
   const pick = (arr)=> arr[Math.floor(Math.random()*arr.length)];
   const items = [];
   const baseDate = new Date();
 
-  for (let i=0; i<18; i++){
-    const dayOffset = Math.floor(Math.random()*14);
-    const dt = new Date(baseDate);
-    dt.setDate(dt.getDate() - dayOffset);
-    dt.setHours(8 + Math.floor(Math.random()*10), Math.floor(Math.random()*60));
+  /* 各診療科シナリオごとにレコード生成 */
+  for (const sc of scenarios){
+    for (let i=0; i<sc.count; i++){
+      const dayOffset = Math.floor(Math.random()*14);
+      const dt = new Date(baseDate);
+      dt.setDate(dt.getDate() - dayOffset);
+      dt.setHours(8 + Math.floor(Math.random()*10), Math.floor(Math.random()*60));
 
-    const matCount = 2 + Math.floor(Math.random()*4);
-    const mats = [];
-    const used = new Set();
-    for (let j=0; j<matCount; j++){
-      let m;
-      do { m = pick(demoMaterials); } while(used.has(m.product_name) && used.size < demoMaterials.length);
-      used.add(m.product_name);
-      mats.push({
-        id: uid("MAT"),
-        raw: m.jan13,
-        jan13: m.jan13,
-        gtin14: null,
-        dict_status: m.dict_status,
-        product_name: m.product_name,
-        product_no: "",
-        product_sta: "",
-        total_reimbursement_price_yen: m.total_reimbursement_price_yen,
-        tokutei01_name: m.tokutei01_name,
-        qty: 1 + Math.floor(Math.random()*2)
-      });
-    }
+      const matCount = 2 + Math.floor(Math.random()*4);
+      const mats = [];
+      const used = new Set();
+      for (let j=0; j<matCount; j++){
+        let m;
+        do { m = pick(sc.materials); } while(used.has(m.product_name) && used.size < sc.materials.length);
+        used.add(m.product_name);
+        mats.push({
+          id: uid("MAT"),
+          raw: m.jan13,
+          jan13: m.jan13,
+          gtin14: null,
+          dict_status: m.dict_status,
+          product_name: m.product_name,
+          product_no: "",
+          product_sta: "",
+          total_reimbursement_price_yen: m.total_reimbursement_price_yen,
+          tokutei01_name: m.tokutei01_name,
+          qty: 1 + Math.floor(Math.random()*2)
+        });
+      }
 
-    const isApproved = Math.random() > 0.3;
-    const docId = pick(doctorIds);
-    const item = {
-      id: uid("DONE"),
-      date: dt.toISOString().slice(0,10),
-      confirmedAt: dt.toISOString(),
-      status: isApproved ? "approved" : "pending",
-      patientId: pick(patientIds),
-      operatorId: pick(operatorIds),
-      procedureId: pick(procedureIds),
-      place: "CATH-1",
-      materials: mats,
-      assignedDoctorId: docId,
-      approved_by: isApproved ? docId : "",
-      approved_at: isApproved ? new Date(dt.getTime() + 3600000).toISOString() : "",
-      doctor_comment: isApproved && Math.random()>0.5 ? "確認済み。問題なし。" : "",
-      history: [{
-        at: dt.toISOString(),
-        actor: operatorLabel(pick(operatorIds)),
-        type: "作成",
-        changes: ["新規登録"]
-      }]
-    };
-    if (isApproved){
-      item.history.unshift({
-        at: new Date(dt.getTime()+3600000).toISOString(),
-        actor: doctorLabelById(docId),
-        type: "承認",
-        changes: ["承認: " + fmtDT(item.approved_at)]
-      });
+      const isApproved = Math.random() > 0.3;
+      const docId = pick(sc.doctorIds);
+      const opId = pick(sc.operatorIds);
+      const item = {
+        id: uid("DONE"),
+        date: dt.toISOString().slice(0,10),
+        confirmedAt: dt.toISOString(),
+        status: isApproved ? "approved" : "pending",
+        patientId: pick(sc.patientIds),
+        operatorId: opId,
+        procedureId: pick(sc.procedureIds),
+        place: pick(sc.places),
+        materials: mats,
+        assignedDoctorId: docId,
+        approved_by: isApproved ? docId : "",
+        approved_at: isApproved ? new Date(dt.getTime() + 3600000).toISOString() : "",
+        doctor_comment: isApproved && Math.random()>0.5 ? "確認済み。問題なし。" : "",
+        history: [{
+          at: dt.toISOString(),
+          actor: operatorLabel(opId),
+          type: "作成",
+          changes: ["新規登録"]
+        }]
+      };
+      if (isApproved){
+        item.history.unshift({
+          at: new Date(dt.getTime()+3600000).toISOString(),
+          actor: doctorLabelById(docId),
+          type: "承認",
+          changes: ["承認: " + fmtDT(item.approved_at)]
+        });
+      }
+      items.push(item);
     }
-    items.push(item);
   }
   return items;
 }
@@ -893,19 +1146,29 @@ function screenDoctorHome(){
 function screenDoctorApprovals(){
   const did = (doctorProfile.doctorId||"").trim();
   const pending = state.done.filter(x=>x.status==="pending" && x.assignedDoctorId===did);
-  const list = pending.length ? pending.map(x=>`
-    <div class="listItem">
+  const list = pending.length ? pending.map(x=>{
+    const chkResults = (x.materials||[]).map(m => runBillingChecks(m, x.materials));
+    const ngCount = chkResults.filter(r => r.overall === "ng").length;
+    const warnCount = chkResults.filter(r => r.overall === "warn" || r.overall === "confirm").length;
+    const ngBadge = ngCount > 0
+      ? `<div style="color:#e8365d;font-size:11px;font-weight:700;margin-top:2px;">&#9888; 算定NG ${ngCount}件</div>`
+      : "";
+    const warnBadge = warnCount > 0
+      ? `<div style="color:#d97706;font-size:11px;font-weight:700;margin-top:2px;">&#9888; 要確認 ${warnCount}件</div>`
+      : "";
+    return `<div class="listItem">
       <div style="display:flex;gap:12px;align-items:center;">
         <input class="check" type="checkbox" data-chk="${x.id}">
         <div style="min-width:0;">
           <b>${patientLabel(x.patientId)}</b>
           <div class="muted">${procedureLabel(x.procedureId)} / ${operatorLabel(x.operatorId)}</div>
           <div class="muted" style="font-size:13px;">${fmtDT(x.confirmedAt)}</div>
+          ${ngBadge}${warnBadge}
         </div>
       </div>
       <button class="btn small" data-open-approve="${x.id}">詳細</button>
-    </div>
-  `).join("") : `<div class="muted">承認待ちなし</div>`;
+    </div>`;
+  }).join("") : `<div class="muted">承認待ちなし</div>`;
 
   return `
     <div class="grid">
@@ -927,9 +1190,58 @@ function screenDoctorApprovals(){
 }
 
 function renderApprovalDetail(item){
-  const mats = (item.materials||[]).map(m=>{
+  const mats = (item.materials||[]).map((m, idx)=>{
     const qty = m.qty || 1;
-    return listItem(`<b>${m.product_name||"(不明)"} ×${qty}</b><div class="muted">${m.tokutei01_name||""}</div>`);
+    const chk = runBillingChecks(m, item.materials);
+    let statusHtml = "";
+    let checksHtml = "";
+    const secRef = chk.sectionId ? ` <span style="color:#6b7280;font-size:10px;">[${chk.sectionId}]</span>` : "";
+    const noteWarn = chk.requiresNote ? `<span style="color:#d97706;font-size:11px;margin-left:6px;">&#9888; 摘要欄記載要</span>` : "";
+
+    if (chk.overall === "ok") {
+      statusHtml = `<div style="color:#059669;font-size:12px;font-weight:700;margin-top:2px;">&#10003; 算定OK${noteWarn}${secRef}</div>`;
+    } else if (chk.overall === "ng") {
+      statusHtml = `<div style="color:#e8365d;font-size:12px;font-weight:700;margin-top:2px;">&#9888; 算定要件NG${secRef}</div>`;
+    } else if (chk.overall === "warn") {
+      statusHtml = `<div style="color:#d97706;font-size:12px;font-weight:700;margin-top:2px;">&#9888; 要確認${noteWarn}${secRef}</div>`;
+    } else if (chk.overall === "confirm") {
+      statusHtml = `<div style="color:#2563eb;font-size:12px;font-weight:700;margin-top:2px;">&#9432; 条件確認${secRef}</div>`;
+    } else {
+      statusHtml = `<div style="color:#6b7280;font-size:12px;margin-top:2px;">&#x2014; マスタ未登録</div>`;
+    }
+
+    // 各チェック結果ごとにUI表示
+    const savedChecks = m.billing_checks || [];
+    const legacyDec = m.billing_decision || "";
+    const legacyNote = m.billing_note || "";
+    checksHtml = chk.checks.filter(c => c.status !== "ok" || c.type === "condition").map((c, ci) => {
+      const saved = savedChecks[ci] || {};
+      const curDec = saved.decision || (ci === 0 ? legacyDec : "") || "";
+      const curNote = saved.note || (ci === 0 ? legacyNote : "") || "";
+      if (c.type === "condition") {
+        const cls = "billing-check billing-check--confirm";
+        return `<div class="${cls}">
+          <div class="billing-check-msg">${c.message}</div>
+          <select data-billing-chk="${idx}-${ci}" style="width:100%;padding:5px;border:1px solid #ddd;border-radius:6px;font-size:12px;margin-top:4px;">
+            <option value=""${curDec===""?" selected":""}> -- 選択 -- </option>
+            <option value="met"${curDec==="met"?" selected":""}>条件を満たしている</option>
+            <option value="not_met"${curDec==="not_met"?" selected":""}>条件を満たしていない</option>
+          </select>
+        </div>`;
+      }
+      const cls = c.status === "ng" ? "billing-check billing-check--ng" : "billing-check billing-check--warn";
+      return `<div class="${cls}">
+        <div class="billing-check-msg">${c.message}</div>
+        <select data-billing-chk="${idx}-${ci}" style="width:100%;padding:5px;border:1px solid #ddd;border-radius:6px;font-size:12px;margin-top:4px;">
+          <option value=""${curDec===""?" selected":""}> -- 選択 -- </option>
+          <option value="bill"${curDec==="bill"?" selected":""}>請求する</option>
+          <option value="no_bill"${curDec==="no_bill"?" selected":""}>請求しない</option>
+        </select>
+        <input type="text" data-billing-chk-note="${idx}-${ci}" value="${(curNote||"").replace(/"/g,"&quot;")}" placeholder="理由（必要時）" style="width:100%;margin-top:3px;padding:5px;border:1px solid #ddd;border-radius:6px;font-size:12px;box-sizing:border-box;">
+      </div>`;
+    }).join("");
+
+    return listItem(`<b>${m.product_name||"(不明)"} ×${qty}</b><div class="muted">${tokuteiDisplay(m.tokutei01_name)}</div>${statusHtml}${checksHtml}`);
   }).join("") || `<div class="muted">材料なし</div>`;
 
   return `
@@ -1050,7 +1362,7 @@ function renderDoneDetail(item){
 
   const mats = (item.materials||[]).map(m=>{
     const qty = m.qty || 1;
-    return listItem(`<b>${m.product_name||"(不明)"} ×${qty}</b><div class="muted">${m.tokutei01_name||""}</div>`);
+    return listItem(`<b>${m.product_name||"(不明)"} ×${qty}</b><div class="muted">${tokuteiDisplay(m.tokutei01_name)}</div>`);
   }).join("") || `<div class="muted">材料なし</div>`;
 
   const editButtons = item.status==="pending"
@@ -1257,14 +1569,154 @@ function screenBillingHome(){
       ${btn("⏳ 承認待ち","go_bill_pending","primary")}
       ${btn("🔍 UKE突合","go_bill_uke","primary")}
       ${btn("📊 ダッシュボード","go_bill_dashboard","primary")}
+      ${btn("⚙ 算定要件マスタ","go_bill_req","primary")}
     </div>
   </div></div>`;
 }
+/* ========= 算定要件マスタメンテナンスUI ========= */
+function screenBillingReqList(){
+  const merged = getMergedBillingReq();
+  const names = Object.keys(merged).sort((a,b)=>a.localeCompare(b,"ja"));
+  const customKeys = Object.keys(billingReqOverrides.additions || {});
+  const rows = names.map(name=>{
+    const r = merged[name];
+    const isCustom = customKeys.includes(name);
+    const checks = (r.checks||[]).map(c=>c.type).join(", ");
+    const badge = isCustom ? `<span class="req-badge-custom">カスタム</span>` : "";
+    return `<div class="listItem" style="flex-direction:column;align-items:stretch;gap:4px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;">
+        <b>${name}${badge}</b>
+      </div>
+      <div class="muted">セクション: ${r.sectionId||"—"} / チェック: ${(r.checks||[]).length}件${checks ? " ["+checks+"]" : ""}</div>
+      <div class="row" style="justify-content:flex-end;gap:6px;margin-top:4px;">
+        <button class="btn small ghost bill-req-edit" data-name="${name}">編集</button>
+        <button class="btn small ghost bill-req-del" data-name="${name}" style="color:#e8365d;">削除</button>
+      </div>
+    </div>`;
+  }).join("");
+  return `<div class="grid"><div class="card">
+    <div class="h1">算定要件マスタ</div>
+    <div class="muted" style="margin-bottom:12px;">材料の算定要件チェックルールを管理します</div>
+    <input class="input" id="reqSearchInput" placeholder="材料名で検索..." style="margin-bottom:10px;">
+    <div class="row" style="margin-bottom:12px;">
+      ${btn("➕ 新規追加","go_bill_req_new","primary")}
+      ${btn("🔄 初期状態に戻す","go_bill_req_reset","ghost")}
+    </div>
+    <div class="grid" id="reqListContainer">${rows}</div>
+    <div style="margin-top:16px;">
+      ${btn("⬅ 戻る","back_bill_req_home","ghost")}
+    </div>
+  </div></div>`;
+}
+
+function renderCheckEditorCard(check, index){
+  const t = check.type || "maxQty";
+  let fields = "";
+  if (t === "maxQty"){
+    fields = `
+      <div class="row" style="gap:8px;margin-bottom:6px;">
+        <label style="font-size:13px;font-weight:700;">上限数:</label>
+        <input class="input chk-field" data-idx="${index}" data-field="limit" type="number" min="1" value="${check.limit||1}" style="width:80px;">
+      </div>
+      <div class="row" style="gap:8px;margin-bottom:6px;">
+        <label style="font-size:13px;font-weight:700;">単位:</label>
+        <input class="input chk-field" data-idx="${index}" data-field="unit" value="${check.unit||""}" style="width:160px;">
+      </div>
+      <div class="row" style="gap:8px;margin-bottom:6px;">
+        <label style="font-size:13px;"><input type="checkbox" class="check chk-field" data-idx="${index}" data-field="overrideWithNote" ${check.overrideWithNote?"checked":""}> 摘要欄記載で上書き可</label>
+      </div>
+      <div style="margin-bottom:4px;">
+        <label style="font-size:13px;font-weight:700;">説明:</label>
+        <textarea class="chk-field" data-idx="${index}" data-field="description" rows="2" style="width:100%;border-radius:8px;border:1px solid var(--line);padding:8px;font-size:13px;font-family:inherit;">${check.description||""}</textarea>
+      </div>`;
+  } else if (t === "simultaneousNg"){
+    fields = `
+      <div style="margin-bottom:6px;">
+        <label style="font-size:13px;font-weight:700;">対象材料（カンマ区切り）:</label>
+        <input class="input chk-field" data-idx="${index}" data-field="targets" value="${(check.targets||[]).join(", ")}">
+      </div>
+      <div style="margin-bottom:6px;">
+        <label style="font-size:13px;font-weight:700;">メッセージ:</label>
+        <textarea class="chk-field" data-idx="${index}" data-field="message" rows="2" style="width:100%;border-radius:8px;border:1px solid var(--line);padding:8px;font-size:13px;font-family:inherit;">${check.message||""}</textarea>
+      </div>
+      <div class="row" style="gap:8px;margin-bottom:6px;">
+        <label style="font-size:13px;"><input type="checkbox" class="check chk-field" data-idx="${index}" data-field="overrideWithNote" ${check.overrideWithNote?"checked":""}> 摘要欄記載で上書き可</label>
+      </div>`;
+  } else if (t === "includedIn"){
+    fields = `
+      <div style="margin-bottom:6px;">
+        <label style="font-size:13px;font-weight:700;">親材料:</label>
+        <input class="input chk-field" data-idx="${index}" data-field="parent" value="${check.parent||""}">
+      </div>
+      <div style="margin-bottom:6px;">
+        <label style="font-size:13px;font-weight:700;">構成品目（カンマ区切り）:</label>
+        <input class="input chk-field" data-idx="${index}" data-field="components" value="${(check.components||[]).join(", ")}">
+      </div>
+      <div style="margin-bottom:6px;">
+        <label style="font-size:13px;font-weight:700;">メッセージ:</label>
+        <textarea class="chk-field" data-idx="${index}" data-field="message" rows="2" style="width:100%;border-radius:8px;border:1px solid var(--line);padding:8px;font-size:13px;font-family:inherit;">${check.message||""}</textarea>
+      </div>`;
+  } else if (t === "condition"){
+    fields = `
+      <div style="margin-bottom:6px;">
+        <label style="font-size:13px;font-weight:700;">条件説明:</label>
+        <textarea class="chk-field" data-idx="${index}" data-field="description" rows="2" style="width:100%;border-radius:8px;border:1px solid var(--line);padding:8px;font-size:13px;font-family:inherit;">${check.description||""}</textarea>
+      </div>
+      <div class="muted" style="font-size:12px;">※ 確認ダイアログが常に表示されます</div>`;
+  }
+  return `<div class="req-check-card">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+      <b style="font-size:14px;">${t}</b>
+      <button class="btn small ghost chk-remove" data-idx="${index}" style="color:#e8365d;width:auto;padding:0 10px;height:32px;font-size:12px;">✕ 削除</button>
+    </div>
+    ${fields}
+  </div>`;
+}
+
+function screenBillingReqEdit(name, data, isNew){
+  const title = isNew ? "算定要件 新規作成" : "算定要件 編集";
+  const checksHtml = (data.checks||[]).map((c,i)=>renderCheckEditorCard(c,i)).join("");
+  return `<div class="grid"><div class="card">
+    <div class="h1">${title}</div>
+    <div style="margin-bottom:12px;">
+      <label style="font-size:13px;font-weight:700;display:block;margin-bottom:4px;">材料名（特定保険医療材料名）</label>
+      <input class="input" id="reqEditName" value="${name}" ${isNew?"":"readonly"} style="${isNew?"":"background:#f5f5f5;"}">
+    </div>
+    <div style="margin-bottom:12px;">
+      <label style="font-size:13px;font-weight:700;display:block;margin-bottom:4px;">セクションID</label>
+      <input class="input" id="reqEditSection" value="${data.sectionId||""}">
+    </div>
+    <div style="margin-bottom:12px;">
+      <label style="font-size:13px;font-weight:700;display:block;margin-bottom:4px;">ルール（留意事項テキスト）</label>
+      <textarea id="reqEditRule" rows="3" style="width:100%;border-radius:12px;border:1.5px solid var(--line);padding:12px;font-size:14px;font-family:inherit;">${data.rule||""}</textarea>
+    </div>
+    <div style="margin-bottom:12px;">
+      <label style="font-size:13px;"><input type="checkbox" class="check" id="reqEditRequiresNote" ${data.requiresNote?"checked":""}> 摘要欄記載が必要</label>
+    </div>
+    <div class="divider"></div>
+    <div class="h2">チェックルール</div>
+    <div id="checksContainer">${checksHtml}</div>
+    <div class="row" style="margin-top:8px;gap:8px;">
+      <select class="select" id="addCheckType" style="height:42px;width:auto;flex:1;">
+        <option value="maxQty">maxQty</option>
+        <option value="simultaneousNg">simultaneousNg</option>
+        <option value="includedIn">includedIn</option>
+        <option value="condition">condition</option>
+      </select>
+      <button class="btn small primary" id="addCheckBtn" style="width:auto;">＋ 追加</button>
+    </div>
+    <div class="row" style="margin-top:16px;gap:8px;">
+      ${btn("保存","reqEditSave","primary")}
+      ${btn("キャンセル","reqEditCancel","ghost")}
+    </div>
+  </div></div>`;
+}
+
 function billingMaterialCard(m){
   const code = billingMapCode(m);
   const qty = Number(m.qty||1);
   const line1 = [(m.product_name||"(不明)"), `×${qty}`, (m.product_no||""), (m.product_sta||"")].filter(Boolean).join(" ");
-  const tok = (m.tokutei01_name||"");
+  const tok = tokuteiDisplay(m.tokutei01_name);
   const price = m.total_reimbursement_price_yen ? `${jpy(m.total_reimbursement_price_yen)}円` : "";
   return `
     <div style="position:relative;border:1px solid #f0d4e0;border-radius:16px;padding:12px;background:linear-gradient(180deg,#fff,#fff7fa);">
@@ -1391,6 +1843,7 @@ function buildUkeData(periodFilter){
       const code = billingMapCode(m);
       const price = Number(m.total_reimbursement_price_yen || 0);
       const qty = Number(m.qty || 1);
+      const billingChk = runBillingChecks(m, item.materials);
       rows.push({
         itemId: item.id,
         itemStatus: item.status,
@@ -1411,7 +1864,13 @@ function buildUkeData(periodFilter){
         lineTotal: price * qty,
         hasBillingCode: code !== "—",
         approved_by: item.approved_by || "",
-        doctor_comment: item.doctor_comment || ""
+        doctor_comment: item.doctor_comment || "",
+        billingReqStatus: billingChk.overall,
+        billingReqChecks: billingChk.checks,
+        billingReqRule: billingChk.rule || "",
+        billingDecision: m.billing_decision || "",
+        billingChecks: m.billing_checks || [],
+        billingNote: m.billing_note || ""
       });
     });
   });
@@ -1432,21 +1891,34 @@ function renderUkeResults(periodFilter, deptFilter){
   const matchRate = rows.length ? Math.round(matched.length / rows.length * 100) : 0;
   const lostRevenue = unmatchedPrice;
 
+  /* --- 算定要件NG/warn集計 --- */
+  const billingNgRows = rows.filter(r=>r.billingReqStatus === "ng");
+  const billingWarnRows = rows.filter(r=>r.billingReqStatus === "warn" || r.billingReqStatus === "confirm");
+  const billingNoBillRows = rows.filter(r=>r.billingDecision === "no_bill");
+  const billingNgPrice = billingNgRows.reduce((s,r)=>s+r.lineTotal, 0);
+  const billingWarnPrice = billingWarnRows.reduce((s,r)=>s+r.lineTotal, 0);
+
+  /* --- 請求漏れリスク：NG未判断（UKEコードはあるが算定NGで医師未判断）--- */
+  const undecidedNgRows = rows.filter(r=>r.billingReqStatus === "ng" && !r.billingDecision && r.hasBillingCode);
+  const undecidedNgPrice = undecidedNgRows.reduce((s,r)=>s+r.lineTotal, 0);
+
   /* --- 診療科別サマリー集計 --- */
   const deptStats = new Map();
   allRows.forEach(r=>{
     const d = r.dept || "(未設定)";
-    if (!deptStats.has(d)) deptStats.set(d, { total:0, matched:0, unmatched:0, totalPrice:0, unmatchedPrice:0 });
+    if (!deptStats.has(d)) deptStats.set(d, { total:0, matched:0, unmatched:0, totalPrice:0, unmatchedPrice:0, undecidedNg:0, undecidedNgPrice:0 });
     const s = deptStats.get(d);
     s.total++;
     s.totalPrice += r.lineTotal;
     if (r.hasBillingCode){ s.matched++; }
     else { s.unmatched++; s.unmatchedPrice += r.lineTotal; }
+    if (r.billingReqStatus === "ng" && !r.billingDecision){ s.undecidedNg++; s.undecidedNgPrice += r.lineTotal; }
   });
   const deptSummaryHtml = Array.from(deptStats.entries())
-    .sort((a,b)=>b[1].unmatchedPrice - a[1].unmatchedPrice)
+    .sort((a,b)=>(b[1].unmatchedPrice+b[1].undecidedNgPrice) - (a[1].unmatchedPrice+a[1].undecidedNgPrice))
     .map(([dept, s])=>{
       const rate = s.total ? Math.round(s.matched / s.total * 100) : 0;
+      const riskTotal = s.unmatchedPrice + s.undecidedNgPrice;
       const isActive = deptFilter === dept;
       const border = isActive ? "2px solid var(--red)" : "1px solid #f0d4e0";
       return `<div data-dept-card="${dept}" style="border:${border};border-radius:16px;padding:10px;background:linear-gradient(180deg,#fff,#fff7fa);cursor:pointer;">
@@ -1458,8 +1930,9 @@ function renderUkeResults(periodFilter, deptFilter){
           <div class="muted" style="font-size:12px;">${s.total}材料</div>
           <div style="font-size:12px;font-weight:900;color:#059669;">${s.matched}紐付</div>
           <div style="font-size:12px;font-weight:900;color:#e8365d;">${s.unmatched}漏れ</div>
+          ${s.undecidedNg ? `<div style="font-size:12px;font-weight:900;color:#d97706;">${s.undecidedNg}NG未判断</div>` : ""}
         </div>
-        ${s.unmatchedPrice > 0 ? `<div style="font-size:12px;font-weight:900;color:#e8365d;margin-top:2px;">漏れ額: ${jpy(s.unmatchedPrice)}円</div>` : ""}
+        ${riskTotal > 0 ? `<div style="font-size:12px;font-weight:900;color:#e8365d;margin-top:2px;">リスク額: ${jpy(riskTotal)}円</div>` : ""}
       </div>`;
     }).join("");
 
@@ -1484,6 +1957,20 @@ function renderUkeResults(periodFilter, deptFilter){
       const statusTag = r.itemStatus==="pending"
         ? `<span class="tag" style="background:#fef3c7;color:#92400e;border-color:#fde68a;font-size:11px;">承認待ち</span>`
         : `<span class="tag" style="background:#ffe1e8;color:#e8365d;border-color:rgba(232,54,93,.35);font-size:11px;">未マッチ</span>`;
+      const reqTag = r.billingReqStatus === "ng"
+        ? `<span class="tag" style="background:#fff0f4;color:#e8365d;border-color:rgba(232,54,93,.25);font-size:10px;">算定NG</span>`
+        : r.billingReqStatus === "warn"
+        ? `<span class="tag" style="background:#fffbeb;color:#d97706;border-color:#fde68a;font-size:10px;">要確認</span>`
+        : r.billingReqStatus === "confirm"
+        ? `<span class="tag" style="background:#eff6ff;color:#2563eb;border-color:#bfdbfe;font-size:10px;">条件確認</span>`
+        : r.billingReqStatus === "ok"
+        ? `<span class="tag" style="background:#f0fdf4;color:#059669;border-color:#d1fae5;font-size:10px;">算定OK</span>`
+        : "";
+      const decTag = r.billingDecision === "no_bill"
+        ? `<span class="tag" style="background:#fef3c7;color:#92400e;border-color:#fde68a;font-size:10px;">請求しない</span>`
+        : r.billingDecision === "bill"
+        ? `<span class="tag" style="background:#dbeafe;color:#1d4ed8;border-color:#93c5fd;font-size:10px;">請求する</span>`
+        : "";
       return `<div style="padding:8px 0;border-top:1px solid #f0d4e0;">
         <div style="display:flex;justify-content:space-between;align-items:center;gap:6px;">
           <div style="flex:1;min-width:0;">
@@ -1492,9 +1979,10 @@ function renderUkeResults(periodFilter, deptFilter){
           </div>
           <div style="text-align:right;white-space:nowrap;">
             <div style="font-size:13px;font-weight:900;color:#e8365d;">${jpy(r.lineTotal)}円</div>
-            ${statusTag}
+            ${statusTag} ${reqTag} ${decTag}
           </div>
         </div>
+        ${billingCheckDetailHtml(r.billingReqChecks)}
       </div>`;
     }).join("");
 
@@ -1503,7 +1991,7 @@ function renderUkeResults(periodFilter, deptFilter){
         <div style="display:flex;justify-content:space-between;align-items:start;">
           <div style="flex:1;min-width:0;">
             <div style="font-weight:900;font-size:15px;color:#e8365d;">${g.name}</div>
-            <div class="muted" style="font-size:13px;">${g.tokutei || "(特定保険医療材料名なし)"}</div>
+            <div class="muted" style="font-size:13px;">${tokuteiDisplay(g.tokutei) || "(特定保険医療材料名なし)"}</div>
             <div class="muted" style="font-size:12px;">JAN: ${g.jan13 || "—"}</div>
           </div>
           <div style="text-align:right;white-space:nowrap;">
@@ -1523,15 +2011,33 @@ function renderUkeResults(periodFilter, deptFilter){
   const matchedGroups = groupByProduct(matched);
   const matchedHtml = matchedGroups.length ? matchedGroups.map((g,gi)=>{
     const code = g.items[0]?.billingCode || "—";
-    const detailRows = g.items.map(r=>`<div style="padding:6px 0;border-top:1px solid #f0d4e0;">
-      <div class="muted" style="font-size:12px;">${r.dept ? `${r.dept} / ` : ""}${r.patient} / ${r.procedure} / x${r.qty} / ${fmtDT(r.confirmedAt)}</div>
-    </div>`).join("");
+    const ngCnt = g.items.filter(r=>r.billingReqStatus==="ng").length;
+    const warnCnt = g.items.filter(r=>r.billingReqStatus==="warn"||r.billingReqStatus==="confirm").length;
+    const detailRows = g.items.map(r=>{
+      const reqTag = r.billingReqStatus === "ng"
+        ? `<span class="tag" style="background:#fff0f4;color:#e8365d;border-color:rgba(232,54,93,.25);font-size:10px;">算定NG</span>`
+        : r.billingReqStatus === "warn"
+        ? `<span class="tag" style="background:#fffbeb;color:#d97706;border-color:#fde68a;font-size:10px;">要確認</span>`
+        : r.billingReqStatus === "confirm"
+        ? `<span class="tag" style="background:#eff6ff;color:#2563eb;border-color:#bfdbfe;font-size:10px;">条件確認</span>`
+        : "";
+      return `<div style="padding:6px 0;border-top:1px solid #f0d4e0;">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:6px;">
+        <div class="muted" style="font-size:12px;flex:1;min-width:0;">${r.dept ? `${r.dept} / ` : ""}${r.patient} / ${r.procedure} / x${r.qty} / ${fmtDT(r.confirmedAt)}</div>
+        <div style="white-space:nowrap;">${reqTag}</div>
+      </div>
+      ${billingCheckDetailHtml(r.billingReqChecks)}
+    </div>`;
+    }).join("");
+
+    const checkBadges = (ngCnt > 0 ? `<span class="tag" style="background:#fff0f4;color:#e8365d;border-color:rgba(232,54,93,.25);font-size:10px;">NG ${ngCnt}</span> ` : "")
+      + (warnCnt > 0 ? `<span class="tag" style="background:#fffbeb;color:#d97706;border-color:#fde68a;font-size:10px;">要確認 ${warnCnt}</span>` : "");
 
     return `<div style="border:1px solid #f0d4e0;border-radius:16px;overflow:hidden;background:#fff;">
       <div style="padding:10px 12px;display:flex;justify-content:space-between;align-items:center;">
         <div style="flex:1;min-width:0;">
-          <div style="font-weight:900;font-size:14px;">${g.name}</div>
-          <div class="muted" style="font-size:12px;">${g.tokutei}</div>
+          <div style="font-weight:900;font-size:14px;">${g.name} ${checkBadges}</div>
+          <div class="muted" style="font-size:12px;">${tokuteiDisplay(g.tokutei) || "(特定保険医療材料名なし)"}</div>
         </div>
         <div style="text-align:right;white-space:nowrap;">
           <div style="font-weight:900;">${jpy(g.totalPrice)}円</div>
@@ -1570,21 +2076,25 @@ function renderUkeResults(periodFilter, deptFilter){
           <div style="font-size:14px;font-weight:900;color:#059669;">${jpy(matchedPrice)}円</div>
         </div>
         <div style="border:1px solid rgba(232,54,93,.35);border-radius:16px;padding:12px;background:linear-gradient(180deg,#fff,#fff0f4);text-align:center;">
-          <div class="muted" style="font-size:12px;">請求漏れ候補</div>
+          <div class="muted" style="font-size:12px;">コードなし</div>
           <div style="font-size:20px;font-weight:900;color:#e8365d;">${unmatched.length}件</div>
           <div style="font-size:14px;font-weight:900;color:#e8365d;">${jpy(unmatchedPrice)}円</div>
         </div>
       </div>
 
       <div class="divider"></div>
-      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;">
         <div style="border:1px solid #f0d4e0;border-radius:16px;padding:12px;background:#fff;text-align:center;">
           <div class="muted" style="font-size:12px;">償還価格合計</div>
           <div style="font-size:22px;font-weight:900;">${jpy(totalPrice)}円</div>
         </div>
         <div style="border:1px solid ${lostRevenue>0?'rgba(232,54,93,.4)':'#d1fae5'};border-radius:16px;padding:12px;background:linear-gradient(180deg,#fff,${lostRevenue>0?'#fff0f4':'#f0fdf4'});text-align:center;">
-          <div class="muted" style="font-size:12px;">潜在的な請求漏れ額</div>
+          <div class="muted" style="font-size:12px;">コードなし漏れ額</div>
           <div style="font-size:22px;font-weight:900;color:${lostRevenue>0?'#e8365d':'#059669'};">${jpy(lostRevenue)}円</div>
+        </div>
+        <div style="border:1px solid ${undecidedNgPrice>0?'rgba(245,158,11,.4)':'#d1fae5'};border-radius:16px;padding:12px;background:linear-gradient(180deg,#fff,${undecidedNgPrice>0?'#fffbeb':'#f0fdf4'});text-align:center;">
+          <div class="muted" style="font-size:12px;">NG未判断リスク</div>
+          <div style="font-size:22px;font-weight:900;color:${undecidedNgPrice>0?'#d97706':'#059669'};">${jpy(undecidedNgPrice)}円</div>
         </div>
       </div>
     </div>
@@ -1602,8 +2112,116 @@ function renderUkeResults(periodFilter, deptFilter){
       <div style="margin-top:8px;font-weight:900;font-size:14px;color:#e8365d;">推定損失額：${jpy(lostRevenue)}円（対象期間内）</div>
     </div>` : ""}
 
+    ${(billingNgRows.length + billingWarnRows.length) > 0 ? (()=>{
+      const billingDetailRows = rows.filter(r=>["ng","warn","confirm"].includes(r.billingReqStatus));
+      return `
+    <div class="card" style="border-color:rgba(245,158,11,.4);background:linear-gradient(180deg,#fff,#fffbeb);">
+      <div class="h2" style="color:#d97706;">算定要件チェック</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;">
+        <div style="border:1px solid rgba(232,54,93,.35);border-radius:16px;padding:10px;background:#fff;text-align:center;">
+          <div class="muted" style="font-size:11px;">算定要件NG</div>
+          <div style="font-size:20px;font-weight:900;color:#e8365d;">${billingNgRows.length}件</div>
+          <div style="font-size:13px;font-weight:900;color:#e8365d;">${jpy(billingNgPrice)}円</div>
+        </div>
+        <div style="border:1px solid #fde68a;border-radius:16px;padding:10px;background:#fff;text-align:center;">
+          <div class="muted" style="font-size:11px;">要確認</div>
+          <div style="font-size:20px;font-weight:900;color:#d97706;">${billingWarnRows.length}件</div>
+          <div style="font-size:13px;font-weight:900;color:#d97706;">${jpy(billingWarnPrice)}円</div>
+        </div>
+        <div style="border:1px solid #f0d4e0;border-radius:16px;padding:10px;background:#fff;text-align:center;">
+          <div class="muted" style="font-size:11px;">請求しない</div>
+          <div style="font-size:20px;font-weight:900;">${billingNoBillRows.length}件</div>
+        </div>
+      </div>
+      ${billingDetailRows.length ? `
+      <details style="margin-top:12px;">
+        <summary style="font-size:13px;font-weight:900;color:var(--muted);cursor:pointer;user-select:none;">材料別の詳細（${billingDetailRows.length}件）</summary>
+        <div style="margin-top:8px;display:flex;flex-direction:column;gap:8px;">
+          ${billingDetailRows
+            .sort((a,b)=>{ const ord = {ng:0,warn:1,confirm:2}; return (ord[a.billingReqStatus]??3) - (ord[b.billingReqStatus]??3) || b.lineTotal - a.lineTotal; })
+            .map(r=>{
+              const overallColor = r.billingReqStatus === "ng" ? "#e8365d" : r.billingReqStatus === "warn" ? "#d97706" : "#2563eb";
+              const overallLabel = r.billingReqStatus === "ng" ? "NG" : r.billingReqStatus === "warn" ? "要確認" : "条件確認";
+              const decTag = r.billingDecision === "no_bill"
+                ? `<span class="tag" style="background:#fef3c7;color:#92400e;border-color:#fde68a;font-size:10px;">請求しない</span>`
+                : r.billingDecision === "bill"
+                ? `<span class="tag" style="background:#dbeafe;color:#1d4ed8;border-color:#93c5fd;font-size:10px;">請求する</span>` : "";
+              return `<div style="border:1px solid rgba(0,0,0,.08);border-radius:12px;padding:10px;background:#fff;">
+                <div style="display:flex;justify-content:space-between;align-items:start;gap:6px;">
+                  <div style="flex:1;min-width:0;">
+                    <div style="font-weight:900;font-size:13px;">${r.materialName}</div>
+                    <div class="muted" style="font-size:11px;">${r.dept ? r.dept+" / " : ""}${r.patient} / ${r.procedure}</div>
+                  </div>
+                  <div style="text-align:right;white-space:nowrap;">
+                    <span style="font-weight:900;font-size:12px;color:${overallColor};">${overallLabel}</span>
+                    <div style="font-size:12px;font-weight:900;">x${r.qty} / ${jpy(r.lineTotal)}円</div>
+                    ${decTag}
+                  </div>
+                </div>
+                ${billingCheckDetailHtml(r.billingReqChecks)}
+              </div>`;
+            }).join("")}
+        </div>
+      </details>` : ""}
+    </div>`;
+    })() : ""}
+
+    ${undecidedNgRows.length > 0 ? (()=>{
+      const ngGroups = (()=>{
+        const m = new Map();
+        undecidedNgRows.forEach(r=>{
+          const k = r.materialName;
+          if(!m.has(k)) m.set(k, {name:k,tokutei:r.tokutei,billingCode:r.billingCode,totalQty:0,totalPrice:0,items:[]});
+          const g = m.get(k);
+          g.totalQty += r.qty;
+          g.totalPrice += r.lineTotal;
+          g.items.push(r);
+        });
+        return Array.from(m.values()).sort((a,b)=>b.totalPrice-a.totalPrice);
+      })();
+      return `
+    <div class="card" style="border-color:rgba(245,158,11,.4);background:linear-gradient(180deg,#fff,#fffbeb);">
+      <div class="h2" style="color:#d97706;">NG未判断材料（${undecidedNgRows.length}件 / ${jpy(undecidedNgPrice)}円）${deptLabel}</div>
+      <div class="muted" style="font-size:12px;margin-bottom:8px;">UKEコードは紐付済みだが、算定要件NGかつ医師が請求可否を未選択の材料です。承認画面で確認が必要です。</div>
+      <div class="grid" style="gap:8px;">
+        ${ngGroups.map(g=>{
+          const detRows = g.items.map(r=>{
+            const reqTag = r.billingReqStatus === "ng"
+              ? '<span class="tag" style="background:#fff0f4;color:#e8365d;border-color:rgba(232,54,93,.25);font-size:10px;">算定NG</span>' : "";
+            return '<div style="padding:8px 0;border-top:1px solid rgba(245,158,11,.2);">'
+              + '<div style="display:flex;justify-content:space-between;align-items:center;gap:6px;">'
+              + '<div style="flex:1;min-width:0;">'
+              + '<div class="muted" style="font-size:12px;">' + (r.dept?r.dept+" / ":"") + r.patient + " / " + r.procedure + '</div>'
+              + '<div class="muted" style="font-size:11px;">x' + r.qty + " / " + fmtDT(r.confirmedAt) + '</div>'
+              + '</div>'
+              + '<div style="text-align:right;white-space:nowrap;">'
+              + '<div style="font-size:13px;font-weight:900;color:#d97706;">' + jpy(r.lineTotal) + '円</div>'
+              + reqTag
+              + '</div></div>'
+              + billingCheckDetailHtml(r.billingReqChecks)
+              + '</div>';
+          }).join("");
+          return '<div style="border:1px solid rgba(245,158,11,.35);border-radius:16px;overflow:hidden;background:linear-gradient(180deg,#fff,#fffbeb);">'
+            + '<div style="padding:12px;">'
+            + '<div style="display:flex;justify-content:space-between;align-items:start;">'
+            + '<div style="flex:1;min-width:0;">'
+            + '<div style="font-weight:900;font-size:15px;color:#d97706;">' + g.name + '</div>'
+            + '<div class="muted" style="font-size:13px;">' + (tokuteiDisplay(g.tokutei) || "(特定保険医療材料名なし)") + '</div>'
+            + '<div class="muted" style="font-size:12px;">UKE: ' + g.billingCode + '</div>'
+            + '</div>'
+            + '<div style="text-align:right;white-space:nowrap;">'
+            + '<div style="font-size:18px;font-weight:900;color:#d97706;">' + jpy(g.totalPrice) + '円</div>'
+            + '<div style="font-size:14px;font-weight:900;">x' + g.totalQty + '</div>'
+            + '</div></div></div>'
+            + (g.items.length > 0 ? '<details style="border-top:1px solid rgba(245,158,11,.25);"><summary style="padding:8px 12px;font-size:13px;font-weight:900;color:var(--muted);cursor:pointer;user-select:none;">明細（' + g.items.length + '件）</summary><div style="padding:0 12px 10px;">' + detRows + '</div></details>' : '')
+            + '</div>';
+        }).join("")}
+      </div>
+    </div>`;
+    })() : ""}
+
     <div class="card">
-      <div class="h2" style="color:#e8365d;">請求漏れ候補（${unmatched.length}件）${deptLabel}</div>
+      <div class="h2" style="color:#e8365d;">UKEコードなし材料（${unmatched.length}件）${deptLabel}</div>
       <div class="muted" style="font-size:12px;margin-bottom:8px;">UKE請求コードが紐付いていない材料。算定要件の確認またはbilling_mapへの追加が必要です。</div>
       <div class="grid" style="gap:8px;">${unmatchedHtml}</div>
     </div>
@@ -1674,6 +2292,22 @@ function buildDashboardData(){
   const doctorMap = new Map();
   const dailyMap = new Map();
 
+  // 算定要件集計
+  let billingNgCount = 0;
+  let billingNgPrice = 0;
+  let billingWarnCount = 0;
+  let billingWarnPrice = 0;
+  let billingNoBillCount = 0;
+  let billingNoBillPrice = 0;
+  let billingUndecidedNgCount = 0;
+  let billingUndecidedNgPrice = 0;
+  let billingNoCodeCount = 0;
+  let billingNoCodePrice = 0;
+  const billingNgMap = new Map();
+  const billingDetailItems = [];
+  const billingLeakItems = [];
+  const billingLeakDeptMap = new Map();
+
   all.forEach(item=>{
     // 手技別
     const proc = procedureLabel(item.procedureId);
@@ -1689,14 +2323,82 @@ function buildDashboardData(){
     const day = (item.confirmedAt||"").slice(0,10) || "不明";
     dailyMap.set(day, (dailyMap.get(day)||0)+1);
 
-    // 材料別
+    // 材料別 + 算定要件チェック
     (item.materials||[]).forEach(m=>{
       const key = m.product_name || m.tokutei01_name || "(不明)";
       const prev = matMap.get(key) || { count:0, totalPrice:0 };
       const qty = Number(m.qty||1);
+      const price = Number(m.total_reimbursement_price_yen||0);
       prev.count += qty;
-      prev.totalPrice += Number(m.total_reimbursement_price_yen||0) * qty;
+      prev.totalPrice += price * qty;
       matMap.set(key, prev);
+
+      const chk = runBillingChecks(m, item.materials);
+      if (chk.overall === "ng") {
+        billingNgCount += qty;
+        billingNgPrice += price * qty;
+        const reason = chk.checks.filter(c=>c.status==="ng").map(c=>c.message).join("; ") || chk.rule || "不明";
+        const rprev = billingNgMap.get(reason) || { count:0, price:0 };
+        rprev.count += qty;
+        rprev.price += price * qty;
+        billingNgMap.set(reason, rprev);
+        if (!m.billing_decision) {
+          billingUndecidedNgCount += qty;
+          billingUndecidedNgPrice += price * qty;
+        }
+      }
+      if (chk.overall === "warn" || chk.overall === "confirm") {
+        billingWarnCount += qty;
+        billingWarnPrice += price * qty;
+      }
+      if (m.billing_decision === "no_bill") {
+        billingNoBillCount += qty;
+        billingNoBillPrice += price * qty;
+      }
+      if (["ng","warn","confirm"].includes(chk.overall)) {
+        billingDetailItems.push({
+          name: m.product_name || m.tokutei01_name || "(不明)",
+          qty, price: price * qty,
+          overall: chk.overall,
+          checks: chk.checks,
+          patient: patientLabel(item.patientId),
+          procedure: procedureLabel(item.procedureId),
+          decision: m.billing_decision || ""
+        });
+      }
+
+      /* 請求漏れリスク詳細: UKEコードなし or 未判断NG */
+      const ukeCode = billingMapCode(m);
+      const hasCode = ukeCode !== "—";
+      const assignedDoc = DOCTORS.find(dc=>dc.id===item.assignedDoctorId);
+      const dept = assignedDoc ? assignedDoc.dept : "(未設定)";
+      const isUndecidedNg = chk.overall === "ng" && !m.billing_decision;
+      if (!hasCode || isUndecidedNg) {
+        const leakType = !hasCode ? "nocode" : "undecided_ng";
+        billingLeakItems.push({
+          leakType,
+          name: m.product_name || m.tokutei01_name || "(不明)",
+          tokutei: m.tokutei01_name || "",
+          ukeCode,
+          qty, price: price * qty,
+          overall: chk.overall,
+          checks: chk.checks,
+          patient: patientLabel(item.patientId),
+          procedure: procedureLabel(item.procedureId),
+          dept,
+          date: (item.confirmedAt||"").slice(0,10),
+          decision: m.billing_decision || "",
+          rule: chk.rule || ""
+        });
+        const ds = billingLeakDeptMap.get(dept) || { nocode:0, nocodePrice:0, undecidedNg:0, undecidedNgPrice:0 };
+        if (!hasCode){ ds.nocode += qty; ds.nocodePrice += price * qty; }
+        if (isUndecidedNg){ ds.undecidedNg += qty; ds.undecidedNgPrice += price * qty; }
+        billingLeakDeptMap.set(dept, ds);
+      }
+      if (!hasCode) {
+        billingNoCodeCount += qty;
+        billingNoCodePrice += price * qty;
+      }
     });
   });
 
@@ -1718,7 +2420,15 @@ function buildDashboardData(){
     .sort((a,b)=>a[0].localeCompare(b[0]))
     .slice(-14);
 
-  return { all, approved, pending, matTop, procTop, doctorTop, dailySorted, totalPrice };
+  const billingNgTop = Array.from(billingNgMap.entries())
+    .sort((a,b)=>b[1].price - a[1].price)
+    .slice(0,8);
+
+  return { all, approved, pending, matTop, procTop, doctorTop, dailySorted, totalPrice,
+    billingNgCount, billingNgPrice, billingWarnCount, billingWarnPrice,
+    billingNoBillCount, billingNoBillPrice,
+    billingUndecidedNgCount, billingUndecidedNgPrice, billingNgTop, billingDetailItems,
+    billingNoCodeCount, billingNoCodePrice, billingLeakItems, billingLeakDeptMap };
 }
 
 function barChart(entries, maxVal, colorFn){
@@ -1807,6 +2517,160 @@ function screenDashboard(){
       ${barChart(d.dailySorted, dailyMax, ()=>"linear-gradient(90deg,#059669,#34d399)")}
     </div>
 
+    <div class="card" style="border-color:rgba(232,54,93,.3);background:linear-gradient(180deg,#fff,#fff5f8);">
+      <div class="h2" style="color:#e8365d;">算定要件チェック</div>
+      <div class="divider"></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+        <div style="border:1px solid rgba(232,54,93,.35);border-radius:16px;padding:10px;background:#fff;text-align:center;">
+          <div class="muted" style="font-size:11px;">算定要件NG</div>
+          <div style="font-size:22px;font-weight:900;color:#e8365d;">${d.billingNgCount}件</div>
+          <div style="font-size:13px;font-weight:900;color:#e8365d;">${jpy(d.billingNgPrice)}円</div>
+        </div>
+        <div style="border:1px solid #fde68a;border-radius:16px;padding:10px;background:#fff;text-align:center;">
+          <div class="muted" style="font-size:11px;">要確認（warn/条件）</div>
+          <div style="font-size:22px;font-weight:900;color:#d97706;">${d.billingWarnCount}件</div>
+          <div style="font-size:13px;font-weight:900;color:#d97706;">${jpy(d.billingWarnPrice)}円</div>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr;gap:8px;margin-top:8px;">
+        <div style="border:1px solid #f0d4e0;border-radius:16px;padding:10px;background:#fff;text-align:center;">
+          <div class="muted" style="font-size:11px;">医師判断「請求しない」</div>
+          <div style="font-size:22px;font-weight:900;">${d.billingNoBillCount}件</div>
+          <div style="font-size:13px;font-weight:900;">${jpy(d.billingNoBillPrice)}円</div>
+        </div>
+      </div>
+      ${d.billingNgTop.length ? `
+      <div style="margin-top:12px;">
+        <div class="muted" style="font-size:12px;margin-bottom:6px;">NG理由別内訳</div>
+        ${barChart(d.billingNgTop.map(([k,v])=>[k+` (${jpy(v.price)}円)`, v.count]), d.billingNgTop.length ? d.billingNgTop[0][1].count : 1, ()=>"linear-gradient(90deg,#e8365d,#f25e7e)")}
+      </div>` : ""}
+      ${d.billingDetailItems.length ? `
+      <details style="margin-top:12px;">
+        <summary style="font-size:13px;font-weight:900;color:var(--muted);cursor:pointer;user-select:none;">算定要件NG/要確認 材料の詳細（${d.billingDetailItems.length}件）</summary>
+        <div style="margin-top:8px;display:flex;flex-direction:column;gap:8px;">
+          ${d.billingDetailItems.map(it=>{
+            const overallColor = it.overall === "ng" ? "#e8365d" : it.overall === "warn" ? "#d97706" : "#2563eb";
+            const overallLabel = it.overall === "ng" ? "NG" : it.overall === "warn" ? "要確認" : "条件確認";
+            const decLabel = it.decision === "no_bill" ? `<span class="tag" style="background:#fef3c7;color:#92400e;border-color:#fde68a;font-size:10px;">請求しない</span>`
+              : it.decision === "bill" ? `<span class="tag" style="background:#dbeafe;color:#1d4ed8;border-color:#93c5fd;font-size:10px;">請求する</span>` : "";
+            return `<div style="border:1px solid rgba(0,0,0,.08);border-radius:12px;padding:10px;background:#fff;">
+              <div style="display:flex;justify-content:space-between;align-items:start;gap:6px;">
+                <div style="flex:1;min-width:0;">
+                  <div style="font-weight:900;font-size:13px;">${it.name}</div>
+                  <div class="muted" style="font-size:11px;">${it.patient} / ${it.procedure}</div>
+                </div>
+                <div style="text-align:right;white-space:nowrap;">
+                  <span style="font-weight:900;font-size:12px;color:${overallColor};">${overallLabel}</span>
+                  <div style="font-size:12px;font-weight:900;">x${it.qty} / ${jpy(it.price)}円</div>
+                  ${decLabel}
+                </div>
+              </div>
+              ${billingCheckDetailHtml(it.checks)}
+            </div>`;
+          }).join("")}
+        </div>
+      </details>` : ""}
+    </div>
+
+    ${(d.billingUndecidedNgCount > 0 || d.billingNoCodeCount > 0) ? (()=>{
+      const totalLeakCount = d.billingUndecidedNgCount + d.billingNoCodeCount;
+      const totalLeakPrice = d.billingUndecidedNgPrice + d.billingNoCodePrice;
+
+      /* 診療科別内訳テーブル */
+      const deptEntries = Array.from(d.billingLeakDeptMap.entries()).sort((a,b)=>(b[1].nocodePrice+b[1].undecidedNgPrice)-(a[1].nocodePrice+a[1].undecidedNgPrice));
+      const deptRows = deptEntries.map(([dept,s])=>{
+        const total = s.nocodePrice + s.undecidedNgPrice;
+        return `<div style="display:grid;grid-template-columns:1fr auto auto auto;gap:6px;align-items:center;padding:6px 0;border-bottom:1px solid rgba(245,158,11,.15);font-size:12px;">
+          <div style="font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${dept}</div>
+          <div style="text-align:right;color:#d97706;">${s.nocode?s.nocode+"件":""}</div>
+          <div style="text-align:right;color:#e8365d;">${s.undecidedNg?s.undecidedNg+"件":""}</div>
+          <div style="text-align:right;font-weight:900;">${jpy(total)}円</div>
+        </div>`;
+      }).join("");
+
+      /* 材料別明細（金額降順） */
+      const sortedLeaks = d.billingLeakItems.slice().sort((a,b)=>b.price-a.price);
+      const nocodeItems = sortedLeaks.filter(it=>it.leakType==="nocode");
+      const undecidedItems = sortedLeaks.filter(it=>it.leakType==="undecided_ng");
+
+      const leakItemHtml = (it)=>{
+        const typeColor = it.leakType === "nocode" ? "#d97706" : "#e8365d";
+        const typeLabel = it.leakType === "nocode" ? "コードなし" : "NG未判断";
+        return `<div style="border:1px solid rgba(0,0,0,.08);border-radius:12px;padding:10px;background:#fff;">
+          <div style="display:flex;justify-content:space-between;align-items:start;gap:6px;">
+            <div style="flex:1;min-width:0;">
+              <div style="font-weight:900;font-size:13px;line-height:1.3;">${it.name}</div>
+              <div class="muted" style="font-size:11px;">${it.tokutei||"特定保険材料名なし"}</div>
+              <div class="muted" style="font-size:11px;">${it.patient} / ${it.procedure}</div>
+              <div class="muted" style="font-size:11px;">${it.dept} / ${it.date}</div>
+            </div>
+            <div style="text-align:right;white-space:nowrap;">
+              <span style="display:inline-block;padding:2px 8px;border-radius:999px;font-size:10px;font-weight:700;color:#fff;background:${typeColor};">${typeLabel}</span>
+              <div style="font-size:13px;font-weight:900;margin-top:4px;">x${it.qty} / ${jpy(it.price)}円</div>
+              <div class="muted" style="font-size:10px;">UKE: ${it.ukeCode}</div>
+            </div>
+          </div>
+          ${it.rule ? `<div class="muted" style="font-size:11px;margin-top:4px;padding:4px 6px;background:#fffbeb;border-radius:6px;">💡 ${it.rule}</div>` : ""}
+          ${billingCheckDetailHtml(it.checks)}
+        </div>`;
+      };
+
+      return `
+    <div class="card" style="border-color:rgba(245,158,11,.4);background:linear-gradient(180deg,#fff,#fffbeb);">
+      <div class="h2" style="color:#d97706;">請求漏れリスク</div>
+      <div class="muted" style="font-size:13px;line-height:1.5;margin-bottom:8px;">UKE請求コードが紐付かない材料、または算定要件NGで医師が請求可否を未判断の材料です。</div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+        <div style="border:1px solid rgba(245,158,11,.35);border-radius:16px;padding:10px;background:#fff;text-align:center;">
+          <div class="muted" style="font-size:11px;">リスク件数合計</div>
+          <div style="font-size:22px;font-weight:900;color:#d97706;">${totalLeakCount}件</div>
+        </div>
+        <div style="border:1px solid rgba(245,158,11,.35);border-radius:16px;padding:10px;background:#fff;text-align:center;">
+          <div class="muted" style="font-size:11px;">推定損失額合計</div>
+          <div style="font-size:22px;font-weight:900;color:#d97706;">${jpy(totalLeakPrice)}円</div>
+        </div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px;">
+        <div style="border:1px solid rgba(217,119,6,.25);border-radius:12px;padding:8px 10px;background:#fffbeb;">
+          <div class="muted" style="font-size:10px;">UKEコードなし</div>
+          <div style="font-weight:900;color:#d97706;">${d.billingNoCodeCount}件 / ${jpy(d.billingNoCodePrice)}円</div>
+        </div>
+        <div style="border:1px solid rgba(232,54,93,.25);border-radius:12px;padding:8px 10px;background:#fff5f8;">
+          <div class="muted" style="font-size:10px;">NG未判断</div>
+          <div style="font-weight:900;color:#e8365d;">${d.billingUndecidedNgCount}件 / ${jpy(d.billingUndecidedNgPrice)}円</div>
+        </div>
+      </div>
+
+      ${deptEntries.length ? `
+      <details style="margin-top:12px;">
+        <summary style="font-size:13px;font-weight:900;color:var(--muted);cursor:pointer;user-select:none;">診療科別 請求漏れ内訳</summary>
+        <div style="margin-top:8px;">
+          <div style="display:grid;grid-template-columns:1fr auto auto auto;gap:6px;padding:4px 0;border-bottom:1px solid rgba(245,158,11,.3);font-size:11px;color:var(--muted);">
+            <div>診療科</div><div style="text-align:right;">コードなし</div><div style="text-align:right;">NG未判断</div><div style="text-align:right;">金額</div>
+          </div>
+          ${deptRows}
+        </div>
+      </details>` : ""}
+
+      ${nocodeItems.length ? `
+      <details style="margin-top:12px;">
+        <summary style="font-size:13px;font-weight:900;color:#d97706;cursor:pointer;user-select:none;">UKEコードなし材料の詳細（${nocodeItems.length}件）</summary>
+        <div style="margin-top:8px;display:flex;flex-direction:column;gap:8px;">
+          ${nocodeItems.map(leakItemHtml).join("")}
+        </div>
+      </details>` : ""}
+
+      ${undecidedItems.length ? `
+      <details style="margin-top:12px;">
+        <summary style="font-size:13px;font-weight:900;color:#e8365d;cursor:pointer;user-select:none;">NG未判断材料の詳細（${undecidedItems.length}件）</summary>
+        <div style="margin-top:8px;display:flex;flex-direction:column;gap:8px;">
+          ${undecidedItems.map(leakItemHtml).join("")}
+        </div>
+      </details>` : ""}
+    </div>`;
+    })() : ""}
+
     <div class="card">
       ${btn("⬅ 戻る","back_dashboard","ghost")}
     </div>
@@ -1820,7 +2684,7 @@ function paintMatList(){
 
   const html = (scanCtx?.materials||[]).slice(0,12).map(m=>{
     const qty = Number(m.qty||1);
-    const left = `<b>${m.product_name||"(不明)"} ×${qty}</b><div class="muted">${m.tokutei01_name||""}</div>`;
+    const left = `<b>${m.product_name||"(不明)"} ×${qty}</b><div class="muted">${tokuteiDisplay(m.tokutei01_name)}</div>`;
     const right = `
       <span class="tag">${m.dict_status||""}</span>
       <button class="btn small ghost" data-dec="${m.id}">−</button>
@@ -1850,7 +2714,7 @@ function paintConfirmList(){
 
   const mats = (scanCtx.materials||[]).map(m=>{
     const qty = Number(m.qty||1);
-    const left = `<b>${m.product_name||"(不明)"} ×${qty}</b><div class="muted">${m.tokutei01_name||""}</div>`;
+    const left = `<b>${m.product_name||"(不明)"} ×${qty}</b><div class="muted">${tokuteiDisplay(m.tokutei01_name)}</div>`;
     const right = `
       <button class="btn small ghost" data-cdec="${m.id}">−</button>
       <button class="btn small ghost" data-cone="${m.id}">🗑</button>
@@ -2056,6 +2920,14 @@ if (!role || v === "/role"){
           .map(x=>x.getAttribute("data-chk"));
         if (!checked.length){ toastShow({title:"選択なし", sub:"チェックしてください"}); return; }
 
+        const hasIssue = checked.some(id => {
+          const it = state.done.find(x=>x.id===id);
+          return (it?.materials||[]).some(m =>
+            ["ng","warn","confirm"].includes(runBillingChecks(m, it.materials).overall)
+          );
+        });
+        if (hasIssue && !confirm("算定要件の確認が必要な材料が含まれています。\n個別確認せずに承認しますか？")) return;
+
         checked.forEach(id=>{
           const it = state.done.find(x=>x.id===id);
           if (!it) return;
@@ -2088,6 +2960,26 @@ if (!role || v === "/role"){
             item.approved_at = iso();
             item.approved_by = doctorProfile.doctorId;
             item.doctor_comment = $("#doctor_comment").value || "";
+            (item.materials||[]).forEach((m, idx) => {
+              // 新フォーマット: チェックごとの判断を保存
+              const chkSels = document.querySelectorAll(`[data-billing-chk^="${idx}-"]`);
+              if (chkSels.length > 0) {
+                m.billing_checks = [];
+                chkSels.forEach(sel => {
+                  const parts = sel.dataset.billingChk.split("-");
+                  const chkIdx = Number(parts[1]);
+                  const noteEl = document.querySelector(`[data-billing-chk-note="${idx}-${chkIdx}"]`);
+                  m.billing_checks[chkIdx] = {
+                    decision: sel.value || null,
+                    note: noteEl?.value || ""
+                  };
+                });
+                // 後方互換: 最初のチェックの判断をbilling_decisionにも反映
+                const first = m.billing_checks.find(c => c && c.decision);
+                m.billing_decision = first?.decision || null;
+                m.billing_note = first?.note || "";
+              }
+            });
             pushHistory(item, { at: iso(), actor:`${doctorProfile.dept} ${doctorProfile.doctorId}`, type:"承認", changes:[`承認: ${fmtDT(item.approved_at)}`, "コメント更新"] });
             save();
             toastShow({title:"承認", sub:"保存"});
@@ -2520,6 +3412,149 @@ if (!role || v === "/role"){
       $("#go_bill_pending").onclick=()=>{ setView("/billing/pending"); renderWithGuard(); };
       $("#go_bill_uke").onclick=()=>{ setView("/billing/uke"); renderWithGuard(); };
       $("#go_bill_dashboard").onclick=()=>{ setView("/billing/dashboard"); renderWithGuard(); };
+      $("#go_bill_req").onclick=()=>{ setView("/billing/requirements"); renderWithGuard(); };
+      return;
+    }
+
+    /* ---- 算定要件マスタメンテナンスUI ---- */
+    if (v === "/billing/requirements/new"){
+      const emptyData = { sectionId:"", rule:"", requiresNote:false, checks:[] };
+      let editData = deepClone(emptyData);
+      app.innerHTML = screenBillingReqEdit("", editData, true);
+      const bindCheckEvents = ()=>{
+        document.querySelectorAll(".chk-remove").forEach(el=>{
+          el.onclick=()=>{
+            editData.checks.splice(Number(el.dataset.idx),1);
+            $("#checksContainer").innerHTML = editData.checks.map((c,i)=>renderCheckEditorCard(c,i)).join("");
+            bindCheckEvents();
+          };
+        });
+      };
+      bindCheckEvents();
+      $("#addCheckBtn").onclick=()=>{
+        const t = $("#addCheckType").value;
+        const newChk = { type:t };
+        if (t==="maxQty") Object.assign(newChk, {limit:1, unit:"", overrideWithNote:false, description:""});
+        if (t==="simultaneousNg") Object.assign(newChk, {targets:[], message:"", overrideWithNote:false});
+        if (t==="includedIn") Object.assign(newChk, {parent:"", components:[], message:""});
+        if (t==="condition") Object.assign(newChk, {description:"", requiresConfirm:true});
+        editData.checks.push(newChk);
+        $("#checksContainer").innerHTML = editData.checks.map((c,i)=>renderCheckEditorCard(c,i)).join("");
+        bindCheckEvents();
+      };
+      $("#reqEditSave").onclick=()=>{
+        const matName = $("#reqEditName").value.trim();
+        if(!matName){ toastShow({title:"エラー",sub:"材料名を入力してください"}); return; }
+        document.querySelectorAll(".chk-field").forEach(el=>{
+          const idx = Number(el.dataset.idx);
+          const field = el.dataset.field;
+          if(idx>=0 && idx<editData.checks.length && field){
+            if(el.type==="checkbox") editData.checks[idx][field]=el.checked;
+            else if(el.type==="number") editData.checks[idx][field]=Number(el.value);
+            else if(field==="targets"||field==="components") editData.checks[idx][field]=el.value.split(",").map(s=>s.trim()).filter(Boolean);
+            else editData.checks[idx][field]=el.value;
+          }
+        });
+        editData.sectionId = $("#reqEditSection").value.trim();
+        editData.rule = $("#reqEditRule").value;
+        editData.requiresNote = $("#reqEditRequiresNote").checked;
+        billingReqOverrides.additions[matName] = editData;
+        billingReqOverrides.deletions = (billingReqOverrides.deletions||[]).filter(k=>k!==matName);
+        save();
+        toastShow({title:"保存しました",sub:matName});
+        setView("/billing/requirements"); renderWithGuard();
+      };
+      $("#reqEditCancel").onclick=()=>{ setView("/billing/requirements"); renderWithGuard(); };
+      return;
+    }
+
+    if (v.startsWith("/billing/requirements/edit/")){
+      const matName = decodeURIComponent(v.replace("/billing/requirements/edit/",""));
+      const merged = getMergedBillingReq();
+      const srcData = merged[matName] || { sectionId:"", rule:"", requiresNote:false, checks:[] };
+      let editData = deepClone(srcData);
+      app.innerHTML = screenBillingReqEdit(matName, editData, false);
+      const bindCheckEvents = ()=>{
+        document.querySelectorAll(".chk-remove").forEach(el=>{
+          el.onclick=()=>{
+            editData.checks.splice(Number(el.dataset.idx),1);
+            $("#checksContainer").innerHTML = editData.checks.map((c,i)=>renderCheckEditorCard(c,i)).join("");
+            bindCheckEvents();
+          };
+        });
+      };
+      bindCheckEvents();
+      $("#addCheckBtn").onclick=()=>{
+        const t = $("#addCheckType").value;
+        const newChk = { type:t };
+        if (t==="maxQty") Object.assign(newChk, {limit:1, unit:"", overrideWithNote:false, description:""});
+        if (t==="simultaneousNg") Object.assign(newChk, {targets:[], message:"", overrideWithNote:false});
+        if (t==="includedIn") Object.assign(newChk, {parent:"", components:[], message:""});
+        if (t==="condition") Object.assign(newChk, {description:"", requiresConfirm:true});
+        editData.checks.push(newChk);
+        $("#checksContainer").innerHTML = editData.checks.map((c,i)=>renderCheckEditorCard(c,i)).join("");
+        bindCheckEvents();
+      };
+      $("#reqEditSave").onclick=()=>{
+        document.querySelectorAll(".chk-field").forEach(el=>{
+          const idx = Number(el.dataset.idx);
+          const field = el.dataset.field;
+          if(idx>=0 && idx<editData.checks.length && field){
+            if(el.type==="checkbox") editData.checks[idx][field]=el.checked;
+            else if(el.type==="number") editData.checks[idx][field]=Number(el.value);
+            else if(field==="targets"||field==="components") editData.checks[idx][field]=el.value.split(",").map(s=>s.trim()).filter(Boolean);
+            else editData.checks[idx][field]=el.value;
+          }
+        });
+        editData.sectionId = $("#reqEditSection").value.trim();
+        editData.rule = $("#reqEditRule").value;
+        editData.requiresNote = $("#reqEditRequiresNote").checked;
+        billingReqOverrides.additions[matName] = editData;
+        billingReqOverrides.deletions = (billingReqOverrides.deletions||[]).filter(k=>k!==matName);
+        save();
+        toastShow({title:"保存しました",sub:matName});
+        setView("/billing/requirements"); renderWithGuard();
+      };
+      $("#reqEditCancel").onclick=()=>{ setView("/billing/requirements"); renderWithGuard(); };
+      return;
+    }
+
+    if (v === "/billing/requirements"){
+      app.innerHTML = screenBillingReqList();
+      const searchInput = $("#reqSearchInput");
+      const container = $("#reqListContainer");
+      const filterList = ()=>{
+        const q = (searchInput.value||"").trim().toLowerCase();
+        container.querySelectorAll(".listItem").forEach(el=>{
+          const name = (el.querySelector("b")?.textContent||"").toLowerCase();
+          el.style.display = (!q || name.includes(q)) ? "" : "none";
+        });
+      };
+      searchInput.oninput = filterList;
+      document.querySelectorAll(".bill-req-edit").forEach(el=>{
+        el.onclick=()=>{ setView("/billing/requirements/edit/"+encodeURIComponent(el.dataset.name)); renderWithGuard(); };
+      });
+      document.querySelectorAll(".bill-req-del").forEach(el=>{
+        el.onclick=()=>{
+          if(!confirm(`「${el.dataset.name}」を削除しますか？`)) return;
+          const name = el.dataset.name;
+          billingReqOverrides.deletions = billingReqOverrides.deletions || [];
+          if(!billingReqOverrides.deletions.includes(name)) billingReqOverrides.deletions.push(name);
+          delete (billingReqOverrides.additions||{})[name];
+          save();
+          toastShow({title:"削除しました",sub:name});
+          setView("/billing/requirements"); renderWithGuard();
+        };
+      });
+      $("#go_bill_req_new").onclick=()=>{ setView("/billing/requirements/new"); renderWithGuard(); };
+      $("#go_bill_req_reset").onclick=()=>{
+        if(!confirm("カスタム変更をすべて初期状態に戻しますか？")) return;
+        billingReqOverrides = { additions:{}, deletions:[] };
+        save();
+        toastShow({title:"初期状態に戻しました"});
+        setView("/billing/requirements"); renderWithGuard();
+      };
+      $("#back_bill_req_home").onclick=()=>{ setView("/"); renderWithGuard(); };
       return;
     }
 
@@ -2620,7 +3655,7 @@ if (!role || v === "/role"){
             return t >= fTs && t <= tTs;
           });
         }
-        const headers = ["dept","patient","procedure","operator","confirmedAt","materialName","tokutei","jan13","billingCode","price","qty","lineTotal","hasBillingCode","itemStatus"];
+        const headers = ["dept","patient","procedure","operator","confirmedAt","materialName","tokutei","jan13","billingCode","price","qty","lineTotal","hasBillingCode","itemStatus","billingReqStatus","billingReqRule","billingDecision","billingChecks","billingNote"];
         const lines = filtered.map(r=> headers.map(h=> escapeCSV(r[h])).join(","));
         const csv = "\uFEFF" + headers.join(",") + "\n" + lines.join("\n");
         const blob = new Blob([csv], {type:"text/csv;charset=utf-8"});

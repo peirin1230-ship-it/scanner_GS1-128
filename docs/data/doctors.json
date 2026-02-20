@@ -18,5 +18,17 @@
   {"id":"DR-ANES-002","name":"斎藤 直","dept":"麻酔科","role":"麻酔担当","active":true},
 
   {"id":"DR-ER-001","name":"松本 恒一","dept":"救急科","role":"救急","active":true},
-  {"id":"DR-ICU-001","name":"井上 恒一","dept":"集中治療科","role":"ICU","active":true}
+  {"id":"DR-ICU-001","name":"井上 恒一","dept":"集中治療科","role":"ICU","active":true},
+
+  {"id":"DR-ORTH-001","name":"木村 健太","dept":"整形外科","role":"術者","active":true},
+  {"id":"DR-ORTH-002","name":"前田 直子","dept":"整形外科","role":"術者","active":true},
+
+  {"id":"DR-GI-001","name":"吉田 太一","dept":"消化器外科","role":"術者","active":true},
+  {"id":"DR-GI-002","name":"山口 美咲","dept":"消化器内科","role":"内視鏡","active":true},
+
+  {"id":"DR-NEURO-001","name":"藤田 雄一","dept":"脳神経外科","role":"術者","active":true},
+
+  {"id":"DR-URO-001","name":"岡田 誠","dept":"泌尿器科","role":"術者","active":true},
+
+  {"id":"DR-RESP-001","name":"森 由紀","dept":"呼吸器外科","role":"術者","active":true}
 ]

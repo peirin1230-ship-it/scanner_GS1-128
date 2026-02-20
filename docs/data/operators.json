@@ -9,5 +9,9 @@
   {"id":"OP-RT-001","label":"放射線技師A（透視）","role":"放射線技師","unit":"放射線","room":"CATH-1","active":true},
   {"id":"OP-RT-002","label":"放射線技師B（透視）","role":"放射線技師","unit":"放射線","room":"CATH-2","active":true},
 
-  {"id":"OP-CL-001","label":"クラークA（補助）","role":"クラーク","unit":"カテ室","room":"CATH-1","active":true}
+  {"id":"OP-CL-001","label":"クラークA（補助）","role":"クラーク","unit":"カテ室","room":"CATH-1","active":true},
+
+  {"id":"OP-NUR-004","label":"看護師D（手術室）","role":"看護師","unit":"手術室","room":"OR-1","active":true},
+  {"id":"OP-NUR-005","label":"看護師E（内視鏡室）","role":"看護師","unit":"内視鏡室","room":"ENDO-1","active":true},
+  {"id":"OP-CE-003","label":"CE技士C（手術室）","role":"臨床工学技士","unit":"手術室","room":"OR-1","active":true}
 ]

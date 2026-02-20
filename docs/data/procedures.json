@@ -34,5 +34,23 @@
   {"id":"PR-PER-005","label":"IVR（塞栓術など）"},
 
   {"id":"PR-ACC-001","label":"穿刺/アクセス（シース挿入）"},
-  {"id":"PR-ACC-002","label":"止血デバイス（Angio-Seal等）"}
+  {"id":"PR-ACC-002","label":"止血デバイス（Angio-Seal等）"},
+
+  {"id":"PR-ORTH-001","label":"人工関節置換術（TKA/THA）"},
+  {"id":"PR-ORTH-002","label":"骨折観血的手術（ORIF）"},
+  {"id":"PR-ORTH-003","label":"関節鏡下手術"},
+
+  {"id":"PR-GI-001","label":"腹腔鏡下胆嚢摘出術"},
+  {"id":"PR-GI-002","label":"内視鏡的消化管ステント留置"},
+  {"id":"PR-GI-003","label":"内視鏡的粘膜切除術（EMR/ESD）"},
+
+  {"id":"PR-NEURO-001","label":"脳動脈瘤コイル塞栓術"},
+  {"id":"PR-NEURO-002","label":"頸動脈ステント留置術（CAS）"},
+  {"id":"PR-NEURO-003","label":"経皮的脳血栓回収術"},
+
+  {"id":"PR-URO-001","label":"経尿道的結石破砕術（TUL）"},
+  {"id":"PR-URO-002","label":"腎瘻造設術"},
+
+  {"id":"PR-RESP-001","label":"気管支ステント留置術"},
+  {"id":"PR-RESP-002","label":"胸腔ドレナージ"}
 ]
