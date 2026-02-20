@@ -1195,7 +1195,7 @@ function renderApprovalDetail(item){
     const chk = runBillingChecks(m, item.materials);
     let statusHtml = "";
     let checksHtml = "";
-    const secRef = chk.sectionId ? ` <span style="color:#6b7280;font-size:10px;">[${chk.sectionId}]</span>` : "";
+    const secRef = chk.sectionId ? ` <span style="color:#4b5563;font-size:11px;">[${chk.sectionId}]</span>` : "";
     const noteWarn = chk.requiresNote ? `<span style="color:#d97706;font-size:11px;margin-left:6px;">&#9888; 摘要欄記載要</span>` : "";
 
     if (chk.overall === "ok") {
@@ -1207,7 +1207,7 @@ function renderApprovalDetail(item){
     } else if (chk.overall === "confirm") {
       statusHtml = `<div style="color:#2563eb;font-size:12px;font-weight:700;margin-top:2px;">&#9432; 条件確認${secRef}</div>`;
     } else {
-      statusHtml = `<div style="color:#6b7280;font-size:12px;margin-top:2px;">&#x2014; マスタ未登録</div>`;
+      statusHtml = `<div style="color:#4b5563;font-size:12px;margin-top:2px;">&#x2014; マスタ未登録</div>`;
     }
 
     // 各チェック結果ごとにUI表示
@@ -1237,7 +1237,7 @@ function renderApprovalDetail(item){
           <option value="bill"${curDec==="bill"?" selected":""}>請求する</option>
           <option value="no_bill"${curDec==="no_bill"?" selected":""}>請求しない</option>
         </select>
-        <input type="text" data-billing-chk-note="${idx}-${ci}" value="${(curNote||"").replace(/"/g,"&quot;")}" placeholder="理由（必要時）" style="width:100%;margin-top:3px;padding:5px;border:1px solid #ddd;border-radius:6px;font-size:12px;box-sizing:border-box;">
+        <input type="text" data-billing-chk-note="${idx}-${ci}" value="${(curNote||"").replace(/"/g,"&quot;")}" placeholder="理由（必要時）" aria-label="算定判断の理由" style="width:100%;margin-top:3px;padding:5px;border:1px solid #ddd;border-radius:6px;font-size:12px;box-sizing:border-box;">
       </div>`;
     }).join("");
 
@@ -1404,7 +1404,9 @@ function screenFieldStep(step){
     ${stepLabels.map((l,i)=>{
       const n = i+1;
       const cls = n < step ? "done" : n === step ? "active" : "";
-      return `<div class="step-item ${cls}" aria-current="${n===step?"step":"false"}"><span class="step-num">${n}</span><span class="step-label">${l}</span></div>`;
+      const lineCls = n < step ? "done" : "";
+      const dot = `<div class="step-dot ${cls}" aria-current="${n===step?"step":""}" title="${l}">${n}</div>`;
+      return i === 0 ? dot : `<div class="step-line ${lineCls}"></div>${dot}`;
     }).join("")}
   </nav>`;
 

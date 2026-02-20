@@ -1,5 +1,5 @@
 /* Service Worker for LinQ VAL PWA */
-const CACHE_NAME = "linqval-v8";
+const CACHE_NAME = "linqval-v9";
 
 /* Core files to cache for offline use */
 const CORE_ASSETS = [
