@@ -1113,10 +1113,10 @@ function screenDoctorLogin(){
       <div class="h1">医師ログイン</div>
       <div class="muted">診療科 → 医師（ID）を選択</div>
       <div class="divider"></div>
-      <div class="h2">診療科</div>
+      <label class="h2" for="doc_dept_sel">診療科</label>
       <select class="select" id="doc_dept_sel">${deptOptions}</select>
       <div class="divider"></div>
-      <div class="h2">医師</div>
+      <label class="h2" for="doc_id_sel">医師</label>
       <select class="select" id="doc_id_sel">${docOptions}</select>
       <div class="divider"></div>
       ${btn("開始","doc_login_go","primary")}
@@ -1158,7 +1158,7 @@ function screenDoctorApprovals(){
       : "";
     return `<div class="listItem">
       <div style="display:flex;gap:12px;align-items:center;">
-        <input class="check" type="checkbox" data-chk="${x.id}">
+        <input class="check" type="checkbox" data-chk="${x.id}" aria-label="${patientLabel(x.patientId)} の承認を選択">
         <div style="min-width:0;">
           <b>${patientLabel(x.patientId)}</b>
           <div class="muted">${procedureLabel(x.procedureId)} / ${operatorLabel(x.operatorId)}</div>
@@ -1174,7 +1174,7 @@ function screenDoctorApprovals(){
     <div class="grid">
       <div class="card">
         <div class="h1">承認</div><div class="divider"></div>
-        <div class="h2">一括コメント（任意）</div>
+        <label class="h2" for="bulk_comment">一括コメント（任意）</label>
         <textarea id="bulk_comment"></textarea>
         <div class="divider"></div>
         <div class="grid">${list}</div>
@@ -1253,7 +1253,7 @@ function renderApprovalDetail(item){
     <div class="h2">材料</div>
     <div class="grid">${mats}</div>
     <div class="divider"></div>
-    <div class="h2">コメント</div>
+    <label class="h2" for="doctor_comment">コメント</label>
     <textarea id="doctor_comment"></textarea>
     <div class="divider"></div>
     <div class="row">
@@ -1399,16 +1399,25 @@ function screenFieldStep(step){
   ensureScanCtx();
   scanCtx.step = step;
 
+  const stepLabels = ["入力者","患者","手技","スキャン","確認"];
+  const stepProgress = `<nav class="step-progress" aria-label="スキャンフロー進捗">
+    ${stepLabels.map((l,i)=>{
+      const n = i+1;
+      const cls = n < step ? "done" : n === step ? "active" : "";
+      return `<div class="step-item ${cls}" aria-current="${n===step?"step":"false"}"><span class="step-num">${n}</span><span class="step-label">${l}</span></div>`;
+    }).join("")}
+  </nav>`;
+
   const saveBar = `
     <div class="row">
       <button class="btn ghost" id="save_draft_any">💾 下書き</button>
-      <button class="btn ghost" id="cancel_flow">✖ 中止</button>
+      <button class="btn ghost" id="cancel_flow" aria-label="スキャンフローを中止">✖ 中止</button>
     </div>`;
 
   if (step===1){
-    return `<div class="grid"><div class="card">
+    return `<div class="grid">${stepProgress}<div class="card">
       <div class="h1">入力者</div><div class="divider"></div>
-      <select class="select" id="op_select">
+      <select class="select" id="op_select" aria-label="入力者を選択">
         <option value="">選択</option>
         ${OPERATORS.map(o=>`<option value="${o.id}" ${scanCtx.operatorId===o.id?"selected":""}>${o.label}</option>`).join("")}
       </select>
@@ -1417,9 +1426,9 @@ function screenFieldStep(step){
     </div></div>`;
   }
   if (step===2){
-    return `<div class="grid"><div class="card">
+    return `<div class="grid">${stepProgress}<div class="card">
       <div class="h1">患者</div><div class="divider"></div>
-      <select class="select" id="pt_select">
+      <select class="select" id="pt_select" aria-label="患者を選択">
         <option value="">選択</option>
         ${PATIENTS.map(p=>`<option value="${p.id}" ${scanCtx.patientId===p.id?"selected":""}>${p.label}</option>`).join("")}
       </select>
@@ -1428,7 +1437,7 @@ function screenFieldStep(step){
     </div></div>`;
   }
   if (step===3){
-    return `<div class="grid"><div class="card">
+    return `<div class="grid">${stepProgress}<div class="card">
       <div class="h1">手技</div>
       <div class="muted">材料からおすすめを表示（⭐）</div>
       <div class="divider"></div>
@@ -1437,7 +1446,7 @@ function screenFieldStep(step){
       <div id="suggestProcHost3"></div>
 
       <div class="divider"></div>
-      <select class="select" id="proc_select">
+      <select class="select" id="proc_select" aria-label="手技を選択">
         <option value="">選択</option>
         ${PROCEDURES.map(p=>`<option value="${p.id}" ${scanCtx.procedureId===p.id?"selected":""}>${p.label}</option>`).join("")}
       </select>
@@ -1447,7 +1456,7 @@ function screenFieldStep(step){
     </div></div>`;
   }
   if (step===4){
-    return `<div class="grid"><div class="card">
+    return `<div class="grid">${stepProgress}<div class="card">
       <div class="h1">材料</div><div class="divider"></div>
       <div class="videoBox" id="scannerTarget"></div>
       <div class="divider"></div>
@@ -1463,7 +1472,7 @@ function screenFieldStep(step){
   }
 
   // confirm (step 5)
-  return `<div class="grid"><div class="card">
+  return `<div class="grid">${stepProgress}<div class="card">
     <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;">
       <div>
         <div class="h1">確定</div>
@@ -1477,21 +1486,21 @@ function screenFieldStep(step){
     <div id="suggestProcHost5"></div>
 
     <div class="divider"></div>
-    <div class="h2">入力者</div>
+    <label class="h2" for="op_select2">入力者</label>
     <select class="select" id="op_select2">
       <option value="">未選択</option>
       ${OPERATORS.map(o=>`<option value="${o.id}" ${scanCtx.operatorId===o.id?"selected":""}>${o.label}</option>`).join("")}
     </select>
 
     <div class="divider"></div>
-    <div class="h2">患者</div>
+    <label class="h2" for="pt_select2">患者</label>
     <select class="select" id="pt_select2">
       <option value="">未選択</option>
       ${PATIENTS.map(p=>`<option value="${p.id}" ${scanCtx.patientId===p.id?"selected":""}>${p.label}</option>`).join("")}
     </select>
 
     <div class="divider"></div>
-    <div class="h2">手技</div>
+    <label class="h2" for="proc_select2">手技</label>
     <select class="select" id="proc_select2">
       <option value="">未選択</option>
       ${PROCEDURES.map(p=>`<option value="${p.id}" ${scanCtx.procedureId===p.id?"selected":""}>${p.label}</option>`).join("")}
@@ -1538,7 +1547,7 @@ function screenApproverSelect(){
     <div class="muted">承認者を選択（診療科で絞り込み／最近使った順）</div>
     <div class="divider"></div>
 
-    <div class="h2">診療科</div>
+    <label class="h2" for="approver_dept">診療科</label>
     <select class="select" id="approver_dept">${deptOptions}</select>
 
     <div class="divider"></div>
@@ -1546,7 +1555,7 @@ function screenApproverSelect(){
     <div class="grid" style="gap:10px;">${recentTop || `<div class="muted">最近の選択なし</div>`}</div>
 
     <div class="divider"></div>
-    <div class="h2">承認者</div>
+    <label class="h2" for="approver_select">承認者</label>
     <select class="select" id="approver_select">
       <option value="">未選択</option>
       ${options}
@@ -1597,7 +1606,7 @@ function screenBillingReqList(){
   return `<div class="grid"><div class="card">
     <div class="h1">算定要件マスタ</div>
     <div class="muted" style="margin-bottom:12px;">材料の算定要件チェックルールを管理します</div>
-    <input class="input" id="reqSearchInput" placeholder="材料名で検索..." style="margin-bottom:10px;">
+    <input class="input" id="reqSearchInput" placeholder="材料名で検索..." aria-label="材料名で検索" style="margin-bottom:10px;">
     <div class="row" style="margin-bottom:12px;">
       ${btn("➕ 新規追加","go_bill_req_new","primary")}
       ${btn("🔄 初期状態に戻す","go_bill_req_reset","ghost")}
@@ -1782,11 +1791,11 @@ function screenBillingList(kind){
       <div class="divider"></div>
       <div class="grid" style="gap:10px;">
         <div>
-          <div class="h2">承認者</div>
+          <label class="h2" for="bill_filter_approver">承認者</label>
           <select class="select" id="bill_filter_approver">${approverOptions}</select>
         </div>
         <div>
-          <div class="h2">承認日時</div>
+          <label class="h2" for="bill_filter_approvedat">承認日時</label>
           <select class="select" id="bill_filter_approvedat">${dateOptions}</select>
         </div>
       </div>
@@ -1796,7 +1805,7 @@ function screenBillingList(kind){
         <div class="h2">一括承認（最終手段）</div>
         <div class="muted">点検済みのものを医事でまとめて承認</div>
         <div style="height:8px;"></div>
-        <div class="h2">承認者</div>
+        <label class="h2" for="bill_bulk_approver">承認者</label>
         <select class="select" id="bill_bulk_approver">${bulkApproverOptions}</select>
         <div style="height:10px;"></div>
         ${btn("✅ 選択を一括承認","bill_bulk_approve","primary")}
@@ -2245,7 +2254,7 @@ function screenUkeReconciliation(){
 
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
         <div>
-          <div class="h2">対象期間</div>
+          <label class="h2" for="uke_period">対象期間</label>
           <select class="select" id="uke_period">
             <option value="TODAY">今日</option>
             <option value="7D">直近7日</option>
@@ -2255,16 +2264,16 @@ function screenUkeReconciliation(){
           </select>
         </div>
         <div>
-          <div class="h2">診療科</div>
+          <label class="h2" for="uke_dept">診療科</label>
           <select class="select" id="uke_dept">${deptOpts}</select>
         </div>
       </div>
       <div style="height:6px;"></div>
       <div class="muted" style="font-size:12px;">カスタム期間</div>
       <div style="display:flex;gap:8px;margin-top:4px;">
-        <input type="date" class="input" id="uke_from" style="font-size:15px;">
+        <input type="date" class="input" id="uke_from" aria-label="開始日" style="font-size:15px;">
         <span style="align-self:center;">〜</span>
-        <input type="date" class="input" id="uke_to" style="font-size:15px;">
+        <input type="date" class="input" id="uke_to" aria-label="終了日" style="font-size:15px;">
       </div>
       <div style="height:6px;"></div>
       ${btn("カスタム期間で絞り込み","uke_custom_apply","ghost")}
@@ -2687,9 +2696,9 @@ function paintMatList(){
     const left = `<b>${m.product_name||"(不明)"} ×${qty}</b><div class="muted">${tokuteiDisplay(m.tokutei01_name)}</div>`;
     const right = `
       <span class="tag">${m.dict_status||""}</span>
-      <button class="btn small ghost" data-dec="${m.id}">−</button>
-      <button class="btn small ghost" data-one="${m.id}">🗑</button>
-      <button class="btn small ghost" data-all="${m.id}">✖</button>
+      <button class="btn small ghost" data-dec="${m.id}" aria-label="数量を減らす">−</button>
+      <button class="btn small ghost" data-one="${m.id}" aria-label="1つ削除">🗑</button>
+      <button class="btn small ghost" data-all="${m.id}" aria-label="すべて削除">✖</button>
     `;
     return listItem(left, right);
   }).join("") || `<div class="muted">材料なし</div>`;
@@ -2716,9 +2725,9 @@ function paintConfirmList(){
     const qty = Number(m.qty||1);
     const left = `<b>${m.product_name||"(不明)"} ×${qty}</b><div class="muted">${tokuteiDisplay(m.tokutei01_name)}</div>`;
     const right = `
-      <button class="btn small ghost" data-cdec="${m.id}">−</button>
-      <button class="btn small ghost" data-cone="${m.id}">🗑</button>
-      <button class="btn small ghost" data-call="${m.id}">✖</button>
+      <button class="btn small ghost" data-cdec="${m.id}" aria-label="数量を減らす">−</button>
+      <button class="btn small ghost" data-cone="${m.id}" aria-label="1つ削除">🗑</button>
+      <button class="btn small ghost" data-call="${m.id}" aria-label="すべて削除">✖</button>
     `;
     return listItem(left, right);
   }).join("") || `<div class="muted">材料なし</div>`;
@@ -2790,6 +2799,30 @@ function render(){
 
   const v = view();
   const app = $("#app");
+
+  // 画面に応じてブラウザタブのタイトルを更新
+  const titleMap = {
+    "/role":"職種選択",
+    "/doctor/login":"医師ログイン",
+    "/doctor/approvals":"承認一覧",
+    "/doctor/docs":"Docs",
+    "/field/scan/step/1":"スキャン: 入力者",
+    "/field/scan/step/2":"スキャン: 患者",
+    "/field/scan/step/3":"スキャン: 手技",
+    "/field/scan/step/4":"スキャン: 材料",
+    "/field/scan/step/5":"スキャン: 確認",
+    "/field/approver":"承認者選択",
+    "/field/drafts":"下書き一覧",
+    "/field/done":"実施済み一覧",
+    "/field/dashboard":"ダッシュボード",
+    "/billing/done":"承認済み",
+    "/billing/pending":"承認待ち",
+    "/billing/uke":"UKE突合",
+    "/billing/requirements":"算定要件マスタ",
+    "/billing/dashboard":"ダッシュボード",
+  };
+  const pageTitle = titleMap[v] || (role==="doctor"?"医師ホーム":role==="field"?"実施入力":role==="billing"?"医事ホーム":"LinQ VAL");
+  document.title = `${pageTitle} - LinQ VAL`;
 
   if (!v.startsWith("/field/scan/step/4")) stopScannerIfAny();
 
@@ -3187,6 +3220,7 @@ if (!role || v === "/role"){
           if (delBtn){
             delBtn.onclick=()=>{
               if (item.status !== "pending"){ toastShow({title:"削除不可", sub:"承認済み"}); return; }
+              if (!confirm("この実施記録を削除しますか？この操作は元に戻せません。")) return;
               pushHistory(item, { at: iso(), actor: operatorLabel(item.operatorId), type:"削除", changes:["データ削除"] });
               state.done = state.done.filter(x=>x.id!==item.id);
               save();
@@ -3743,7 +3777,7 @@ if (!role || v === "/role"){
           if (kind==="pending"){
             return `<div class="listItem">
               <div style="display:flex;gap:12px;align-items:center;">
-                <input class="check" type="checkbox" data-bchk="${x.id}">
+                <input class="check" type="checkbox" data-bchk="${x.id}" aria-label="承認待ちレコードを選択">
                 <div style="flex:1;min-width:0;" data-openbill="${x.id}">${row}</div>
               </div>
             </div>`;
